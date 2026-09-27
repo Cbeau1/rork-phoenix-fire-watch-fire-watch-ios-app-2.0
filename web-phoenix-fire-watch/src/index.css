@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ember Command design system — see .rork/DESIGN.md. All shadcn tokens are HSL. */
+
+@layer base {
+  :root {
+    --background: 240 4% 5%;
+    --foreground: 220 7% 92%;
+
+    --card: 220 6% 10%;
+    --card-foreground: 220 7% 92%;
+
+    --popover: 220 6% 10%;
+    --popover-foreground: 220 7% 92%;
+
+    --primary: 0 72% 51%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 225 6% 12%;
+    --secondary-foreground: 220 7% 92%;
+
+    --muted: 225 6% 12%;
+    --muted-foreground: 220 5% 62%;
+
+    --accent: 225 6% 12%;
+    --accent-foreground: 220 7% 92%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 225 5% 15%;
+    --input: 225 5% 15%;
+    --ring: 0 72% 51%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 210 7% 6%;
+    --sidebar-foreground: 220 5% 62%;
+    --sidebar-primary: 0 72% 51%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 6% 12%;
+    --sidebar-accent-foreground: 220 7% 92%;
+    --sidebar-border: 225 5% 15%;
+    --sidebar-ring: 0 72% 51%;
+
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(220, 38, 38, 0.35);
+    color: #fff;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #232427;
+    border-radius: 999px;
+    border: 2px solid #0b0b0c;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2e3034;
+  }
+
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.75);
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .canvas-glow {
+    background:
+      radial-gradient(900px 480px at 100% -10%, rgba(220, 38, 38, 0.06), transparent 60%),
+      radial-gradient(700px 420px at 0% 110%, rgba(198, 201, 206, 0.025), transparent 60%),
+      #0b0b0c;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+  }
+}
+
+@layer components {
+  .legal-prose {
+    @apply text-[15px] leading-7 text-ink-2;
+  }
+  .legal-prose h2 {
+    @apply mb-3 mt-10 font-display text-xl font-bold text-ink first:mt-0;
+  }
+  .legal-prose h3 {
+    @apply mb-2 mt-6 text-base font-semibold text-ink;
+  }
+  .legal-prose p {
+    @apply my-3;
+  }
+  .legal-prose ul {
+    @apply my-3 list-disc space-y-1.5 pl-6 marker:text-ember;
+  }
+  .legal-prose a {
+    @apply text-ember underline-offset-2 hover:underline;
+  }
+  .legal-prose strong {
+    @apply font-semibold text-ink;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

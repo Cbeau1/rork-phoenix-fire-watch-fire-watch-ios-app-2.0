@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /properties/
+Disallow: /patrols
+Disallow: /notes
+Disallow: /team
+Disallow: /account
+
+Sitemap: https://oztxiyqp27gn6fu308my6-web-phoenix-fire-watch.rork.live/sitemap.xml
