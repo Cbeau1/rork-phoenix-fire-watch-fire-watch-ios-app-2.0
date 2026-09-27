@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Expose both VITE_* (Vite default) and EXPO_PUBLIC_* (Rork's cross-platform
-  // public-env convention, written by tools like getOrCreateAuthConfig).
+  // Expose both VITE_ (Vite default) and EXPO_PUBLIC_ (cross-platform public env)
+  // prefixes so config can be shared across web and native builds.
   envPrefix: ["VITE_", "EXPO_PUBLIC_"],
 }));

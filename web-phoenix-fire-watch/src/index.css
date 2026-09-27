@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ember Command design system — see .rork/DESIGN.md. All shadcn tokens are HSL. */
+/* Ember Command design system. All shadcn tokens are HSL. */
 
 @layer base {
   :root {
