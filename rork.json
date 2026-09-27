@@ -10,6 +10,11 @@
       "name": "Backend",
       "path": "backend",
       "framework": "supabase"
+    },
+    {
+      "name": "Phoenix Fire Watch",
+      "path": "ios-phoenix-fire-watch",
+      "framework": "swift"
     }
   ]
 }
