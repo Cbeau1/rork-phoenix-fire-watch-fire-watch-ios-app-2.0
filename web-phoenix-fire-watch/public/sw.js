@@ -1,5 +1,5 @@
 /* Phoenix Fire Watch service worker — keeps the app usable without a connection. */
-const VERSION = "pfw-v3";
+const VERSION = "pfw-v4";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const SHELL = [
