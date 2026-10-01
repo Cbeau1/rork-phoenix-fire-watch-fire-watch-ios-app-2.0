@@ -23,6 +23,7 @@ import LogPatrol from "./pages/LogPatrol";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Properties from "./pages/Properties";
+import Schedule from "./pages/Schedule";
 import PropertyDetail from "./pages/PropertyDetail";
 import PropertyForm from "./pages/PropertyForm";
 import SignIn from "./pages/SignIn";
@@ -40,7 +41,7 @@ const queryClient = new QueryClient({
 });
 
 /** Only persist plain, successful data queries (signed photo URLs are short-lived Maps). */
-const PERSISTED_KEYS = new Set<string>(["profile", "properties", "patrols", "notes", "members"]);
+const PERSISTED_KEYS = new Set<string>(["profile", "properties", "patrols", "notes", "members", "staff", "shifts"]);
 
 const Splash = () => (
   <div className="canvas-glow flex min-h-screen flex-col items-center justify-center gap-8">
@@ -121,6 +122,7 @@ const AppRoutes = () => {
         <Route path="/properties/:id/edit" element={<PropertyForm />} />
         <Route path="/properties/:id/log" element={<LogPatrol />} />
         <Route path="/notes" element={<WatchNotes />} />
+        <Route path="/schedule" element={<Schedule />} />
         <Route path="/team" element={<Team />} />
         <Route path="/account" element={<Account />} />
         <Route path="*" element={<NotFound embedded />} />

@@ -1,4 +1,4 @@
-import { AlarmClock, Building2, FileText, LayoutGrid, LogOut, Menu, UserCog, Users } from "lucide-react";
+import { AlarmClock, Building2, CalendarDays, FileText, LayoutGrid, LogOut, Menu, UserCog, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -16,6 +16,7 @@ import { SyncStatus } from "./SyncStatus";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutGrid, match: (p: string) => p === "/" || p.startsWith("/patrols") },
   { to: "/properties", label: "Properties", icon: Building2, match: (p: string) => p.startsWith("/properties") },
+  { to: "/schedule", label: "Schedule", icon: CalendarDays, match: (p: string) => p.startsWith("/schedule") },
   { to: "/notes", label: "Watch Notes", icon: FileText, match: (p: string) => p.startsWith("/notes") },
 ];
 

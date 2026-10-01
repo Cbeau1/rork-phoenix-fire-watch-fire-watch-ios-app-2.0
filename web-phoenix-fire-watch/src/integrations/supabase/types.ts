@@ -219,6 +219,156 @@ export type Database = {
           },
         ]
       }
+      shift_payments: {
+        Row: {
+          org_id: string
+          paid_at: string
+          paid_by: string | null
+          shift_id: string
+        }
+        Insert: {
+          org_id?: string
+          paid_at?: string
+          paid_by?: string | null
+          shift_id: string
+        }
+        Update: {
+          org_id?: string
+          paid_at?: string
+          paid_by?: string | null
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_payments_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_payments_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: true
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_time: string
+          id: string
+          notes: string
+          org_id: string
+          property_id: string
+          shift_date: string
+          staff_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_time: string
+          id?: string
+          notes?: string
+          org_id?: string
+          property_id: string
+          shift_date: string
+          staff_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_time?: string
+          id?: string
+          notes?: string
+          org_id?: string
+          property_id?: string
+          shift_date?: string
+          staff_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          org_id?: string
+          profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_notes: {
         Row: {
           author_id: string | null
