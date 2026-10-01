@@ -21,7 +21,7 @@ struct DashboardView: View {
                     if !timers.activePropertyIds.isEmpty {
                         activeTimers
                     }
-                    stats
+                    sites
                     recentPatrols
                     notesPreview
                 }
@@ -120,15 +120,48 @@ struct DashboardView: View {
         .fwCard(padding: 12, border: color.opacity(0.35))
     }
 
-    private var stats: some View {
-        let s = PatrolStats(store.patrols)
-        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            StatTile(label: "Total Patrols", value: s.total, color: .fwEmber, symbol: "figure.walk")
-            StatTile(label: "This Month", value: s.thisMonth, color: .fwSilver, symbol: "calendar")
-            StatTile(label: "Clear", value: s.clear, color: .fwClear, symbol: "checkmark.shield.fill")
-            StatTile(label: "Incidents", value: s.incidents, color: .fwIncident, symbol: "exclamationmark.triangle.fill")
+    private var sites: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sites").font(.system(.title3, weight: .bold)).foregroundStyle(Color.fwInk)
+                Text("\(store.properties.count) \(store.properties.count == 1 ? "site" : "sites") available · tap to open")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.fwInk2)
+            }
+            if store.properties.isEmpty {
+                VStack(spacing: 12) {
+                    EmptyStateView(symbol: "building.2", title: "No sites yet", message: "Add your first monitored location to start logging fire watch patrols.")
+                    Button("Add Property") { showNewProperty = true }
+                        .buttonStyle(EmberButtonStyle())
+                }
+                .fwCard()
+            } else {
+                let latest = latestPatrolBySite
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    LazyVStack(spacing: 12) {
+                        ForEach(store.properties) { property in
+                            SiteCardView(
+                                property: property,
+                                lastPatrol: latest[property.id],
+                                schedule: timers.isOn(property.id) ? timers.schedule(for: property, patrols: store.patrols, now: context.date) : nil,
+                                now: context.date,
+                                onOpen: { path.append(.property(property.id)) },
+                                onLog: { router.openLogPatrol(propertyId: property.id) }
+                            )
+                        }
+                    }
+                }
+            }
         }
-        .animation(.spring, value: s.total)
+    }
+
+    private var latestPatrolBySite: [String: Patrol] {
+        var map: [String: Patrol] = [:]
+        for patrol in store.patrols {
+            if let existing = map[patrol.propertyId], existing.dateTime >= patrol.dateTime { continue }
+            map[patrol.propertyId] = patrol
+        }
+        return map
     }
 
     private var recentPatrols: some View {
