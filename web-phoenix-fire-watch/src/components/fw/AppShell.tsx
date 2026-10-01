@@ -29,7 +29,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const items = isAdmin ? [...NAV, TEAM_NAV, ACCOUNT_NAV] : [...NAV, ACCOUNT_NAV];
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-full flex-col">
       <div className="px-6 pb-6 pt-8">
         <Crest />
         {user?.orgName && (
@@ -138,27 +138,33 @@ export const AppShell = () => {
   return (
     <div className="canvas-glow min-h-screen">
       <PatrolTimerAlerts />
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[268px] border-r border-line bg-rail lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[268px] overflow-y-auto border-r border-line bg-rail lg:block">
         <SidebarContent />
       </aside>
 
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-line bg-rail/90 px-4 backdrop-blur lg:hidden">
-        <Crest size="sm" />
-        <div className="flex items-center gap-2">
-          <SyncStatus compact />
-          <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open navigation"
-          className="focus-ring flex h-10 w-10 items-center justify-center rounded-lg text-ink-2 hover:bg-raised hover:text-ink"
-        >
-          <Menu className="h-5 w-5" />
-          </button>
+      {/* Safe-area padding keeps the bar below the status bar / notch when installed to the home screen. */}
+      <header className="sticky top-0 z-30 border-b border-line bg-rail/90 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
+        <div className="flex h-16 items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
+          <Crest size="sm" />
+          <div className="flex items-center gap-2">
+            <SyncStatus compact />
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-label="Open navigation"
+              className="focus-ring flex h-11 w-11 items-center justify-center rounded-lg text-ink-2 hover:bg-raised hover:text-ink"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </header>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-[280px] border-line bg-rail p-0 text-ink">
+        <SheetContent
+          side="left"
+          className="w-[280px] overflow-y-auto overscroll-contain border-line bg-rail p-0 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pt-[env(safe-area-inset-top)] text-ink"
+        >
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SidebarContent onNavigate={() => setOpen(false)} />
         </SheetContent>
