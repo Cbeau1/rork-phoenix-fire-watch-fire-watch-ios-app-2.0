@@ -32,7 +32,7 @@ const AcceptTerms = () => {
   };
 
   return (
-    <div className="canvas-glow flex min-h-screen items-center justify-center px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
+    <div className="canvas-glow flex min-h-screen items-center justify-center px-4 pb-[max(2.5rem,var(--safe-bottom))] pt-[max(2.5rem,var(--safe-top))]">
       <div className="w-full max-w-md animate-fade-up">
         <Crest size="lg" className="mb-8" />
         <div className="rounded-2xl border border-line bg-surface p-7 sm:p-8">

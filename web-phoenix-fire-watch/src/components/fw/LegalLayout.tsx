@@ -29,7 +29,7 @@ export const LegalLayout = ({
   useDocumentTitle(title, description);
   return (
     <div className="canvas-glow min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-line bg-rail/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-line bg-rail/90 pt-[var(--safe-top)] backdrop-blur">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-5">
           <Link to="/" className="focus-ring rounded" aria-label={`${LEGAL.appName} home`}>
             <Crest size="sm" />

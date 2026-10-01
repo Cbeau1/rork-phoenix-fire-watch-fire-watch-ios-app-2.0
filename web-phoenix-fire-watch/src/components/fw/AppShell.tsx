@@ -143,7 +143,7 @@ export const AppShell = () => {
       </aside>
 
       {/* Safe-area padding keeps the bar below the status bar / notch when installed to the home screen. */}
-      <header className="sticky top-0 z-30 border-b border-line bg-rail/90 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 border-b border-line bg-rail/90 pt-[var(--safe-top)] backdrop-blur lg:hidden">
         <div className="flex h-16 items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
           <Crest size="sm" />
           <div className="flex items-center gap-2">
@@ -163,7 +163,7 @@ export const AppShell = () => {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="left"
-          className="w-[280px] overflow-y-auto overscroll-contain border-line bg-rail p-0 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pt-[env(safe-area-inset-top)] text-ink"
+          className="w-[280px] overflow-y-auto overscroll-contain border-line bg-rail p-0 pb-[var(--safe-bottom)] pl-[env(safe-area-inset-left)] pt-[var(--safe-top)] text-ink"
         >
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SidebarContent onNavigate={() => setOpen(false)} />

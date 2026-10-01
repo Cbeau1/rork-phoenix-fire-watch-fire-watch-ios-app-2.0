@@ -153,7 +153,7 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
         />
         <div className={cn("pointer-events-none absolute inset-0 bg-white transition-opacity duration-150", flash ? "opacity-80" : "opacity-0")} />
 
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pb-10 pt-[max(1rem,var(--safe-top))]">
           <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white ring-1 ring-white/15">
             <span className={cn("h-2 w-2 rounded-full", state === "live" ? "animate-ember-pulse bg-status-incident" : "bg-ink-3")} />
             {state === "live" ? "LIVE · photos are time-stamped" : "Camera"}
@@ -195,7 +195,7 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-6 bg-black px-8 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5">
+      <div className="flex items-center justify-between gap-6 bg-black px-8 pb-[max(1.5rem,var(--safe-bottom))] pt-5">
         <div className="h-14 w-14 overflow-hidden rounded-lg ring-1 ring-white/20">
           {lastShot && <img src={lastShot} alt="Last photo taken" className="h-full w-full animate-fade-up object-cover" />}
         </div>

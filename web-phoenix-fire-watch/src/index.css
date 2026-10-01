@@ -59,8 +59,27 @@
     @apply bg-canvas font-sans text-ink antialiased;
   }
 
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Full-screen phone contexts (home-screen app, device-frame previews) where content runs under
+     the status bar / camera cutout. Some WebViews report a 0 inset, so enforce a safe minimum. */
+  @media (display-mode: standalone) and (max-width: 1023px) {
+    :root {
+      --safe-top: max(env(safe-area-inset-top, 0px), 54px);
+      --safe-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+    }
+  }
+  html.fw-framed {
+    --safe-top: max(env(safe-area-inset-top, 0px), 54px);
+    --safe-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+  }
+
   body {
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   ::selection {

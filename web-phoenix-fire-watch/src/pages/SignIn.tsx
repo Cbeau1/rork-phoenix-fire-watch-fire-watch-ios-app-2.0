@@ -304,7 +304,7 @@ const SignIn = () => {
   };
 
   return (
-    <div className="canvas-glow relative flex min-h-screen items-center justify-center overflow-hidden px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(2.5rem,env(safe-area-inset-top))]">
+    <div className="canvas-glow relative flex min-h-screen items-center justify-center overflow-hidden px-4 pb-[max(2.5rem,var(--safe-bottom))] pt-[max(2.5rem,var(--safe-top))]">
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-1/3 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember/[0.07] blur-3xl"

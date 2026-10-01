@@ -176,7 +176,7 @@ export const ReportViewer = ({ open, title, subtitle, onClose, build, onDownload
   // Portaled to <body>: animated (transformed) page ancestors would otherwise trap this fixed overlay.
   return createPortal(
     <div className="fixed inset-0 z-50 flex h-[100dvh] animate-fade-up flex-col bg-[#060607]/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={title}>
-      <header className="flex items-center gap-3 border-b border-line bg-canvas px-3 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] sm:px-5">
+      <header className="flex items-center gap-3 border-b border-line bg-canvas px-3 py-2.5 pt-[max(0.625rem,var(--safe-top))] sm:px-5">
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close report" className="shrink-0 text-ink-2 hover:text-ink">
           <X />
         </Button>

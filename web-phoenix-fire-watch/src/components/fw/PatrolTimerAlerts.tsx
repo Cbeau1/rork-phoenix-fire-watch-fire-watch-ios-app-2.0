@@ -95,7 +95,7 @@ export const PatrolTimerAlerts = () => {
     <div
       role="alert"
       aria-live="assertive"
-      className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] lg:pl-[280px]"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 px-3 pt-[max(0.75rem,var(--safe-top))] lg:pl-[280px]"
     >
       {alerts.map((a) => {
         const s = scheduleFor(a.propertyId, now);

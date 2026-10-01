@@ -206,7 +206,7 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
             if (e.key === "ArrowLeft") step(-1);
           }}
         >
-          <div className="flex items-center justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 pt-[max(0.75rem,var(--safe-top))]">
             <div className="min-w-0 text-sm text-white">
               <div className="truncate font-medium">
                 {fullDateTime(patrol.dateTime)} · {meta.label}
