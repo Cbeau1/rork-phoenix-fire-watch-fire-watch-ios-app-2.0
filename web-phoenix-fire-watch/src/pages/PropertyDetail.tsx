@@ -229,6 +229,13 @@ const PropertyDetail = () => {
         }
       />
 
+      <Button asChild size="lg" className="-mt-2 h-14 w-full text-base sm:w-auto sm:min-w-[260px]">
+        <Link to={logPath}>
+          <Plus className="!h-5 !w-5" />
+          Log Patrol
+        </Link>
+      </Button>
+
       <PatrolTimerCard property={property} />
 
       <div className="mt-5 grid grid-cols-2 gap-4 lg:gap-5 xl:grid-cols-4">

@@ -1,19 +1,29 @@
-import { AlertTriangle, ArrowRight, Building2, CalendarDays, PersonStanding, Plus, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Building2, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PatrolRow } from "@/components/fw/PatrolRow";
-import { Card, CardHeader, EmptyState, PageHeader, StatCard } from "@/components/fw/primitives";
+import { Card, CardHeader, EmptyState, PageHeader } from "@/components/fw/primitives";
 import { QuickNoteDialog } from "@/components/fw/QuickNoteDialog";
+import { SiteCard } from "@/components/fw/SiteCard";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { timeAgo } from "@/lib/format";
-import { usePatrolStats, useFireWatch } from "@/state/FireWatchProvider";
+import type { Patrol } from "@/lib/types";
+import { useFireWatch } from "@/state/FireWatchProvider";
 
 const Dashboard = () => {
   useDocumentTitle("Dashboard");
-  const { patrols, notes, propertyById } = useFireWatch();
-  const stats = usePatrolStats(patrols);
+  const { properties, patrols, notes, propertyById } = useFireWatch();
+
+  const lastPatrolBySite = useMemo<Map<string, Patrol>>(() => {
+    const m = new Map<string, Patrol>();
+    for (const p of patrols) {
+      const prev = m.get(p.propertyId);
+      if (!prev || Date.parse(p.dateTime) > Date.parse(prev.dateTime)) m.set(p.propertyId, p);
+    }
+    return m;
+  }, [patrols]);
   const [noteOpen, setNoteOpen] = useState<boolean>(false);
   const recent = patrols.slice(0, 6);
   const recentNotes = notes.slice(0, 5);
@@ -41,18 +51,41 @@ const Dashboard = () => {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:gap-5 xl:grid-cols-4">
-        <StatCard label="Total Patrols" value={stats.total} icon={PersonStanding} dot="#DC2626" delay={0} />
-        <StatCard label="This Month" value={stats.thisMonth} icon={CalendarDays} dot="#DC2626" delay={60} />
-        <StatCard
-          label="Clear Status"
-          value={stats.clear}
-          icon={ShieldCheck}
-          dot="#22C55E"
-          delay={120}
-        />
-        <StatCard label="Incidents" value={stats.incidents} icon={AlertTriangle} dot="#DC2626" delay={180} />
-      </div>
+      <section aria-labelledby="sites-heading">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <h2 id="sites-heading" className="font-display text-xl font-bold text-ink sm:text-[22px]">
+              Sites
+            </h2>
+            <p className="mt-0.5 text-sm text-ink-2">
+              {properties.length} {properties.length === 1 ? "site" : "sites"} available · tap to open
+            </p>
+          </div>
+        </div>
+        {properties.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={Building2}
+              title="No sites yet"
+              description="Add your first monitored location to start logging fire watch patrols."
+              action={
+                <Button asChild>
+                  <Link to="/properties/new">
+                    <Plus />
+                    Add Property
+                  </Link>
+                </Button>
+              }
+            />
+          </Card>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2 lg:gap-5 xl:grid-cols-3">
+            {properties.map((p, i) => (
+              <SiteCard key={p.id} property={p} lastPatrol={lastPatrolBySite.get(p.id)} delay={Math.min(i, 8) * 50} />
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <Card className="flex min-h-[420px] flex-col">
