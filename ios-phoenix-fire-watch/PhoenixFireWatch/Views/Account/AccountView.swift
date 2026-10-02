@@ -10,12 +10,14 @@ struct AccountView: View {
     @State private var newPassword: String = ""
     @State private var showDelete: Bool = false
     @State private var confirmSignOut: Bool = false
+    @State private var showTeam: Bool = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     profileCard
+                    if auth.isAdmin { teamCard }
                     passwordCard
                     if auth.isAdmin { dataCard }
                     linksCard
@@ -39,6 +41,7 @@ struct AccountView: View {
             .navigationTitle("Account")
             .fwNavigationChrome()
             .sheet(isPresented: $showDelete) { DeleteAccountSheet() }
+            .navigationDestination(isPresented: $showTeam) { TeamView() }
             .confirmationDialog("Sign out with unsent changes?", isPresented: $confirmSignOut, titleVisibility: .visible) {
                 Button("Sign Out Anyway", role: .destructive) { Task { await auth.signOut() } }
             } message: {
@@ -87,6 +90,28 @@ struct AccountView: View {
             }
         }
         .fwCard()
+    }
+
+    private var teamCard: some View {
+        Button {
+            showTeam = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11).fill(Color.fwEmber.opacity(0.14)).frame(width: 44, height: 44)
+                    Image(systemName: "person.2.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(Color.fwEmber)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Team & Logins").font(.system(.headline, weight: .bold)).foregroundStyle(Color.fwInk)
+                    Text("Add officers, reset passwords, manage roles").font(.caption).foregroundStyle(Color.fwInk2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(Color.fwInk3)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(PressableStyle())
+        .fwCard(padding: 14)
     }
 
     private var passwordCard: some View {

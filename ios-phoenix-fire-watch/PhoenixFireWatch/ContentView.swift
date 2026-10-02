@@ -4,6 +4,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(AuthStore.self) private var auth
     @Environment(FireWatchStore.self) private var store
+    @Environment(ScheduleStore.self) private var schedule
     @Environment(PatrolTimerStore.self) private var timers
     @Environment(NetworkMonitor.self) private var network
 
@@ -18,9 +19,12 @@ struct ContentView: View {
         .onChange(of: auth.user, initial: true) { _, user in
             timers.configure(userId: user?.id)
             Task { await store.configure(for: user) }
+            Task { await schedule.configure(for: user) }
         }
         .onChange(of: network.isOnline, initial: true) { _, online in
             store.isOnline = online
+            schedule.isOnline = online
+            if online { Task { await schedule.refresh() } }
         }
     }
 

@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 enum AppTab: Hashable {
-    case dashboard, properties, notes, team, account
+    case dashboard, properties, schedule, notes, account
 }
 
 enum Route: Hashable {

@@ -1,7 +1,7 @@
 import Supabase
 import SwiftUI
 
-/// Admin-only: organization name and employee logins.
+/// Admin-only: organization name and employee logins. Pushed from the Account tab.
 struct TeamView: View {
     @Environment(AuthStore.self) private var auth
     @Environment(AppRouter.self) private var router
@@ -24,7 +24,7 @@ struct TeamView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        Group {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     orgCard
@@ -54,6 +54,7 @@ struct TeamView: View {
             .refreshable { await load() }
             .background(CanvasBackground())
             .navigationTitle("Team")
+            .navigationBarTitleDisplayMode(.inline)
             .fwNavigationChrome()
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {

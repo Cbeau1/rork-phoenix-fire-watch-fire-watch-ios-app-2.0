@@ -4,6 +4,7 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(AuthStore.self) private var auth
     @Environment(FireWatchStore.self) private var store
+    @Environment(ScheduleStore.self) private var schedule
     @Environment(PatrolTimerStore.self) private var timers
     @Environment(AppRouter.self) private var router
     @Environment(\.scenePhase) private var scenePhase
@@ -17,15 +18,13 @@ struct MainTabView: View {
             Tab("Properties", systemImage: "building.2.fill", value: AppTab.properties) {
                 PropertiesView()
             }
+            Tab("Schedule", systemImage: "calendar", value: AppTab.schedule) {
+                ScheduleView()
+            }
             Tab("Notes", systemImage: "note.text", value: AppTab.notes) {
                 WatchNotesView()
             }
             .badge(store.notes.count)
-            if auth.isAdmin {
-                Tab("Team", systemImage: "person.2.fill", value: AppTab.team) {
-                    TeamView()
-                }
-            }
             Tab("Account", systemImage: "person.crop.circle", value: AppTab.account) {
                 AccountView()
             }
@@ -62,11 +61,9 @@ struct MainTabView: View {
                 await timers.refreshNotificationStatus()
                 await store.flush()
                 await store.refresh()
+                await schedule.refresh()
             }
             timers.reschedule(properties: store.properties, patrols: store.patrols)
-        }
-        .onChange(of: auth.isAdmin) { _, isAdmin in
-            if !isAdmin && router.selectedTab == .team { router.selectedTab = .dashboard }
         }
     }
 
