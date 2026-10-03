@@ -105,7 +105,7 @@ const WatchNotes = () => {
                       </span>
                     )}
                   </div>
-                  <p className="mt-1.5 whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{n.content}</p>
+                  <p className="mt-2 whitespace-pre-wrap rounded-lg border border-line bg-raised px-4 py-3 text-[15px] leading-relaxed text-ink">{n.content}</p>
                 </div>
                 <button
                   type="button"

@@ -66,7 +66,13 @@ struct WatchNotesView: View {
     private func noteCard(_ note: WatchNote) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(note.content).font(.subheadline).foregroundStyle(Color.fwInk)
+                Text(note.content)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.fwInk)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(Color.fwRaised, in: .rect(cornerRadius: 11))
+                    .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(Color.fwLine, lineWidth: 1) }
                 HStack(spacing: 6) {
                     Text(note.authorName).font(.system(.caption, weight: .semibold)).foregroundStyle(Color.fwInk2)
                     Text("· \(Fmt.relative(note.createdAt))").font(.caption).foregroundStyle(Color.fwInk3)
