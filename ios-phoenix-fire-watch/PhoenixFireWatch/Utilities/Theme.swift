@@ -12,10 +12,10 @@ extension Color {
     }
 
     // "Ember Command" palette — see .rork/DESIGN.md
-    nonisolated static let fwCanvas = Color(hex: 0x2A2E35)
-    nonisolated static let fwRail = Color(hex: 0x24282E)
+    nonisolated static let fwCanvas = Color(hex: 0x23272D)
+    nonisolated static let fwRail = Color(hex: 0x1D2126)
     nonisolated static let fwSurface = Color(hex: 0x444B57)
-    nonisolated static let fwRaised = Color(hex: 0x515866)
+    nonisolated static let fwRaised = Color(hex: 0x353B45)
     nonisolated static let fwLine = Color(hex: 0x636B7B)
     nonisolated static let fwLineStrong = Color(hex: 0x7A8394)
     nonisolated static let fwInk = Color(hex: 0xF7F8FA)

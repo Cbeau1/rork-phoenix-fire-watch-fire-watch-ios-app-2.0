@@ -21,10 +21,10 @@ export default {
         crest: ["Cinzel", "serif"],
       },
       colors: {
-        canvas: "#2A2E35",
-        rail: "#24282E",
+        canvas: "#23272D",
+        rail: "#1D2126",
         surface: "#444B57",
-        raised: "#515866",
+        raised: "#353B45",
         line: "#636B7B",
         silver: "#E4E7EC",
         ink: {
