@@ -286,7 +286,7 @@ const PropertyDetail = () => {
             <Select value={selected} onValueChange={setSelected} disabled={sessions.length === 0}>
               <SelectTrigger
                 aria-label="Select session"
-                className="h-10 w-full min-w-[220px] border-[#34363B] bg-raised text-ink ring-offset-canvas focus:ring-ember/50 sm:w-auto"
+                className="h-10 w-full min-w-[220px] border-[#454954] bg-raised text-ink ring-offset-canvas focus:ring-ember/50 sm:w-auto"
               >
                 <SelectValue placeholder="Select session" />
               </SelectTrigger>
@@ -418,7 +418,7 @@ const PropertyDetail = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#34363B] bg-transparent text-ink hover:bg-raised hover:text-ink">
+            <AlertDialogCancel className="border-[#454954] bg-transparent text-ink hover:bg-raised hover:text-ink">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -457,7 +457,7 @@ const PropertyDetail = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#34363B] bg-transparent text-ink hover:bg-raised hover:text-ink">
+            <AlertDialogCancel className="border-[#454954] bg-transparent text-ink hover:bg-raised hover:text-ink">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

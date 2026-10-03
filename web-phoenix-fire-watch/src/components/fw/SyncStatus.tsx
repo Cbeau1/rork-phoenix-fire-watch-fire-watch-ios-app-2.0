@@ -74,7 +74,7 @@ export const SyncStatus = ({ compact = false }: { compact?: boolean }) => {
           type="button"
           aria-label={`Sync status: ${label}`}
           className={cn(
-            "focus-ring inline-flex items-center gap-2 rounded-lg border border-line bg-surface text-xs font-medium transition-colors hover:border-[#34363b]",
+            "focus-ring inline-flex items-center gap-2 rounded-lg border border-line bg-surface text-xs font-medium transition-colors hover:border-[#454954]",
             compact ? "h-10 px-3" : "w-full px-3 py-2",
           )}
         >

@@ -83,7 +83,7 @@ export const StatCard = ({
   delay?: number;
 }) => (
   <div
-    className="group animate-fade-up rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#2e3034] sm:p-6"
+    className="group animate-fade-up rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#43474f] sm:p-6"
     style={{ animationDelay: `${delay}ms` }}
   >
     <div className="flex items-center gap-2.5">

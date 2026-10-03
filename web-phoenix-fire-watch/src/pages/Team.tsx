@@ -65,7 +65,7 @@ const RolePicker = ({ value, onChange }: { value: Role; onChange: (r: Role) => v
         onClick={() => onChange(r)}
         className={cn(
           "focus-ring rounded-lg border px-3 py-2.5 text-left transition-colors",
-          value === r ? "border-ember/60 bg-ember/10" : "border-line bg-raised hover:border-[#34363b]",
+          value === r ? "border-ember/60 bg-ember/10" : "border-line bg-raised hover:border-[#454954]",
         )}
       >
         <div className={cn("text-sm font-medium", value === r ? "text-ember" : "text-ink")}>{ROLE_LABEL[r]}</div>
@@ -434,7 +434,7 @@ const Team = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#34363B] bg-transparent text-ink hover:bg-raised hover:text-ink">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-[#454954] bg-transparent text-ink hover:bg-raised hover:text-ink">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-status-incident text-white hover:bg-status-incident/90"
               onClick={(e) => {

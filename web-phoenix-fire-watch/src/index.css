@@ -6,43 +6,43 @@
 
 @layer base {
   :root {
-    --background: 240 4% 5%;
-    --foreground: 220 7% 92%;
+    --background: 228 11% 9%;
+    --foreground: 220 16% 96%;
 
-    --card: 220 6% 10%;
-    --card-foreground: 220 7% 92%;
+    --card: 228 11% 14%;
+    --card-foreground: 220 16% 96%;
 
-    --popover: 220 6% 10%;
-    --popover-foreground: 220 7% 92%;
+    --popover: 228 11% 14%;
+    --popover-foreground: 220 16% 96%;
 
     --primary: 0 72% 51%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 6% 12%;
-    --secondary-foreground: 220 7% 92%;
+    --secondary: 225 11% 18%;
+    --secondary-foreground: 220 16% 96%;
 
-    --muted: 225 6% 12%;
-    --muted-foreground: 220 5% 62%;
+    --muted: 225 11% 18%;
+    --muted-foreground: 225 7% 59%;
 
-    --accent: 225 6% 12%;
-    --accent-foreground: 220 7% 92%;
+    --accent: 225 11% 18%;
+    --accent-foreground: 220 16% 96%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 5% 15%;
-    --input: 225 5% 15%;
+    --border: 225 10% 23%;
+    --input: 225 10% 23%;
     --ring: 0 72% 51%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 210 7% 6%;
-    --sidebar-foreground: 220 5% 62%;
+    --sidebar-background: 228 10% 11%;
+    --sidebar-foreground: 220 9% 74%;
     --sidebar-primary: 0 72% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 6% 12%;
-    --sidebar-accent-foreground: 220 7% 92%;
-    --sidebar-border: 225 5% 15%;
+    --sidebar-accent: 225 11% 18%;
+    --sidebar-accent-foreground: 220 16% 96%;
+    --sidebar-border: 225 10% 23%;
     --sidebar-ring: 0 72% 51%;
 
     color-scheme: dark;
@@ -95,12 +95,12 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #232427;
+    background: #34373f;
     border-radius: 999px;
-    border: 2px solid #0b0b0c;
+    border: 2px solid #15161a;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #2e3034;
+    background: #43474f;
   }
 
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
@@ -113,8 +113,8 @@
   .canvas-glow {
     background:
       radial-gradient(900px 480px at 100% -10%, rgba(220, 38, 38, 0.06), transparent 60%),
-      radial-gradient(700px 420px at 0% 110%, rgba(198, 201, 206, 0.025), transparent 60%),
-      #0b0b0c;
+      radial-gradient(700px 420px at 0% 110%, rgba(212, 215, 221, 0.03), transparent 60%),
+      #15161a;
   }
 
   .focus-ring {

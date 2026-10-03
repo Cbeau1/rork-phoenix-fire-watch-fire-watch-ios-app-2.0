@@ -48,7 +48,7 @@ const AcceptTerms = () => {
               id="accept"
               checked={checked}
               onCheckedChange={(v) => setChecked(v === true)}
-              className="mt-0.5 h-5 w-5 border-[#45484e] data-[state=checked]:border-ember data-[state=checked]:bg-ember data-[state=checked]:text-white"
+              className="mt-0.5 h-5 w-5 border-[#565b66] data-[state=checked]:border-ember data-[state=checked]:bg-ember data-[state=checked]:text-white"
             />
             <label htmlFor="accept" className="text-sm leading-relaxed text-ink-2">
               I agree to the{" "}
