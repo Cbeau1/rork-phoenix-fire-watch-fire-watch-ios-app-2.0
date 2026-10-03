@@ -67,7 +67,7 @@ const AllPatrols = () => {
             }
           />
         ) : (
-          <ul className="divide-y divide-line">
+          <ul className="space-y-2.5 p-3 sm:p-4">
             {list.map((p) => (
               <PatrolRow
                 key={p.id}

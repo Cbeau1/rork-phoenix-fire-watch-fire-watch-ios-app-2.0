@@ -42,14 +42,14 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
   const hasDetail = patrol.notes.length > 0 || patrol.photos.length > 0 || !!onDelete;
 
   return (
-    <li className="relative">
+    <li className="relative rounded-lg border border-line bg-raised">
       <div className="flex items-stretch">
       <button
         type="button"
         onClick={() => hasDetail && setOpen((o) => !o)}
         aria-expanded={hasDetail ? open : undefined}
         className={cn(
-          "focus-ring flex min-w-0 flex-1 items-start gap-4 px-6 py-4 text-left transition-colors sm:px-7",
+          "focus-ring flex min-w-0 flex-1 items-start gap-4 rounded-lg px-4 py-3.5 text-left transition-colors sm:px-5",
           hasDetail && "hover:bg-white/[0.02]",
         )}
       >
@@ -109,7 +109,7 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
         )}
       </button>
       {photoCount > 0 && !open && (
-        <div className="flex shrink-0 items-center gap-1.5 py-4 pr-5 sm:pr-6">
+        <div className="flex shrink-0 items-center gap-1.5 py-3.5 pr-4 sm:pr-5">
           {patrol.photos.slice(0, 3).map((path, i) => {
             const src = urls[i];
             const showMore = i === 2 && photoCount > 3;
@@ -147,7 +147,7 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
       </div>
 
       {open && (
-        <div className="animate-fade-up space-y-4 px-6 pb-5 pl-[3.25rem] sm:px-7 sm:pl-[3.5rem]">
+        <div className="animate-fade-up space-y-4 px-4 pb-4 pl-[2.625rem] sm:px-5 sm:pl-[2.875rem]">
           {patrol.notes && <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-2">{patrol.notes}</p>}
           {patrol.photos.length > 0 && (
             <div className="flex flex-wrap gap-2">

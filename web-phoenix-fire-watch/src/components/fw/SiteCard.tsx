@@ -35,10 +35,10 @@ export const SiteCard = memo(
       >
         <Link
           to={`/properties/${property.id}`}
-          className="focus-ring flex flex-1 items-start gap-4 p-5 pb-4 sm:p-6 sm:pb-4"
+          className="focus-ring m-3 mb-0 flex flex-1 items-start gap-4 rounded-lg border border-line bg-raised p-4 sm:m-4 sm:mb-0 sm:p-5"
           aria-label={`Open ${property.name}`}
         >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-raised ring-1 ring-line transition-colors group-hover:ring-ember/30">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface ring-1 ring-line transition-colors group-hover:ring-ember/30">
             <Building2 className="h-6 w-6 text-silver" strokeWidth={1.5} />
           </div>
           <div className="min-w-0 flex-1">
@@ -70,7 +70,7 @@ export const SiteCard = memo(
           <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ember" />
         </Link>
 
-        <div className="flex items-center gap-3 border-t border-line px-5 py-3 sm:px-6">
+        <div className="flex items-center gap-3 px-5 py-3 sm:px-6">
           {schedule ? (
             <span
               className={cn(

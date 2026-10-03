@@ -466,15 +466,15 @@ const MemberList = ({
   onReset: (m: Member) => void;
   onRemove: (m: Member) => void;
 }) => (
-  <ul className="mt-5 divide-y divide-line border-t border-line">
+  <ul className="mt-5 space-y-2.5 border-t border-line p-3 sm:p-4">
     {members.map((m) => {
       const isMe = m.id === meId;
       return (
-        <li key={m.id} className={cn("flex items-center gap-4 px-6 py-4 sm:px-7", !m.active && "opacity-55")}>
+        <li key={m.id} className={cn("flex items-center gap-4 rounded-lg border border-line bg-raised px-4 py-3.5 sm:px-5", !m.active && "opacity-55")}>
           <div
             className={cn(
               "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1",
-              m.role === "admin" ? "bg-ember/10 text-ember ring-ember/30" : "bg-raised text-silver ring-line",
+              m.role === "admin" ? "bg-ember/10 text-ember ring-ember/30" : "bg-surface text-silver ring-line",
             )}
           >
             {initials(m.name)}
@@ -486,7 +486,7 @@ const MemberList = ({
               <span
                 className={cn(
                   "rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
-                  m.role === "admin" ? "bg-ember/10 text-ember ring-ember/30" : "bg-raised text-ink-2 ring-line",
+                  m.role === "admin" ? "bg-ember/10 text-ember ring-ember/30" : "bg-surface text-ink-2 ring-line",
                 )}
               >
                 {ROLE_LABEL[m.role]}
@@ -504,7 +504,7 @@ const MemberList = ({
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={`Manage ${m.name}`}
-                className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-3 hover:bg-raised hover:text-ink"
+                className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-3 hover:bg-surface hover:text-ink"
               >
                 <MoreHorizontal className="h-5 w-5" />
               </DropdownMenuTrigger>

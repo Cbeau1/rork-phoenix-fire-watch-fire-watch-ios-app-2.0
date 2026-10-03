@@ -296,7 +296,7 @@ const Schedule = () => {
           )}
 
           {(isAdmin || totals.count > 0) && (
-            <ol className="grid gap-3 lg:grid-cols-7 lg:gap-2.5" aria-label="Days of the week">
+            <ol className="grid grid-cols-1 gap-3 lg:grid-cols-7 lg:gap-2.5" aria-label="Days of the week">
               {days.map((d, i) => {
                 const key = toDateKey(d);
                 const list = byDay.get(key) ?? [];
@@ -399,18 +399,18 @@ const Schedule = () => {
               {payRows.length === 0 ? (
                 <p className="px-6 pb-6 pt-4 text-sm text-ink-3 sm:px-7">No shifts scheduled for this week yet.</p>
               ) : (
-                <ul className="mt-4 divide-y divide-line border-t border-line">
+                <ul className="mt-4 space-y-2.5 border-t border-line p-3 sm:p-4">
                   {payRows.map((r) => {
                     const name = staffById.get(r.staffId)?.name ?? "Removed staff";
                     const paidCount = r.shifts.filter((s) => s.paidAt).length;
                     const allPaid = paidCount === r.shifts.length;
                     const pct = r.minutes === 0 ? 0 : (r.paidMinutes / r.minutes) * 100;
                     return (
-                      <li key={r.staffId} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4 sm:flex-nowrap sm:px-7">
+                      <li key={r.staffId} className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-line bg-raised px-4 py-3.5 sm:flex-nowrap sm:px-5">
                         <div
                           className={cn(
                             "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1 transition-colors",
-                            allPaid ? "bg-status-clear/15 text-status-clear ring-status-clear/40" : "bg-raised text-silver ring-line",
+                            allPaid ? "bg-status-clear/15 text-status-clear ring-status-clear/40" : "bg-surface text-silver ring-line",
                           )}
                         >
                           {initials(name)}
@@ -422,7 +422,7 @@ const Schedule = () => {
                               {formatHours(r.paidMinutes)} / {formatHours(r.minutes)}
                             </span>
                           </div>
-                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-raised">
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-canvas">
                             <div
                               className="h-full rounded-full bg-status-clear transition-[width] duration-500 ease-out"
                               style={{ width: `${pct}%` }}

@@ -109,7 +109,7 @@ const Properties = () => {
                   </div>
 
                   {(p.contactName || p.contactPhone) && (
-                    <div className="flex flex-col gap-2 border-line md:w-56 md:self-stretch md:justify-center md:border-l md:px-6">
+                    <div className="flex flex-col gap-2 rounded-lg border border-line bg-raised px-4 py-3 md:mr-6 md:w-56 md:justify-center">
                       {p.contactName && (
                         <span className="flex items-center gap-2.5 text-[15px] text-ink">
                           <User className="h-4 w-4 text-ink-3" />

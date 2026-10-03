@@ -79,7 +79,7 @@ const Dashboard = () => {
             />
           </Card>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:gap-5 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-5 xl:grid-cols-3">
             {properties.map((p, i) => (
               <SiteCard key={p.id} property={p} lastPatrol={lastPatrolBySite.get(p.id)} delay={Math.min(i, 8) * 50} />
             ))}
@@ -87,7 +87,7 @@ const Dashboard = () => {
         )}
       </section>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <Card className="flex min-h-[420px] flex-col">
           <CardHeader
             title="Recent Patrols"
@@ -109,7 +109,7 @@ const Dashboard = () => {
               description="Patrol logs will appear here once created"
             />
           ) : (
-            <ul className="mt-4 divide-y divide-line border-t border-line">
+            <ul className="mt-4 space-y-2.5 border-t border-line p-3 sm:p-4">
               {recent.map((p) => (
                 <PatrolRow
                   key={p.id}
@@ -142,9 +142,9 @@ const Dashboard = () => {
             <EmptyState className="flex-1" title="No watch notes" />
           ) : (
             <>
-              <ul className="mt-4 divide-y divide-line border-t border-line">
+              <ul className="mt-4 space-y-2.5 border-t border-line p-3 sm:p-4">
                 {recentNotes.map((n) => (
-                  <li key={n.id} className="px-6 py-4 sm:px-7">
+                  <li key={n.id} className="rounded-lg border border-line bg-raised px-4 py-3.5">
                     <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-ink">{n.content}</p>
                     <p className="mt-2 text-xs text-ink-3">
                       {n.author} · {timeAgo(n.createdAt)}

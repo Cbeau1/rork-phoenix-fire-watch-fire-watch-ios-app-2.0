@@ -70,7 +70,7 @@ const DetailStat = ({
 const ContactField = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
     <dt className="text-xs font-medium uppercase tracking-[0.14em] text-ink-3">{label}</dt>
-    <dd className="mt-1.5 break-words text-[15px] text-ink sm:text-base">{children}</dd>
+    <dd className="mt-1.5 break-words rounded-lg border border-line bg-raised px-4 py-3 text-[15px] text-ink sm:text-base">{children}</dd>
   </div>
 );
 
@@ -247,7 +247,7 @@ const PropertyDetail = () => {
 
       <Card className="mt-5">
         <CardHeader title="Contact Information" />
-        <dl className="grid gap-6 px-6 pb-7 pt-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-[1fr_1fr_1.4fr]">
+        <dl className="grid grid-cols-1 gap-6 px-6 pb-7 pt-6 sm:grid-cols-2 sm:px-7 lg:grid-cols-[1fr_1fr_1.4fr]">
           <ContactField label="Contact Name">{property.contactName || <span className="text-ink-3">—</span>}</ContactField>
           <ContactField label="Phone">
             {property.contactPhone ? (
@@ -269,7 +269,7 @@ const PropertyDetail = () => {
           </ContactField>
           <div className="sm:col-span-2 lg:col-span-3">
             <dt className="text-xs font-medium uppercase tracking-[0.14em] text-ink-3">Notes</dt>
-            <dd className="mt-2 whitespace-pre-wrap rounded-lg border border-line bg-raised/60 p-4 text-[15px] leading-relaxed text-ink">
+            <dd className="mt-2 whitespace-pre-wrap rounded-lg border border-line bg-raised p-4 text-[15px] leading-relaxed text-ink">
               {property.notes || <span className="text-ink-3">No special instructions</span>}
             </dd>
           </div>
@@ -339,7 +339,7 @@ const PropertyDetail = () => {
               const incidents = s.patrols.filter((p) => p.status === "incident").length;
               const followUps = s.patrols.filter((p) => p.status === "follow-up").length;
               return (
-                <div key={s.id} className="overflow-hidden rounded-lg border border-line bg-canvas/40">
+                <div key={s.id} className="overflow-hidden rounded-lg border border-line">
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-raised/50 px-5 py-3.5">
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
@@ -378,7 +378,7 @@ const PropertyDetail = () => {
                       </button>
                     </div>
                   </div>
-                  <ul className="divide-y divide-line">
+                  <ul className="space-y-2 p-2.5 sm:p-3">
                     {s.patrols.map((p) => (
                       <PatrolRow
                         key={p.id}
