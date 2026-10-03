@@ -37,7 +37,7 @@ export const ShiftCard = memo(
           aria-hidden
           className={cn(
             "absolute inset-y-0 left-0 w-[3px] transition-colors duration-300",
-            paid ? "bg-status-clear" : mine ? "bg-ember" : "bg-[#6E7686]",
+            paid ? "bg-status-clear" : mine ? "bg-ember" : "bg-[#7A8394]",
           )}
         />
         {isAdmin && onEdit ? (
@@ -82,7 +82,7 @@ export const ShiftCard = memo(
                 "focus-ring flex h-9 w-full items-center justify-center gap-1.5 rounded-md text-xs font-semibold transition-all duration-200 active:scale-[0.97]",
                 paid
                   ? "bg-status-clear text-[#04240f] hover:bg-status-clear/90"
-                  : "border border-[#6E7686] text-ink-2 hover:border-status-clear/60 hover:bg-status-clear/10 hover:text-status-clear",
+                  : "border border-[#7A8394] text-ink-2 hover:border-status-clear/60 hover:bg-status-clear/10 hover:text-status-clear",
               )}
             >
               {paid ? (

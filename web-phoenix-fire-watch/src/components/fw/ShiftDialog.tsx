@@ -229,7 +229,7 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
                     aria-pressed={on}
                     className={cn(
                       "focus-ring flex flex-col items-center rounded-lg border py-2 transition-all duration-150 active:scale-95",
-                      on ? "border-ember bg-ember text-white" : "border-line bg-raised text-ink-2 hover:border-[#6E7686] hover:text-ink",
+                      on ? "border-ember bg-ember text-white" : "border-line bg-raised text-ink-2 hover:border-[#7A8394] hover:text-ink",
                     )}
                   >
                     <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">{format(d, "EEE")}</span>

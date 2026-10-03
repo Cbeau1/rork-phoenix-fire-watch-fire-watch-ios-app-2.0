@@ -6,43 +6,43 @@
 
 @layer base {
   :root {
-    --background: 220 12% 25%;
+    --background: 218 12% 19%;
     --foreground: 220 18% 97%;
 
-    --card: 219 12% 29%;
+    --card: 218 12% 30%;
     --card-foreground: 220 18% 97%;
 
-    --popover: 219 12% 29%;
+    --popover: 218 12% 30%;
     --popover-foreground: 220 18% 97%;
 
     --primary: 0 72% 51%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 12% 34%;
+    --secondary: 220 11% 36%;
     --secondary-foreground: 220 18% 97%;
 
-    --muted: 222 12% 34%;
-    --muted-foreground: 218 12% 70%;
+    --muted: 220 11% 36%;
+    --muted-foreground: 219 13% 74%;
 
-    --accent: 222 12% 34%;
+    --accent: 220 11% 36%;
     --accent-foreground: 220 18% 97%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 221 11% 40%;
-    --input: 221 11% 40%;
+    --border: 220 11% 44%;
+    --input: 220 11% 44%;
     --ring: 0 72% 51%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 219 12% 23%;
-    --sidebar-foreground: 218 14% 85%;
+    --sidebar-background: 216 12% 16%;
+    --sidebar-foreground: 216 15% 86%;
     --sidebar-primary: 0 72% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 12% 34%;
+    --sidebar-accent: 220 11% 36%;
     --sidebar-accent-foreground: 220 18% 97%;
-    --sidebar-border: 221 11% 40%;
+    --sidebar-border: 220 11% 44%;
     --sidebar-ring: 0 72% 51%;
 
     color-scheme: dark;
@@ -95,12 +95,12 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #5a6170;
+    background: #636b7b;
     border-radius: 999px;
-    border: 2px solid #393e48;
+    border: 2px solid #2a2e35;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #6b7382;
+    background: #7a8394;
   }
 
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
@@ -114,7 +114,7 @@
     background:
       radial-gradient(900px 480px at 100% -10%, rgba(220, 38, 38, 0.07), transparent 60%),
       radial-gradient(700px 420px at 0% 110%, rgba(212, 215, 221, 0.04), transparent 60%),
-      #393e48;
+      #2a2e35;
   }
 
   .focus-ring {
