@@ -29,6 +29,18 @@ extension Color {
     nonisolated static let fwIncident = Color(hex: 0xEF4444)
 }
 
+/// One hue per weekday (Mon → Sun) so Schedule days scan at a glance. Mirrors the web app.
+nonisolated enum DayPalette {
+    private static let hexes: [UInt32] = [
+        0xF87171, 0xFB923C, 0xFBBF24, 0x4ADE80, 0x38BDF8, 0xA78BFA, 0xF472B6,
+    ]
+
+    static func color(for day: Date) -> Color {
+        let weekday = Calendar.current.component(.weekday, from: day) // 1 = Sunday … 7 = Saturday
+        return Color(hex: hexes[(weekday + 5) % 7])
+    }
+}
+
 enum FWFont {
     /// Heavy grotesque for titles and stat numerals.
     static func display(_ style: Font.TextStyle = .largeTitle) -> Font {

@@ -40,6 +40,12 @@ import { useSchedule } from "@/state/useSchedule";
 
 const ALL = "all";
 
+/** One hue per weekday (Mon → Sun) so each day scans at a glance. */
+const DAY_COLORS = ["#F87171", "#FB923C", "#FBBF24", "#4ADE80", "#38BDF8", "#A78BFA", "#F472B6"] as const;
+
+/** Monday = 0 … Sunday = 6, matching the Monday-start week grid. */
+const dayColor = (d: Date): string => DAY_COLORS[(d.getDay() + 6) % 7];
+
 const Schedule = () => {
   useDocumentTitle("Schedule");
   const { user } = useAuth();
@@ -295,13 +301,19 @@ const Schedule = () => {
                 const key = toDateKey(d);
                 const list = byDay.get(key) ?? [];
                 const today = isToday(d);
+                const color = dayColor(d);
                 if (!isAdmin && list.length === 0) {
                   return (
                     <li
                       key={key}
-                      className="flex items-center gap-3 rounded-xl border border-line/60 px-4 py-3 text-sm text-ink-3 lg:flex-col lg:items-start lg:gap-1 lg:py-3"
+                      className="relative flex items-center gap-3 overflow-hidden rounded-xl border border-line/60 px-4 py-3 text-sm text-ink-3 lg:flex-col lg:items-start lg:gap-1 lg:py-3"
                     >
-                      <DayLabel date={d} today={today} muted />
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-0 top-0 h-[3px] opacity-50"
+                        style={{ background: `linear-gradient(90deg, ${color} 0%, transparent 90%)` }}
+                      />
+                      <DayLabel date={d} today={today} muted color={color} />
                       <span className="lg:mt-2">Off</span>
                     </li>
                   );
@@ -310,13 +322,24 @@ const Schedule = () => {
                   <li
                     key={key}
                     className={cn(
-                      "flex animate-fade-up flex-col rounded-xl border bg-surface lg:min-h-[360px]",
+                      "relative flex animate-fade-up flex-col overflow-hidden rounded-xl border bg-surface lg:min-h-[360px]",
                       today ? "border-ember/45" : "border-line",
                     )}
                     style={{ animationDelay: `${i * 35}ms` }}
                   >
-                    <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3 lg:px-3">
-                      <DayLabel date={d} today={today} />
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-[3px]"
+                      style={{ background: `linear-gradient(90deg, ${color} 0%, ${color}55 55%, transparent 100%)` }}
+                    />
+                    <div
+                      className="flex items-center justify-between gap-2 border-b px-4 py-3 lg:px-3"
+                      style={{
+                        background: `linear-gradient(100deg, ${color}26 0%, ${color}0f 48%, transparent 80%)`,
+                        borderBottomColor: `${color}40`,
+                      }}
+                    >
+                      <DayLabel date={d} today={today} color={color} />
                       {isAdmin ? (
                         <button
                           type="button"
@@ -454,16 +477,14 @@ const Schedule = () => {
   );
 };
 
-const DayLabel = ({ date, today, muted }: { date: Date; today: boolean; muted?: boolean }) => (
+const DayLabel = ({ date, today, muted, color }: { date: Date; today: boolean; muted?: boolean; color: string }) => (
   <div className="flex items-baseline gap-2 lg:flex-col lg:gap-0">
     <span
-      className={cn(
-        "text-[11px] font-semibold uppercase tracking-[0.14em]",
-        today ? "text-ember" : muted ? "text-ink-3" : "text-ink-2",
-      )}
+      className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+      style={{ color: muted ? `${color}99` : color }}
     >
       {format(date, "EEE")}
-      {today && <span className="ml-1.5 lg:hidden">· Today</span>}
+      {today && <span className="ml-1.5 text-ember lg:hidden">· Today</span>}
     </span>
     <span className={cn("font-display text-lg font-bold leading-tight", muted ? "text-ink-3" : "text-ink")}>
       {format(date, "MMM d")}

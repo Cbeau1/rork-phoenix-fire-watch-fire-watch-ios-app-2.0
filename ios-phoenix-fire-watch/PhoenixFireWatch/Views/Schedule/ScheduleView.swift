@@ -347,6 +347,8 @@ private struct DaySection: View {
     let onEdit: (Shift) -> Void
     let onTogglePaid: (Shift) -> Void
 
+    private var dayColor: Color { DayPalette.color(for: day) }
+
     var body: some View {
         if !isAdmin && shifts.isEmpty {
             HStack(spacing: 12) {
@@ -356,6 +358,14 @@ private struct DaySection: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .background {
+                ZStack(alignment: .top) {
+                    LinearGradient(colors: [dayColor.opacity(0.09), .clear], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [dayColor.opacity(0.55), .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(height: 3)
+                }
+                .clipShape(.rect(cornerRadius: 14))
+            }
             .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Color.fwLine.opacity(0.7), lineWidth: 1) }
         } else {
             VStack(alignment: .leading, spacing: 0) {
@@ -379,7 +389,7 @@ private struct DaySection: View {
                 .padding(.leading, 16)
                 .padding(.trailing, 8)
                 .padding(.vertical, 6)
-                Divider().overlay(Color.fwLine)
+                Divider().overlay(dayColor.opacity(0.35))
                 if shifts.isEmpty {
                     Button(action: onAdd) {
                         Text("No shifts · tap to add")
@@ -411,7 +421,19 @@ private struct DaySection: View {
                     .padding(10)
                 }
             }
-            .background(Color.fwSurface, in: .rect(cornerRadius: 14))
+            .background {
+                ZStack(alignment: .top) {
+                    Color.fwSurface
+                    LinearGradient(
+                        colors: [dayColor.opacity(0.15), dayColor.opacity(0.05), .clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    LinearGradient(colors: [dayColor, .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(height: 3)
+                }
+                .clipShape(.rect(cornerRadius: 14))
+            }
             .overlay {
                 RoundedRectangle(cornerRadius: 14).strokeBorder(isToday ? Color.fwEmber.opacity(0.5) : Color.fwLine, lineWidth: 1)
             }
@@ -420,10 +442,15 @@ private struct DaySection: View {
 
     private func dayLabel(muted: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(day.formatted(.dateTime.weekday(.abbreviated)).uppercased() + (isToday ? " · TODAY" : ""))
-                .font(FWFont.label)
-                .tracking(1.4)
-                .foregroundStyle(isToday ? Color.fwEmber : muted ? Color.fwInk3 : Color.fwInk2)
+            Group {
+                Text(day.formatted(.dateTime.weekday(.abbreviated)).uppercased())
+                    .foregroundStyle(muted ? dayColor.opacity(0.6) : dayColor)
+                if isToday {
+                    Text(" · TODAY").foregroundStyle(Color.fwEmber)
+                }
+            }
+            .font(FWFont.label)
+            .tracking(1.4)
             Text(day.formatted(.dateTime.month(.abbreviated).day()))
                 .font(.system(.headline, weight: .heavy))
                 .foregroundStyle(muted ? Color.fwInk3 : Color.fwInk)
