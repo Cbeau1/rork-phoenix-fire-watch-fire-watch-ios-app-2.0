@@ -128,7 +128,7 @@ export async function buildShiftReport(opts: ShiftReportOptions): Promise<{ blob
     creator: "Phoenix Fire Watch",
   });
 
-  const [logo, scriptFont] = await Promise.all([toJpeg("/icon.png", 240, "#0b0b0c"), loadScriptFont()]);
+  const [logo, scriptFont] = await Promise.all([toJpeg("/icon.png", 240, "#393E48"), loadScriptFont()]);
   let hasScript = false;
   if (scriptFont) {
     try {

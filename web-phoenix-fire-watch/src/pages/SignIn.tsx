@@ -481,7 +481,7 @@ const SignIn = () => {
                       checked={acceptedTerms}
                       onCheckedChange={(v) => setAcceptedTerms(v === true)}
                       aria-invalid={!!errors.terms}
-                      className="mt-0.5 h-5 w-5 border-[#565b66] data-[state=checked]:border-ember data-[state=checked]:bg-ember data-[state=checked]:text-white"
+                      className="mt-0.5 h-5 w-5 border-[#7D8595] data-[state=checked]:border-ember data-[state=checked]:bg-ember data-[state=checked]:text-white"
                     />
                     <label htmlFor="su-terms" className="text-sm leading-relaxed text-ink-2">
                       I agree to the{" "}

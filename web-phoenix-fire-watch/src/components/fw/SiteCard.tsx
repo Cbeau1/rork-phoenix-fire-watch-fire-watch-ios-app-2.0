@@ -29,7 +29,7 @@ export const SiteCard = memo(
               ? "border-status-follow/50"
               : on
                 ? "border-ember/35"
-                : "border-line hover:border-[#454954]",
+                : "border-line hover:border-[#6E7686]",
         )}
         style={{ animationDelay: `${delay}ms` }}
       >

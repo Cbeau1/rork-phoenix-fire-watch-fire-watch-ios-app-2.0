@@ -6,43 +6,43 @@
 
 @layer base {
   :root {
-    --background: 228 11% 9%;
-    --foreground: 220 16% 96%;
+    --background: 220 12% 25%;
+    --foreground: 220 18% 97%;
 
-    --card: 228 11% 14%;
-    --card-foreground: 220 16% 96%;
+    --card: 219 12% 29%;
+    --card-foreground: 220 18% 97%;
 
-    --popover: 228 11% 14%;
-    --popover-foreground: 220 16% 96%;
+    --popover: 219 12% 29%;
+    --popover-foreground: 220 18% 97%;
 
     --primary: 0 72% 51%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 11% 18%;
-    --secondary-foreground: 220 16% 96%;
+    --secondary: 222 12% 34%;
+    --secondary-foreground: 220 18% 97%;
 
-    --muted: 225 11% 18%;
-    --muted-foreground: 225 7% 59%;
+    --muted: 222 12% 34%;
+    --muted-foreground: 218 12% 70%;
 
-    --accent: 225 11% 18%;
-    --accent-foreground: 220 16% 96%;
+    --accent: 222 12% 34%;
+    --accent-foreground: 220 18% 97%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 10% 23%;
-    --input: 225 10% 23%;
+    --border: 221 11% 40%;
+    --input: 221 11% 40%;
     --ring: 0 72% 51%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 228 10% 11%;
-    --sidebar-foreground: 220 9% 74%;
+    --sidebar-background: 219 12% 23%;
+    --sidebar-foreground: 218 14% 85%;
     --sidebar-primary: 0 72% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 225 11% 18%;
-    --sidebar-accent-foreground: 220 16% 96%;
-    --sidebar-border: 225 10% 23%;
+    --sidebar-accent: 222 12% 34%;
+    --sidebar-accent-foreground: 220 18% 97%;
+    --sidebar-border: 221 11% 40%;
     --sidebar-ring: 0 72% 51%;
 
     color-scheme: dark;
@@ -95,12 +95,12 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #34373f;
+    background: #5a6170;
     border-radius: 999px;
-    border: 2px solid #15161a;
+    border: 2px solid #393e48;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #43474f;
+    background: #6b7382;
   }
 
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
@@ -112,9 +112,9 @@
 @layer utilities {
   .canvas-glow {
     background:
-      radial-gradient(900px 480px at 100% -10%, rgba(220, 38, 38, 0.06), transparent 60%),
-      radial-gradient(700px 420px at 0% 110%, rgba(212, 215, 221, 0.03), transparent 60%),
-      #15161a;
+      radial-gradient(900px 480px at 100% -10%, rgba(220, 38, 38, 0.07), transparent 60%),
+      radial-gradient(700px 420px at 0% 110%, rgba(212, 215, 221, 0.04), transparent 60%),
+      #393e48;
   }
 
   .focus-ring {

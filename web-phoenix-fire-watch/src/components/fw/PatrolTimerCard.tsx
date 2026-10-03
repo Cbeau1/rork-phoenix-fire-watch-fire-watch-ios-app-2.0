@@ -88,7 +88,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
         <div className="flex items-center gap-5 md:w-auto">
           <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
             <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90">
-              <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS} fill="none" stroke="#34373F" strokeWidth={RING_STROKE} />
+              <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS} fill="none" stroke="#5A6170" strokeWidth={RING_STROKE} />
               {schedule && (
                 <circle
                   cx={RING_SIZE / 2}
@@ -161,7 +161,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
             <span className="text-xs font-medium uppercase tracking-[0.14em] text-ink-3">Interval</span>
             {isAdmin && editing ? (
               <Select defaultOpen value={String(interval)} onValueChange={(v) => void changeInterval(v)} onOpenChange={(o) => !o && !saving && setEditing(false)}>
-                <SelectTrigger aria-label="Patrol interval" className="h-9 w-40 border-[#454954] bg-raised text-ink focus:ring-ember/50">
+                <SelectTrigger aria-label="Patrol interval" className="h-9 w-40 border-[#6E7686] bg-raised text-ink focus:ring-ember/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-line bg-surface text-ink">
@@ -212,7 +212,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
               checked={on}
               onCheckedChange={toggle}
               aria-label={`Patrol timer for ${property.name}`}
-              className="h-7 w-12 data-[state=checked]:bg-ember data-[state=unchecked]:bg-[#454954] [&>span]:h-6 [&>span]:w-6 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-5"
+              className="h-7 w-12 data-[state=checked]:bg-ember data-[state=unchecked]:bg-[#6E7686] [&>span]:h-6 [&>span]:w-6 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-5"
             />
           </label>
 
@@ -241,7 +241,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
                   checked={keepAwake}
                   onCheckedChange={setKeepAwake}
                   aria-label="Keep screen on while timers run"
-                  className="h-5 w-9 data-[state=checked]:bg-ember data-[state=unchecked]:bg-[#454954] [&>span]:h-4 [&>span]:w-4 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-4"
+                  className="h-5 w-9 data-[state=checked]:bg-ember data-[state=unchecked]:bg-[#6E7686] [&>span]:h-4 [&>span]:w-4 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-4"
                 />
               </label>
             </div>

@@ -193,7 +193,7 @@ const Account = () => {
                 onValueChange={(v) => void changeRetention(v)}
                 disabled={savingRetention}
               >
-                <SelectTrigger aria-label="Retention period" className="h-10 w-full border-[#454954] bg-raised text-ink sm:w-52">
+                <SelectTrigger aria-label="Retention period" className="h-10 w-full border-[#6E7686] bg-raised text-ink sm:w-52">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-line bg-surface text-ink">
@@ -304,7 +304,7 @@ const Account = () => {
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={deleting}
-              className="border-[#454954] bg-transparent text-ink hover:bg-raised hover:text-ink"
+              className="border-[#6E7686] bg-transparent text-ink hover:bg-raised hover:text-ink"
             >
               Cancel
             </AlertDialogCancel>

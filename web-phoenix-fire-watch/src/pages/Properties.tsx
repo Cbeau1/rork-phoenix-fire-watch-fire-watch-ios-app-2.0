@@ -48,7 +48,7 @@ const Properties = () => {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search properties by name or address..."
           aria-label="Search properties"
-          className="h-14 w-full rounded-xl border border-line bg-surface pl-14 pr-12 text-[15px] text-ink placeholder:text-ink-3 transition-colors hover:border-[#43474f] focus-visible:border-ember/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/25 [&::-webkit-search-cancel-button]:hidden"
+          className="h-14 w-full rounded-xl border border-line bg-surface pl-14 pr-12 text-[15px] text-ink placeholder:text-ink-3 transition-colors hover:border-[#6B7382] focus-visible:border-ember/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/25 [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button
@@ -90,7 +90,7 @@ const Properties = () => {
               <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
                 <Link
                   to={`/properties/${p.id}`}
-                  className="focus-ring group flex flex-col gap-4 rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#454954] hover:bg-[#26282e] md:flex-row md:items-center md:gap-0 md:p-6"
+                  className="focus-ring group flex flex-col gap-4 rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#6E7686] hover:bg-[#4A515D] md:flex-row md:items-center md:gap-0 md:p-6"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-5 md:pr-6">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-raised ring-1 ring-line transition-colors group-hover:ring-ember/30 md:h-[88px] md:w-[88px]">
