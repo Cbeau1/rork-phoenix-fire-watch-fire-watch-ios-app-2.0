@@ -27,9 +27,24 @@ async function removeOrgPhotos(admin: SupabaseClient, orgId: string): Promise<vo
   }
 }
 
+/** Removes every private workforce file (documents, versions, profile photos) for an organization. */
+async function removeWorkforceFiles(admin: SupabaseClient, orgId: string): Promise<void> {
+  const paths = new Set<string>();
+  const { data: versions } = await admin.from("wf_document_versions").select("storage_path").eq("org_id", orgId);
+  for (const v of versions ?? []) paths.add(String(v.storage_path));
+  const { data: workers } = await admin.from("wf_workers").select("photo_path").eq("org_id", orgId).not("photo_path", "is", null);
+  for (const w of workers ?? []) paths.add(String(w.photo_path));
+  const list = Array.from(paths).filter((p) => p.startsWith(`${orgId}/`));
+  for (let i = 0; i < list.length; i += 100) {
+    const { error } = await admin.storage.from("workforce-files").remove(list.slice(i, i + 100));
+    if (error) console.error("workforce file removal failed", error.message);
+  }
+}
+
 /** Permanently deletes an organization, all of its records, photos and member logins. */
 async function deleteOrganization(admin: SupabaseClient, orgId: string, memberIds: string[]): Promise<void> {
   await removeOrgPhotos(admin, orgId);
+  await removeWorkforceFiles(admin, orgId);
   for (const table of ["patrols", "watch_notes", "properties"]) {
     const { error } = await admin.from(table).delete().eq("org_id", orgId);
     if (error) throw new Error(`delete ${table}: ${error.message}`);

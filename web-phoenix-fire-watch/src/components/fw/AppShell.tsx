@@ -1,4 +1,4 @@
-import { AlarmClock, Building2, CalendarDays, FileText, LayoutGrid, LogOut, Menu, UserCog, Users } from "lucide-react";
+import { AlarmClock, Briefcase, Building2, CalendarDays, FileText, LayoutGrid, LogOut, Menu, UserCog, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -21,13 +21,19 @@ const NAV = [
 ];
 
 const TEAM_NAV = { to: "/team", label: "Team", icon: Users, match: (p: string) => p.startsWith("/team") };
+const WORKFORCE_NAV = {
+  to: "/workforce",
+  label: "Workforce Management",
+  icon: Briefcase,
+  match: (p: string) => p.startsWith("/workforce"),
+};
 const ACCOUNT_NAV = { to: "/account", label: "Account", icon: UserCog, match: (p: string) => p.startsWith("/account") };
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { pathname } = useLocation();
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
-  const items = isAdmin ? [...NAV, TEAM_NAV, ACCOUNT_NAV] : [...NAV, ACCOUNT_NAV];
+  const items = isAdmin ? [...NAV, TEAM_NAV, WORKFORCE_NAV, ACCOUNT_NAV] : [...NAV, ACCOUNT_NAV];
 
   return (
     <div className="flex min-h-full flex-col">

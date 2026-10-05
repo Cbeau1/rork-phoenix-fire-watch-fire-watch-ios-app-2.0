@@ -31,6 +31,16 @@ import Support from "./pages/Support";
 import Team from "./pages/Team";
 import Terms from "./pages/Terms";
 import WatchNotes from "./pages/WatchNotes";
+import { AgencyList, AgencyProfile } from "./pages/workforce/Agencies";
+import Directory from "./pages/workforce/Directory";
+import { InvoiceDetail, InvoiceList } from "./pages/workforce/Invoices";
+import Placements from "./pages/workforce/Placements";
+import Reminders from "./pages/workforce/Reminders";
+import Reports from "./pages/workforce/Reports";
+import WorkforceSettings from "./pages/workforce/Settings";
+import WorkerProfile from "./pages/workforce/WorkerProfile";
+import WorkforceHome from "./pages/workforce/WorkforceHome";
+import WorkforceLayout from "./pages/workforce/WorkforceLayout";
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 
@@ -125,6 +135,20 @@ const AppRoutes = () => {
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/team" element={<Team />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/workforce" element={<WorkforceLayout />}>
+          <Route index element={<WorkforceHome />} />
+          <Route path="directory" element={<Directory />} />
+          <Route path="workers/:id" element={<WorkerProfile />} />
+          <Route path="agencies" element={<AgencyList />} />
+          <Route path="agencies/:id" element={<AgencyProfile />} />
+          <Route path="placements" element={<Placements />} />
+          <Route path="invoices" element={<InvoiceList />} />
+          <Route path="invoices/:id" element={<InvoiceDetail />} />
+          <Route path="reminders" element={<Reminders />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<WorkforceSettings />} />
+          <Route path="*" element={<NotFound embedded />} />
+        </Route>
         <Route path="*" element={<NotFound embedded />} />
       </Route>
     </Routes>
