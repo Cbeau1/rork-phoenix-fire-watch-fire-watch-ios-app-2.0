@@ -45,6 +45,24 @@ export async function loadPermissions(): Promise<WfPerms> {
   return parsePerms(unwrap(res));
 }
 
+export type TeamLink = { workerId: string; code: string; profileId: string };
+
+/** Workforce profiles linked to Team logins. Returns null when the caller lacks Workforce access. */
+export async function loadTeamLinks(): Promise<TeamLink[] | null> {
+  const { data: ok, error } = await supabase.rpc("wf_has", { p: "manage" });
+  if (error) throw wfError(error);
+  if (ok !== true) return null;
+  const rows = unwrap(
+    await supabase.from("wf_workers").select("id, worker_code, profile_id").not("profile_id", "is", null),
+  );
+  return rows.map((r) => ({ workerId: r.id, code: r.worker_code, profileId: r.profile_id ?? "" }));
+}
+
+/** Creates (or re-links by email) the Workforce profile for a Team login. */
+export async function linkTeamMember(profileId: string): Promise<string> {
+  return unwrap(await supabase.rpc("wf_link_team_member", { p_profile: profileId }));
+}
+
 export const logEvent = async (
   action: "view" | "preview" | "download" | "export" | "print",
   entity: string,

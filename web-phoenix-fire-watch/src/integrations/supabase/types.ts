@@ -2274,6 +2274,11 @@ export type Database = {
           worker_id: string
         }[]
       }
+      wf__split_name: { Args: { n: string }; Returns: Record<string, unknown> }
+      wf__sync_profile: {
+        Args: { p_backfill?: boolean; p_id: string }
+        Returns: string
+      }
       wf_apply_checklist: {
         Args: { p_kind: string; p_placement?: string; p_worker: string }
         Returns: number
@@ -2293,6 +2298,7 @@ export type Database = {
         }[]
       }
       wf_has: { Args: { p: string }; Returns: boolean }
+      wf_link_team_member: { Args: { p_profile: string }; Returns: string }
       wf_log_event: {
         Args: {
           p_action: string

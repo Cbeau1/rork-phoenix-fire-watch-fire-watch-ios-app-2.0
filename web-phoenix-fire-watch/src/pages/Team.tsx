@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Briefcase,
   Check,
   KeyRound,
   Loader2,
@@ -14,7 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Card, CardHeader, EmptyState, FieldError, FieldHint, FieldLabel, PageHeader } from "@/components/fw/primitives";
@@ -40,6 +41,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { initials, timeAgo } from "@/lib/format";
+import { linkTeamMember, loadTeamLinks, type TeamLink } from "@/lib/workforce/api";
 import { callFunction, friendlyError, supabase } from "@/lib/supabase";
 import { ROLE_LABEL, type Member, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -118,7 +120,32 @@ const Team = () => {
     },
   });
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: membersKey });
+  const linksQuery = useQuery({
+    queryKey: ["wf", "team-links", orgId],
+    enabled: !!orgId && isAdmin,
+    queryFn: loadTeamLinks,
+  });
+  const links = useMemo(() => {
+    const map = new Map<string, TeamLink>();
+    for (const l of linksQuery.data ?? []) map.set(l.profileId, l);
+    return map;
+  }, [linksQuery.data]);
+  const canLink = !!linksQuery.data;
+
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: membersKey }),
+      queryClient.invalidateQueries({ queryKey: ["wf"] }),
+    ]);
+
+  const linkMutation = useMutation({
+    mutationFn: (m: Member) => linkTeamMember(m.id),
+    onSuccess: (_d, m) => {
+      void refresh();
+      toast.success(`${m.name} added to Workforce`);
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : friendlyError(err)),
+  });
 
   const createMutation = useMutation({
     mutationFn: (payload: { fullName: string; email: string; password: string; role: Role }) =>
@@ -277,6 +304,9 @@ const Team = () => {
             <MemberList
               members={members}
               meId={user?.id ?? ""}
+              links={links}
+              canLink={canLink}
+              onLink={(m) => linkMutation.mutate(m)}
               onRole={(m, r) => updateMutation.mutate({ memberId: m.id, role: r })}
               onActive={(m, a) => updateMutation.mutate({ memberId: m.id, active: a })}
               onReset={(m) => {
@@ -301,6 +331,9 @@ const Team = () => {
           <MemberList
             members={members}
             meId={user?.id ?? ""}
+            links={links}
+            canLink={canLink}
+            onLink={(m) => linkMutation.mutate(m)}
             onRole={(m, r) => updateMutation.mutate({ memberId: m.id, role: r })}
             onActive={(m, a) => updateMutation.mutate({ memberId: m.id, active: a })}
             onReset={(m) => {
@@ -317,7 +350,8 @@ const Team = () => {
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Add Employee</DialogTitle>
             <DialogDescription className="text-ink-2">
-              Creates a login inside {user?.orgName}. Share the password with them securely.
+              Creates a login inside {user?.orgName} and a matching Workforce profile. Share the password with them
+              securely.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={submitAdd} noValidate className="space-y-5">
@@ -429,8 +463,8 @@ const Team = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="font-display text-xl">Remove {removeFor?.name}?</AlertDialogTitle>
             <AlertDialogDescription className="text-ink-2">
-              Their login will be deleted permanently. Patrols they logged stay in your records. To temporarily block
-              access instead, use Deactivate.
+              Their login will be deleted permanently. Patrols they logged and their Workforce profile stay in your
+              records. To temporarily block access instead, use Deactivate.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -454,6 +488,9 @@ const Team = () => {
 const MemberList = ({
   members,
   meId,
+  links,
+  canLink,
+  onLink,
   onRole,
   onActive,
   onReset,
@@ -461,6 +498,9 @@ const MemberList = ({
 }: {
   members: Member[];
   meId: string;
+  links: Map<string, TeamLink>;
+  canLink: boolean;
+  onLink: (m: Member) => void;
   onRole: (m: Member, r: Role) => void;
   onActive: (m: Member, active: boolean) => void;
   onReset: (m: Member) => void;
@@ -469,6 +509,7 @@ const MemberList = ({
   <ul className="mt-5 space-y-2.5 border-t border-line p-3 sm:p-4">
     {members.map((m) => {
       const isMe = m.id === meId;
+      const link = links.get(m.id);
       return (
         <li key={m.id} className={cn("flex items-center gap-4 rounded-lg border border-line bg-raised px-4 py-3.5 sm:px-5", !m.active && "opacity-55")}>
           <div
@@ -497,7 +538,27 @@ const MemberList = ({
                 </span>
               )}
             </div>
-            <div className="mt-0.5 truncate text-sm text-ink-2">{m.email}</div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
+              <span className="truncate">{m.email}</span>
+              {link ? (
+                <Link
+                  to={`/workforce/workers/${link.workerId}`}
+                  className="focus-ring inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 ring-1 ring-inset ring-line hover:text-ember hover:ring-ember/40"
+                >
+                  <Briefcase className="h-3 w-3" />
+                  {link.code}
+                </Link>
+              ) : canLink ? (
+                <button
+                  type="button"
+                  onClick={() => onLink(m)}
+                  className="focus-ring inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-status-followup ring-1 ring-inset ring-status-followup/40 hover:bg-status-followup/10"
+                >
+                  <Briefcase className="h-3 w-3" />
+                  Add to Workforce
+                </button>
+              ) : null}
+            </div>
           </div>
           <span className="hidden shrink-0 text-xs text-ink-3 md:block">Added {timeAgo(m.createdAt)}</span>
           {!isMe && (
