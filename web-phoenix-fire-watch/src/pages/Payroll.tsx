@@ -45,6 +45,10 @@ import {
   currentPeriod,
   ENTRY_STATUS,
   entryMinutes,
+  estimatePay,
+  fmtCents,
+  loadPayRates,
+  type PayEstimate,
   fmtDuration,
   fmtElapsed,
   fmtHours,
@@ -84,6 +88,7 @@ const Payroll = () => {
   const entriesQ = useQuery({ queryKey: key, enabled: isAdmin, queryFn: () => loadEntries(period) });
   const openQ = useQuery({ queryKey: ["tc", "open-all", user?.orgId ?? ""], enabled: isAdmin, queryFn: () => loadOpenEntries() });
   const teamQ = useQuery({ queryKey: ["tc", "team", user?.orgId ?? ""], enabled: isAdmin, staleTime: 120_000, queryFn: loadTeam });
+  const ratesQ = useQuery({ queryKey: ["tc", "rates", user?.orgId ?? ""], enabled: isAdmin, staleTime: 60_000, queryFn: loadPayRates });
 
   const now = useNow(1000, (openQ.data?.length ?? 0) > 0);
   const teamName = useMemo(() => new Map((teamQ.data ?? []).map((m) => [m.id, m.name])), [teamQ.data]);
@@ -92,6 +97,15 @@ const Payroll = () => {
 
   const entries = useMemo(() => entriesQ.data ?? [], [entriesQ.data]);
   const people = useMemo(() => summarize(entries, period, nameFor), [entries, period, teamName]); // eslint-disable-line react-hooks/exhaustive-deps
+  const showPay = (ratesQ.data?.size ?? 0) > 0;
+  const pay = useMemo(() => {
+    const m = new Map<string, PayEstimate>();
+    if (!ratesQ.data) return m;
+    for (const p of people) m.set(p.key, estimatePay(p, period, p.profileId ? ratesQ.data.get(p.profileId) : undefined));
+    return m;
+  }, [people, period, ratesQ.data]);
+  const grossTotal = [...pay.values()].reduce((s, e) => s + e.grossCents, 0);
+  const missingRate = people.filter((p) => p.approvedMin > 0 && (pay.get(p.key)?.unpricedMin ?? 0) > 0).map((p) => p.name);
   const pending = entries.filter((e) => e.status === "pending");
   const openInPeriod = entries.filter((e) => e.status === "open");
   const totals = {
@@ -144,7 +158,7 @@ const Payroll = () => {
   };
 
   const doPdf = () => {
-    downloadPayrollPdf({ period, people, orgName: user?.orgName ?? "", preparedBy: user?.name ?? "", siteName });
+    downloadPayrollPdf({ period, people, orgName: user?.orgName ?? "", preparedBy: user?.name ?? "", siteName, pay: showPay ? pay : undefined });
     setExportWarn(false);
   };
 
@@ -172,7 +186,7 @@ const Payroll = () => {
               <Plus />
               Add entry
             </Button>
-            <Button variant="outline" onClick={() => downloadPayrollCsv(period, people, siteName)} disabled={entries.length === 0}>
+            <Button variant="outline" onClick={() => downloadPayrollCsv(period, people, siteName, showPay ? pay : undefined)} disabled={entries.length === 0}>
               <Sheet />
               CSV
             </Button>
@@ -224,12 +238,25 @@ const Payroll = () => {
       </div>
 
       {/* Metrics */}
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={cn("mb-5 grid grid-cols-2 gap-3", showPay ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
+        {showPay && <Metric label="Est. gross pay" value={fmtCents(grossTotal)} dot="#22C55E" sub="Approved hours × rate, before taxes" />}
         <Metric label="Approved hours" value={fmtHours(totals.approved)} dot="#22C55E" />
         <Metric label="Awaiting approval" value={fmtHours(totals.pending)} dot="#F5A524" sub={`${pending.length} ${pending.length === 1 ? "entry" : "entries"}`} />
         <Metric label="Overtime (approved)" value={fmtHours(totals.overtime)} dot="#DC2626" sub="Over 40 hrs / week" />
         <Metric label="On the clock now" value={String(openQ.data?.length ?? 0)} dot="#22C55E" pulse={(openQ.data?.length ?? 0) > 0} />
       </div>
+
+      {showPay && missingRate.length > 0 && (
+        <div className="mb-5 flex items-start gap-3 rounded-lg border border-status-follow/40 bg-status-follow/10 px-4 py-3 text-sm text-ink" role="status">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-follow" />
+          <span>
+            No pay rate on file for {missingRate.join(", ")} — those hours aren't in the gross pay total.{" "}
+            <Link to="/team" className="font-medium text-ember underline-offset-2 hover:underline">
+              Set rates on the Team page
+            </Link>
+          </span>
+        </div>
+      )}
 
       {(openQ.data?.length ?? 0) > 0 && (
         <SectionCard className="mb-5" title="On the clock now" subtitle="Live — updates as people clock in and out">
@@ -311,6 +338,7 @@ const Payroll = () => {
                   <th className="px-3 py-3 text-right font-medium">OT</th>
                   <th className="px-3 py-3 text-right font-medium">Approved</th>
                   <th className="px-3 py-3 text-right font-medium">Pending</th>
+                  {showPay && <th className="px-3 py-3 text-right font-medium">Gross pay</th>}
                   <th className="w-10" />
                 </tr>
               </thead>
@@ -319,6 +347,7 @@ const Payroll = () => {
                   const open = expanded.has(p.key);
                   const reviewable = p.entries.filter((e) => e.status !== "open").map((e) => e.id);
                   const allSel = reviewable.length > 0 && reviewable.every((id) => selected.has(id));
+                  const est = pay.get(p.key);
                   return (
                     <Fragment key={p.key}>
                       <tr className="cursor-pointer bg-raised transition-colors hover:bg-raised/70" onClick={() => toggleExpand(p.key)}>
@@ -334,10 +363,16 @@ const Payroll = () => {
                               className="h-4 w-4 accent-[#DC2626]"
                             />
                             <div className="min-w-0">
-                              <div className="truncate font-medium text-ink">{p.name}</div>
+                              <div className="truncate font-medium text-ink">
+                                {p.name}
+                                {showPay && est && (
+                                  <span className="ml-2 font-mono text-xs font-normal text-ink-3">{est.rate !== null ? `$${est.rate.toFixed(2)}/hr` : "no rate"}</span>
+                                )}
+                              </div>
                               <div className="mt-0.5 flex flex-wrap gap-1.5 md:hidden">
                                 <span className="font-mono text-xs text-ink-2">{fmtHours(p.approvedMin)} approved</span>
                                 {p.pendingMin > 0 && <span className="font-mono text-xs text-status-follow">· {fmtHours(p.pendingMin)} pending</span>}
+                                {showPay && est && <span className="font-mono text-xs text-status-clear">· {fmtCents(est.grossCents)}</span>}
                               </div>
                               {p.openCount > 0 && (
                                 <Pill tone="ember" className="mt-1">
@@ -361,13 +396,21 @@ const Payroll = () => {
                         <td className={cn("hidden px-3 py-3.5 text-right font-mono tabular-nums md:table-cell", p.pendingMin > 0 ? "text-status-follow" : "text-ink-3")}>
                           {fmtHours(p.pendingMin)}
                         </td>
+                        {showPay && (
+                          <td className="hidden px-3 py-3.5 text-right font-mono font-semibold tabular-nums text-status-clear md:table-cell">
+                            {est ? fmtCents(est.grossCents) : "—"}
+                            {est && est.overtimePremiumCents > 0 && (
+                              <div className="text-[11px] font-normal text-ink-3">incl. {fmtCents(est.overtimePremiumCents)} OT</div>
+                            )}
+                          </td>
+                        )}
                         <td className="px-2 text-right">
                           <ChevronDown className={cn("ml-auto h-4 w-4 text-ink-3 transition-transform", open && "rotate-180")} />
                         </td>
                       </tr>
                       {open && (
                         <tr>
-                          <td colSpan={period.days > 7 ? 8 : 6} className="bg-canvas/40 p-2 sm:p-3">
+                          <td colSpan={(period.days > 7 ? 8 : 6) + (showPay ? 1 : 0)} className="bg-canvas/40 p-2 sm:p-3">
                             <ul className="space-y-1.5">
                               {p.entries.map((e) => (
                                 <EntryRow

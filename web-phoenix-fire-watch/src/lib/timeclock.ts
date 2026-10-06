@@ -270,5 +270,82 @@ export async function loadTeam(): Promise<TeamMember[]> {
   return (data ?? []).map((r) => ({ id: r.id, name: r.full_name, role: r.role, active: r.active }));
 }
 
+// ─── Pay rates (from Workforce, visible only with the "Employee pay" permission) ─
+
+export interface RateRow {
+  rate: number;
+  /** yyyy-MM-dd */
+  effective: string;
+}
+
+/** Hourly rate history per Team login, newest first. Empty when the caller can't see wages. */
+export async function loadPayRates(): Promise<Map<string, RateRow[]>> {
+  const { data, error } = await supabase.rpc("tc_pay_rates");
+  if (error) throw wfError(error);
+  const map = new Map<string, RateRow[]>();
+  for (const r of data ?? []) {
+    const list = map.get(r.profile_id) ?? [];
+    list.push({ rate: Number(r.hourly_rate), effective: r.effective_date });
+    map.set(r.profile_id, list);
+  }
+  for (const list of map.values()) list.sort((a, b) => b.effective.localeCompare(a.effective));
+  return map;
+}
+
+/** Rate in effect on a given day (yyyy-MM-dd), or null if none was set yet. */
+export const rateOn = (rates: RateRow[] | undefined, day: string): number | null =>
+  rates?.find((r) => r.effective <= day)?.rate ?? null;
+
+export interface PayEstimate {
+  /** Rate in effect at the end of the period (for display). */
+  rate: number | null;
+  straightCents: number;
+  overtimePremiumCents: number;
+  grossCents: number;
+  /** Approved minutes that had no pay rate on file and weren't priced. */
+  unpricedMin: number;
+}
+
+/**
+ * Gross pay before taxes and deductions, from approved hours only.
+ * Every approved hour is paid at the rate in effect that day; overtime hours (over 40 per
+ * Monday–Sunday week) add a half-time premium on that week's average rate.
+ */
+export const estimatePay = (p: PersonSummary, period: PayPeriod, rates: RateRow[] | undefined): PayEstimate => {
+  let straight = 0;
+  let premium = 0;
+  let unpricedMin = 0;
+  for (const w of p.weeks) {
+    let weekPay = 0;
+    let pricedMin = 0;
+    for (const e of p.entries) {
+      if (e.status !== "approved") continue;
+      if (toDateKey(weekStartOf(new Date(e.clockIn))) !== w.start) continue;
+      const min = entryMinutes(e);
+      const r = rateOn(rates, entryDay(e));
+      if (r === null) {
+        unpricedMin += min;
+        continue;
+      }
+      weekPay += (min / 60) * r;
+      pricedMin += min;
+    }
+    straight += weekPay;
+    if (w.overMin > 0 && pricedMin > 0) premium += (w.overMin / 60) * 0.5 * (weekPay / (pricedMin / 60));
+  }
+  const straightCents = Math.round(straight * 100);
+  const overtimePremiumCents = Math.round(premium * 100);
+  return {
+    rate: rateOn(rates, toDateKey(periodEnd(period))),
+    straightCents,
+    overtimePremiumCents,
+    grossCents: straightCents + overtimePremiumCents,
+    unpricedMin,
+  };
+};
+
+export const fmtCents = (c: number): string =>
+  (c / 100).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
+
 /** yyyy-MM-dd → Date at local midnight */
 export const dayToDate = (key: string): Date => parseISO(key);

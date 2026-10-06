@@ -3369,6 +3369,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      tc_pay_rates: {
+        Args: never
+        Returns: {
+          effective_date: string
+          hourly_rate: number
+          profile_id: string
+        }[]
+      }
       tc_review: {
         Args: { p_action: string; p_ids: string[]; p_note?: string }
         Returns: number

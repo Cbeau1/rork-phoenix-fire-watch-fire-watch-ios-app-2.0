@@ -14,7 +14,7 @@ type Action = "create" | "update" | "reset-password" | "remove";
 /**
  * Org admin actions for employee accounts:
  * - create: new employee login inside the admin's organization
- * - update: change name / role / active flag
+ * - update: change name / email / role / active flag
  * - reset-password: set a new password for an employee
  * - remove: delete the employee's login entirely
  */
@@ -103,7 +103,17 @@ Deno.serve(async (req) => {
         if (!n) throw new HttpError(400, "Name can't be empty.");
         patch.full_name = n;
       }
-      if (body.role === "admin" || body.role === "officer") patch.role = body.role;
+      let newEmail = "";
+      if (typeof body.email === "string") {
+        const e = readString(body.email, 200).toLowerCase();
+        if (!EMAIL_RE.test(e)) throw new HttpError(400, "Enter a valid email address.");
+        const { data: cur } = await admin.from("profiles").select("email").eq("id", memberId).single();
+        if (cur && cur.email.toLowerCase() !== e) newEmail = e;
+      }
+      if (body.role === "admin" || body.role === "officer") {
+        if (memberId === me.id && body.role !== member.role) throw new HttpError(400, "You can't change your own role.");
+        patch.role = body.role;
+      }
       if (typeof body.active === "boolean") patch.active = body.active;
 
       const demoting = member.role === "admin" && (patch.role === "officer" || patch.active === false);
@@ -111,7 +121,21 @@ Deno.serve(async (req) => {
         throw new HttpError(400, "Your organization needs at least one active admin.");
       }
 
-      const { data, error } = await admin.from("profiles").update(patch).eq("id", memberId).select("*").single();
+      if (newEmail) {
+        const { error: authErr } = await admin.auth.admin.updateUserById(memberId, { email: newEmail, email_confirm: true });
+        if (authErr) {
+          if (/already|registered|exists/i.test(authErr.message ?? "")) {
+            throw new HttpError(409, "That email is already in use by another account.");
+          }
+          console.error("email update failed", authErr.message);
+          throw new HttpError(400, "Couldn't change the email address.");
+        }
+        patch.email = newEmail;
+      }
+
+      const { data, error } = Object.keys(patch).length
+        ? await admin.from("profiles").update(patch).eq("id", memberId).select("*").single()
+        : await admin.from("profiles").select("*").eq("id", memberId).single();
       if (error) throw new HttpError(500, "Couldn't update this team member.");
 
       if (typeof patch.active === "boolean") {

@@ -18,6 +18,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { EditMemberDialog } from "@/components/fw/EditMemberDialog";
 import { Card, CardHeader, EmptyState, FieldError, FieldHint, FieldLabel, PageHeader } from "@/components/fw/primitives";
 import {
   AlertDialog,
@@ -43,6 +44,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { initials, timeAgo } from "@/lib/format";
 import { linkTeamMember, loadTeamLinks, type TeamLink } from "@/lib/workforce/api";
 import { callFunction, friendlyError, supabase } from "@/lib/supabase";
+import { loadPayRates, rateOn, type RateRow } from "@/lib/timeclock";
 import { ROLE_LABEL, type Member, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
@@ -95,6 +97,7 @@ const Team = () => {
   const [resetFor, setResetFor] = useState<Member | null>(null);
   const [resetPassword, setResetPassword] = useState<string>("");
   const [removeFor, setRemoveFor] = useState<Member | null>(null);
+  const [editFor, setEditFor] = useState<Member | null>(null);
 
   const [orgEdit, setOrgEdit] = useState<boolean>(false);
   const [orgDraft, setOrgDraft] = useState<string>(user?.orgName ?? "");
@@ -131,6 +134,14 @@ const Team = () => {
     return map;
   }, [linksQuery.data]);
   const canLink = !!linksQuery.data;
+
+  const ratesQuery = useQuery({
+    queryKey: ["tc", "rates", orgId],
+    enabled: !!orgId && isAdmin,
+    staleTime: 60_000,
+    queryFn: loadPayRates,
+  });
+  const rates = ratesQuery.data ?? new Map<string, RateRow[]>();
 
   const refresh = () =>
     Promise.all([
@@ -305,7 +316,9 @@ const Team = () => {
               members={members}
               meId={user?.id ?? ""}
               links={links}
+              rates={rates}
               canLink={canLink}
+              onEdit={setEditFor}
               onLink={(m) => linkMutation.mutate(m)}
               onRole={(m, r) => updateMutation.mutate({ memberId: m.id, role: r })}
               onActive={(m, a) => updateMutation.mutate({ memberId: m.id, active: a })}
@@ -332,7 +345,9 @@ const Team = () => {
             members={members}
             meId={user?.id ?? ""}
             links={links}
+            rates={rates}
             canLink={canLink}
+            onEdit={setEditFor}
             onLink={(m) => linkMutation.mutate(m)}
             onRole={(m, r) => updateMutation.mutate({ memberId: m.id, role: r })}
             onActive={(m, a) => updateMutation.mutate({ memberId: m.id, active: a })}
@@ -458,6 +473,13 @@ const Team = () => {
         </DialogContent>
       </Dialog>
 
+      <EditMemberDialog
+        member={editFor}
+        isMe={editFor?.id === user?.id}
+        workerId={editFor ? (links.get(editFor.id)?.workerId ?? null) : null}
+        onClose={() => setEditFor(null)}
+      />
+
       <AlertDialog open={!!removeFor} onOpenChange={(o) => !o && setRemoveFor(null)}>
         <AlertDialogContent className="border-line bg-surface text-ink sm:rounded-xl">
           <AlertDialogHeader>
@@ -489,7 +511,9 @@ const MemberList = ({
   members,
   meId,
   links,
+  rates,
   canLink,
+  onEdit,
   onLink,
   onRole,
   onActive,
@@ -499,7 +523,9 @@ const MemberList = ({
   members: Member[];
   meId: string;
   links: Map<string, TeamLink>;
+  rates: Map<string, RateRow[]>;
   canLink: boolean;
+  onEdit: (m: Member) => void;
   onLink: (m: Member) => void;
   onRole: (m: Member, r: Role) => void;
   onActive: (m: Member, active: boolean) => void;
@@ -508,8 +534,10 @@ const MemberList = ({
 }) => (
   <ul className="mt-5 space-y-2.5 border-t border-line p-3 sm:p-4">
     {members.map((m) => {
+      const today = new Date().toLocaleDateString("en-CA");
       const isMe = m.id === meId;
       const link = links.get(m.id);
+      const rate = rateOn(rates.get(m.id), today);
       return (
         <li key={m.id} className={cn("flex items-center gap-4 rounded-lg border border-line bg-raised px-4 py-3.5 sm:px-5", !m.active && "opacity-55")}>
           <div
@@ -532,6 +560,11 @@ const MemberList = ({
               >
                 {ROLE_LABEL[m.role]}
               </span>
+              {rate !== null && (
+                <span className="rounded-full bg-status-clear/10 px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums text-status-clear ring-1 ring-inset ring-status-clear/30">
+                  ${rate.toFixed(2)}/hr
+                </span>
+              )}
               {!m.active && (
                 <span className="rounded-full bg-status-incident/10 px-2 py-0.5 text-[11px] font-medium text-status-incident ring-1 ring-inset ring-status-incident/30">
                   Deactivated
@@ -561,6 +594,10 @@ const MemberList = ({
             </div>
           </div>
           <span className="hidden shrink-0 text-xs text-ink-3 md:block">Added {timeAgo(m.createdAt)}</span>
+          <Button variant="outline" size="sm" onClick={() => onEdit(m)} aria-label={`Edit ${m.name}`} className="shrink-0">
+            <Pencil />
+            <span className="hidden sm:inline">Edit</span>
+          </Button>
           {!isMe && (
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -570,6 +607,9 @@ const MemberList = ({
                 <MoreHorizontal className="h-5 w-5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 border-line bg-surface text-ink">
+                <DropdownMenuItem onClick={() => onEdit(m)} className="gap-2 focus:bg-raised focus:text-ink">
+                  <Pencil className="h-4 w-4" /> Edit profile & pay
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onReset(m)} className="gap-2 focus:bg-raised focus:text-ink">
                   <KeyRound className="h-4 w-4" /> Reset password
                 </DropdownMenuItem>

@@ -1,6 +1,16 @@
 import { format } from "date-fns";
 
-import { entryMinutes, fmtHours, periodEnd, periodLabel, ENTRY_STATUS, type PayPeriod, type PersonSummary } from "@/lib/timeclock";
+import {
+  entryMinutes,
+  fmtCents,
+  fmtHours,
+  periodEnd,
+  periodLabel,
+  ENTRY_STATUS,
+  type PayEstimate,
+  type PayPeriod,
+  type PersonSummary,
+} from "@/lib/timeclock";
 import { buildPdf, downloadBlob, downloadCsv, type PdfSection } from "@/lib/workforce/exports";
 
 const fileStem = (period: PayPeriod) =>
@@ -15,8 +25,19 @@ export const downloadPayrollPdf = (opts: {
   orgName: string;
   preparedBy: string;
   siteName: (id: string | null) => string;
+  /** Gross-pay estimates per person key; omitted when the admin can't see wages. */
+  pay?: Map<string, PayEstimate>;
 }) => {
-  const { period, people } = opts;
+  const { period, people, pay } = opts;
+  const grossTotal = pay ? [...pay.values()].reduce((s, e) => s + e.grossCents, 0) : 0;
+  const rateCell = (p: PersonSummary) => {
+    const r = pay?.get(p.key)?.rate;
+    return r === null || r === undefined ? "—" : `$${r.toFixed(2)}`;
+  };
+  const grossCell = (p: PersonSummary) => {
+    const e = pay?.get(p.key);
+    return e ? fmtCents(e.grossCents) : "—";
+  };
   const twoWeeks = period.days > 7;
   const unapproved = people.reduce((n, p) => n + p.entries.filter((e) => e.status === "pending" || e.status === "open").length, 0);
   const totalApproved = people.reduce((s, p) => s + p.approvedMin, 0);
@@ -31,15 +52,22 @@ export const downloadPayrollPdf = (opts: {
         ["Employees", String(people.length)],
         ["Approved hours", fmtHours(totalApproved)],
         ["Regular / overtime", `${fmtHours(totalReg)} / ${fmtHours(totalOt)}`],
+        ...(pay ? ([["Estimated gross pay", `${fmtCents(grossTotal)} (before taxes and deductions)`]] as [string, string][]) : []),
         ["Unapproved entries", unapproved === 0 ? "None — all hours reviewed" : `${unapproved} not included in totals`],
       ],
     },
     {
       title: "Hours by employee",
       table: {
-        head: twoWeeks
-          ? ["Employee", "Week 1", "Week 2", "Regular", "Overtime", "Approved total", "Not approved"]
-          : ["Employee", "Regular", "Overtime", "Approved total", "Not approved"],
+        head: [
+          "Employee",
+          ...(twoWeeks ? ["Week 1", "Week 2"] : []),
+          "Regular",
+          "Overtime",
+          "Approved total",
+          "Not approved",
+          ...(pay ? ["Rate", "Gross pay"] : []),
+        ],
         body: [
           ...people.map((p) => [
             p.name,
@@ -48,6 +76,7 @@ export const downloadPayrollPdf = (opts: {
             fmtHours(p.overMin),
             fmtHours(p.approvedMin),
             p.pendingMin > 0 || p.openCount > 0 ? `${fmtHours(p.pendingMin)}${p.openCount ? ` + ${p.openCount} open` : ""}` : "—",
+            ...(pay ? [rateCell(p), grossCell(p)] : []),
           ]),
           [
             "TOTAL",
@@ -56,6 +85,7 @@ export const downloadPayrollPdf = (opts: {
             fmtHours(totalOt),
             fmtHours(totalApproved),
             "",
+            ...(pay ? ["", fmtCents(grossTotal)] : []),
           ],
         ],
       },
@@ -79,6 +109,11 @@ export const downloadPayrollPdf = (opts: {
       title: "Approval",
       text: [
         "Overtime is calculated on approved hours over 40 per Monday–Sunday workweek. Times are recorded by the server when each employee clocks in and out; admin corrections are logged with a reason.",
+        ...(pay
+          ? [
+              "Gross pay is an estimate: approved hours × the hourly rate in effect each day, plus a half-time premium on overtime hours. It is before taxes and deductions and is not a paycheck.",
+            ]
+          : []),
         "Approved by: ______________________________          Date: ________________",
       ],
     },
@@ -90,15 +125,21 @@ export const downloadPayrollPdf = (opts: {
     orgName: opts.orgName,
     preparedBy: opts.preparedBy,
     heading: "PHOENIX FIRE WATCH · PAYROLL",
-    footer: "Hours only — contains employee time records. Confidential.",
+    footer: pay ? "Contains employee time and wage records. Confidential." : "Hours only — contains employee time records. Confidential.",
     sections,
   });
   downloadBlob(blob, `${fileStem(period)}.pdf`);
 };
 
-export const downloadPayrollCsv = (period: PayPeriod, people: PersonSummary[], siteName: (id: string | null) => string) => {
+export const downloadPayrollCsv = (
+  period: PayPeriod,
+  people: PersonSummary[],
+  siteName: (id: string | null) => string,
+  pay?: Map<string, PayEstimate>,
+) => {
   const rows: unknown[][] = [];
   for (const p of people) {
+    const est = pay?.get(p.key);
     for (const e of p.entries) {
       rows.push([
         p.name,
@@ -110,8 +151,16 @@ export const downloadPayrollCsv = (period: PayPeriod, people: PersonSummary[], s
         ENTRY_STATUS[e.status].label,
         e.edited ? "yes" : "no",
         e.adminNote,
+        ...(pay ? [est?.rate ?? ""] : []),
       ]);
     }
+    if (pay && est) {
+      rows.push([`${p.name} — estimated gross pay`, "", "", "", fmtHours(p.approvedMin), "", "", "", "", (est.grossCents / 100).toFixed(2)]);
+    }
   }
-  downloadCsv(`${fileStem(period)}.csv`, ["Employee", "Date", "Clock in", "Clock out", "Hours", "Site", "Status", "Edited", "Admin note"], rows);
+  downloadCsv(
+    `${fileStem(period)}.csv`,
+    ["Employee", "Date", "Clock in", "Clock out", "Hours", "Site", "Status", "Edited", "Admin note", ...(pay ? ["Hourly rate / gross"] : [])],
+    rows,
+  );
 };
