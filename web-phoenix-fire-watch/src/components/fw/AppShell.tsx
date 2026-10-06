@@ -1,4 +1,4 @@
-import { AlarmClock, Briefcase, Building2, CalendarDays, FileText, LayoutGrid, LogOut, Menu, ReceiptText, UserCog, Users } from "lucide-react";
+import { AlarmClock, Briefcase, Building2, CalendarDays, Clock, FileText, LayoutGrid, LogOut, Menu, ReceiptText, UserCog, Users, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
 import { useExAccess } from "@/state/ExpensesProvider";
 import { usePatrolTimers } from "@/state/PatrolTimerProvider";
+import { useTimeClockRealtime } from "@/state/useTimeClock";
 
 import { Crest } from "./Crest";
 import { PatrolTimerAlerts } from "./PatrolTimerAlerts";
@@ -21,6 +22,8 @@ const NAV = [
   { to: "/notes", label: "Watch Notes", icon: FileText, match: (p: string) => p.startsWith("/notes") },
 ];
 
+const HOURS_NAV = { to: "/hours", label: "My Hours", icon: Clock, match: (p: string) => p.startsWith("/hours") };
+const PAYROLL_NAV = { to: "/payroll", label: "Payroll", icon: Wallet, match: (p: string) => p.startsWith("/payroll") };
 const TEAM_NAV = { to: "/team", label: "Team", icon: Users, match: (p: string) => p.startsWith("/team") };
 const WORKFORCE_NAV = {
   to: "/workforce",
@@ -42,8 +45,8 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
   const exAccess = useExAccess();
   const items = isAdmin
-    ? [...NAV, TEAM_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
-    : [...NAV, ACCOUNT_NAV];
+    ? [...NAV, HOURS_NAV, TEAM_NAV, PAYROLL_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
+    : [...NAV, HOURS_NAV, ACCOUNT_NAV];
 
   return (
     <div className="flex min-h-full flex-col">
@@ -147,6 +150,7 @@ const RunningTimers = ({ onNavigate }: { onNavigate?: () => void }) => {
 export const AppShell = () => {
   const [open, setOpen] = useState<boolean>(false);
   const { pathname } = useLocation();
+  useTimeClockRealtime();
 
   useEffect(() => {
     window.scrollTo({ top: 0 });

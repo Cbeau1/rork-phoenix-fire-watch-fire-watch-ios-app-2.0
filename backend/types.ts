@@ -1114,6 +1114,140 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          admin_note: string
+          approved_at: string | null
+          approved_by: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          edited: boolean
+          employee_note: string
+          id: string
+          org_id: string
+          profile_id: string | null
+          property_id: string | null
+          source: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        Insert: {
+          admin_note?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          clock_in: string
+          clock_out?: string | null
+          created_at?: string
+          edited?: boolean
+          employee_note?: string
+          id?: string
+          org_id: string
+          profile_id?: string | null
+          property_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          worker_name?: string
+        }
+        Update: {
+          admin_note?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          clock_in?: string
+          clock_out?: string | null
+          created_at?: string
+          edited?: boolean
+          employee_note?: string
+          id?: string
+          org_id?: string
+          profile_id?: string | null
+          property_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          worker_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entry_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string
+          created_at: string
+          detail: Json
+          entry_id: string | null
+          id: number
+          org_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          detail?: Json
+          entry_id?: string | null
+          id?: number
+          org_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          detail?: Json
+          entry_id?: string | null
+          id?: number
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entry_log_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entry_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_notes: {
         Row: {
           author_id: string | null
@@ -3091,6 +3225,154 @@ export type Database = {
       ex_save_reimbursement: { Args: { p: Json; p_id: string }; Returns: Json }
       is_org_admin: { Args: never; Returns: boolean }
       my_org_id: { Args: never; Returns: string }
+      tc__admin: {
+        Args: never
+        Returns: {
+          active: boolean
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          org_id: string
+          role: string
+          terms_accepted_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      tc__check_property: {
+        Args: { p_org: string; p_property: string }
+        Returns: undefined
+      }
+      tc__log: {
+        Args: {
+          p_action: string
+          p_actor: Database["public"]["Tables"]["profiles"]["Row"]
+          p_detail: Json
+          p_entry: string
+          p_org: string
+        }
+        Returns: undefined
+      }
+      tc__me: {
+        Args: never
+        Returns: {
+          active: boolean
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          org_id: string
+          role: string
+          terms_accepted_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      tc__snap: {
+        Args: { e: Database["public"]["Tables"]["time_entries"]["Row"] }
+        Returns: Json
+      }
+      tc_admin_save: {
+        Args: {
+          p_clock_in: string
+          p_clock_out: string
+          p_id: string
+          p_profile_id: string
+          p_property_id?: string
+          p_reason?: string
+        }
+        Returns: {
+          admin_note: string
+          approved_at: string | null
+          approved_by: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          edited: boolean
+          employee_note: string
+          id: string
+          org_id: string
+          profile_id: string | null
+          property_id: string | null
+          source: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "time_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      tc_clock_in: {
+        Args: { p_note?: string; p_property_id?: string }
+        Returns: {
+          admin_note: string
+          approved_at: string | null
+          approved_by: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          edited: boolean
+          employee_note: string
+          id: string
+          org_id: string
+          profile_id: string | null
+          property_id: string | null
+          source: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "time_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      tc_clock_out: {
+        Args: { p_note?: string }
+        Returns: {
+          admin_note: string
+          approved_at: string | null
+          approved_by: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          edited: boolean
+          employee_note: string
+          id: string
+          org_id: string
+          profile_id: string | null
+          property_id: string | null
+          source: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "time_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      tc_review: {
+        Args: { p_action: string; p_ids: string[]; p_note?: string }
+        Returns: number
+      }
       verify_cron_secret: { Args: { p_secret: string }; Returns: boolean }
       wf__log: {
         Args: {

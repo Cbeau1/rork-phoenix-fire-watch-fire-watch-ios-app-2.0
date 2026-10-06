@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(FireWatchStore.self) private var store
     @Environment(ScheduleStore.self) private var schedule
     @Environment(PatrolTimerStore.self) private var timers
+    @Environment(TimeClockStore.self) private var clock
     @Environment(NetworkMonitor.self) private var network
 
     var body: some View {
@@ -20,11 +21,16 @@ struct ContentView: View {
             timers.configure(userId: user?.id)
             Task { await store.configure(for: user) }
             Task { await schedule.configure(for: user) }
+            Task { await clock.configure(userId: user?.id) }
         }
         .onChange(of: network.isOnline, initial: true) { _, online in
             store.isOnline = online
             schedule.isOnline = online
-            if online { Task { await schedule.refresh() } }
+            clock.isOnline = online
+            if online {
+                Task { await schedule.refresh() }
+                Task { await clock.refresh() }
+            }
         }
     }
 

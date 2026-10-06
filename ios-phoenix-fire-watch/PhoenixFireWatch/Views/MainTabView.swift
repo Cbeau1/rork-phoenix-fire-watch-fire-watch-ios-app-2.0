@@ -6,6 +6,7 @@ struct MainTabView: View {
     @Environment(FireWatchStore.self) private var store
     @Environment(ScheduleStore.self) private var schedule
     @Environment(PatrolTimerStore.self) private var timers
+    @Environment(TimeClockStore.self) private var clock
     @Environment(AppRouter.self) private var router
     @Environment(\.scenePhase) private var scenePhase
 
@@ -62,6 +63,7 @@ struct MainTabView: View {
                 await store.flush()
                 await store.refresh()
                 await schedule.refresh()
+                await clock.refresh()
             }
             timers.reschedule(properties: store.properties, patrols: store.patrols)
         }

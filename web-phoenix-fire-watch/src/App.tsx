@@ -20,6 +20,8 @@ import Account from "./pages/Account";
 import AllPatrols from "./pages/AllPatrols";
 import Dashboard from "./pages/Dashboard";
 import LogPatrol from "./pages/LogPatrol";
+import MyHours from "./pages/MyHours";
+import Payroll from "./pages/Payroll";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Properties from "./pages/Properties";
@@ -141,6 +143,8 @@ const AppRoutes = () => {
         <Route path="/notes" element={<WatchNotes />} />
         <Route path="/schedule" element={<Schedule />} />
         <Route path="/team" element={<Team />} />
+        <Route path="/hours" element={<MyHours />} />
+        <Route path="/payroll" element={<Payroll />} />
         <Route path="/account" element={<Account />} />
         <Route path="/workforce" element={<WorkforceLayout />}>
           <Route index element={<WorkforceHome />} />

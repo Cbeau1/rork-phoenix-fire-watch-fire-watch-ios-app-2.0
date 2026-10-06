@@ -8,6 +8,7 @@ enum AppTab: Hashable {
 enum Route: Hashable {
     case property(String)
     case allPatrols
+    case myHours
 }
 
 struct Toast: Identifiable, Equatable {

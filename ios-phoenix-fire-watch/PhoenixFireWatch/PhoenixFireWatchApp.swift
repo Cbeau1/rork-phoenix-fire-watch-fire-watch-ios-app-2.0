@@ -7,6 +7,7 @@ struct PhoenixFireWatchApp: App {
     @State private var store = FireWatchStore()
     @State private var schedule = ScheduleStore()
     @State private var timers = PatrolTimerStore()
+    @State private var clock = TimeClockStore()
     @State private var network = NetworkMonitor()
     @State private var router = AppRouter.shared
 
@@ -24,6 +25,7 @@ struct PhoenixFireWatchApp: App {
                 .environment(store)
                 .environment(schedule)
                 .environment(timers)
+                .environment(clock)
                 .environment(network)
                 .environment(router)
                 .preferredColorScheme(.dark)

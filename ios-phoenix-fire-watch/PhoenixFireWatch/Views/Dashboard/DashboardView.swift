@@ -14,6 +14,7 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header
+                    TimeClockCardView(onOpenHours: { path.append(.myHours) })
                     SyncStatusBar()
                     if let error = store.loadError, !store.hasLoaded {
                         ErrorBanner(message: error)
@@ -53,6 +54,7 @@ struct DashboardView: View {
                 switch route {
                 case .property(let id): PropertyDetailView(propertyId: id)
                 case .allPatrols: AllPatrolsView()
+                case .myHours: MyHoursView()
                 }
             }
             .sheet(isPresented: $showNewProperty) {

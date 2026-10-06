@@ -6,6 +6,7 @@ import { PatrolRow } from "@/components/fw/PatrolRow";
 import { Card, CardHeader, EmptyState, PageHeader } from "@/components/fw/primitives";
 import { QuickNoteDialog } from "@/components/fw/QuickNoteDialog";
 import { SiteCard } from "@/components/fw/SiteCard";
+import { TimeClockCard } from "@/components/fw/TimeClockCard";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { timeAgo } from "@/lib/format";
@@ -50,6 +51,10 @@ const Dashboard = () => {
           </>
         }
       />
+
+      <div className="mb-6">
+        <TimeClockCard />
+      </div>
 
       <section aria-labelledby="sites-heading">
         <div className="mb-3 flex items-end justify-between gap-3">

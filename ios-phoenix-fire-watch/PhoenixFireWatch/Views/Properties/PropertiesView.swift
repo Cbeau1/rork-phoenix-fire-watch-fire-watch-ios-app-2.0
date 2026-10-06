@@ -56,6 +56,7 @@ struct PropertiesView: View {
                 switch route {
                 case .property(let id): PropertyDetailView(propertyId: id)
                 case .allPatrols: AllPatrolsView()
+                case .myHours: MyHoursView()
                 }
             }
             .sheet(isPresented: $showNew) {
