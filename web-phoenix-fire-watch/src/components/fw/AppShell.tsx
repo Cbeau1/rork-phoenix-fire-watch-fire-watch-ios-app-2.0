@@ -1,4 +1,4 @@
-import { AlarmClock, Briefcase, Building2, CalendarDays, FileText, LayoutGrid, LogOut, Menu, UserCog, Users } from "lucide-react";
+import { AlarmClock, Briefcase, Building2, CalendarDays, FileText, LayoutGrid, LogOut, Menu, ReceiptText, UserCog, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -7,6 +7,7 @@ import { initials } from "@/lib/format";
 import { ROLE_LABEL } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
+import { useExAccess } from "@/state/ExpensesProvider";
 import { usePatrolTimers } from "@/state/PatrolTimerProvider";
 
 import { Crest } from "./Crest";
@@ -27,13 +28,22 @@ const WORKFORCE_NAV = {
   icon: Briefcase,
   match: (p: string) => p.startsWith("/workforce"),
 };
+const EXPENSES_NAV = {
+  to: "/expenditures",
+  label: "Expenditures",
+  icon: ReceiptText,
+  match: (p: string) => p.startsWith("/expenditures"),
+};
 const ACCOUNT_NAV = { to: "/account", label: "Account", icon: UserCog, match: (p: string) => p.startsWith("/account") };
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { pathname } = useLocation();
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
-  const items = isAdmin ? [...NAV, TEAM_NAV, WORKFORCE_NAV, ACCOUNT_NAV] : [...NAV, ACCOUNT_NAV];
+  const exAccess = useExAccess();
+  const items = isAdmin
+    ? [...NAV, TEAM_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
+    : [...NAV, ACCOUNT_NAV];
 
   return (
     <div className="flex min-h-full flex-col">

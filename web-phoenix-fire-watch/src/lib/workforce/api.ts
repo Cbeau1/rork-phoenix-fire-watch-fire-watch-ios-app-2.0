@@ -33,6 +33,7 @@ const parsePerms = (raw: unknown): WfPerms => {
     finance: o.finance === true,
     purge: o.purge === true,
     admin: o.admin === true,
+    expenses: o.expenses === true,
   };
 };
 

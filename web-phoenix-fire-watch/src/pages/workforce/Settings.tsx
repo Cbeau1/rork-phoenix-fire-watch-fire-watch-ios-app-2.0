@@ -20,7 +20,7 @@ import {
 } from "@/components/workforce/kit";
 import { AuditList } from "@/components/workforce/profile/ActivityTab";
 import * as api from "@/lib/workforce/api";
-import { CHECKLIST_KIND, DOC_CATEGORY_LABEL, PERM_META, type Perm, type Template, type WfPerms } from "@/lib/workforce/constants";
+import { CHECKLIST_KIND, DOC_CATEGORY_LABEL, INDEPENDENT_PERMS, PERM_META, type Perm, type Template, type WfPerms } from "@/lib/workforce/constants";
 import { cn } from "@/lib/utils";
 import { useWorkforce } from "@/state/WorkforceProvider";
 
@@ -341,8 +341,11 @@ const PermissionsSection = () => {
                       type="checkbox"
                       className="mt-0.5 h-4 w-4 accent-[#DC2626]"
                       checked={r[p]}
-                      disabled={save.isPending || (p !== "manage" && !r.manage)}
-                      onChange={(e) => save.mutate({ id: r.profileId, perms: { ...r, [p]: e.target.checked } })}
+                      disabled={save.isPending || (p !== "manage" && !INDEPENDENT_PERMS.has(p) && !r.manage)}
+                      onChange={(e) => {
+                        save.mutate({ id: r.profileId, perms: { ...r, [p]: e.target.checked } });
+                        if (p === "expenses") void qc.invalidateQueries({ queryKey: ["ex"] });
+                      }}
                     />
                     <span>
                       <span className="text-ink">{PERM_META[p].label}</span>

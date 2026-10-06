@@ -21,7 +21,7 @@ export type AuditEntry = Tables<"wf_audit_log">;
 export type WfSettings = Tables<"wf_settings">;
 
 export type WorkerSource = "direct" | "agency";
-export type Perm = "manage" | "personnel" | "pay" | "documents" | "finance" | "purge" | "admin";
+export type Perm = "manage" | "personnel" | "pay" | "documents" | "finance" | "purge" | "admin" | "expenses";
 export type WfPerms = Record<Perm, boolean>;
 
 export const NO_PERMS: WfPerms = {
@@ -32,6 +32,7 @@ export const NO_PERMS: WfPerms = {
   finance: false,
   purge: false,
   admin: false,
+  expenses: false,
 };
 
 export const PERM_META: Record<Perm, { label: string; description: string }> = {
@@ -42,7 +43,14 @@ export const PERM_META: Record<Perm, { label: string; description: string }> = {
   finance: { label: "Agency financials", description: "Agency bill rates, cost estimates and invoice reconciliation." },
   purge: { label: "Permanent deletion", description: "Permanently delete archived profiles and documents." },
   admin: { label: "Manage permissions", description: "Grant or remove these workforce permissions for other admins." },
+  expenses: {
+    label: "Expenditures",
+    description: "Business spending, receipts, reimbursements and recoveries. Independent of Workforce access.",
+  },
 };
+
+/** Permissions that don't depend on general Workforce access. */
+export const INDEPENDENT_PERMS = new Set<Perm>(["expenses"]);
 
 export type Tone = "green" | "amber" | "red" | "slate" | "ember" | "blue";
 

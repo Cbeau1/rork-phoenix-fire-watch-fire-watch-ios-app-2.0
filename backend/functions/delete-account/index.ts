@@ -34,6 +34,8 @@ async function removeWorkforceFiles(admin: SupabaseClient, orgId: string): Promi
   for (const v of versions ?? []) paths.add(String(v.storage_path));
   const { data: workers } = await admin.from("wf_workers").select("photo_path").eq("org_id", orgId).not("photo_path", "is", null);
   for (const w of workers ?? []) paths.add(String(w.photo_path));
+  const { data: receipts } = await admin.from("ex_attachments").select("storage_path").eq("org_id", orgId);
+  for (const r of receipts ?? []) paths.add(String(r.storage_path));
   const list = Array.from(paths).filter((p) => p.startsWith(`${orgId}/`));
   for (let i = 0; i < list.length; i += 100) {
     const { error } = await admin.storage.from("workforce-files").remove(list.slice(i, i + 100));

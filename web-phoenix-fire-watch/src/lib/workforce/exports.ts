@@ -57,6 +57,10 @@ export const buildPdf = (opts: {
   sections: PdfSection[];
   landscape?: boolean;
   confidential?: boolean;
+  /** Small ember label above the title (defaults to the Workforce heading). */
+  heading?: string;
+  /** Footer disclaimer on every page. */
+  footer?: string;
 }): Blob => {
   const doc = new jsPDF({ unit: "pt", format: "letter", orientation: opts.landscape ? "landscape" : "portrait", compress: true });
   const W = doc.internal.pageSize.getWidth();
@@ -69,7 +73,7 @@ export const buildPdf = (opts: {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...EMBER);
-  doc.text("PHOENIX FIRE WATCH · WORKFORCE MANAGEMENT", M, 32);
+  doc.text(opts.heading ?? "PHOENIX FIRE WATCH · WORKFORCE MANAGEMENT", M, 32);
   if (opts.confidential !== false) {
     doc.text("CONFIDENTIAL — INTERNAL USE ONLY", W - M, 32, { align: "right" });
   }
@@ -157,7 +161,7 @@ export const buildPdf = (opts: {
     doc.setFontSize(8);
     doc.setTextColor(...INK_2);
     doc.text(`Page ${i} of ${pages}`, W - M, H - 24, { align: "right" });
-    doc.text("Contains personnel information. Do not share with clients or officers.", M, H - 24);
+    doc.text(opts.footer ?? "Contains personnel information. Do not share with clients or officers.", M, H - 24);
   }
   return doc.output("blob");
 };

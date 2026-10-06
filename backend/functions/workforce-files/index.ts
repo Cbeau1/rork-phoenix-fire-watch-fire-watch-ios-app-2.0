@@ -42,6 +42,17 @@ const dbMessage = (err: { message?: string; code?: string } | null, fallback: st
   return m && m.length < 200 && !/violates|syntax|relation|column/i.test(m) ? m : fallback;
 };
 
+/** Expenditures access is a separate permission from Workforce access. */
+async function requireExpenses(db: SupabaseClient): Promise<{ orgId: string }> {
+  const { data: ok, error } = await db.rpc("wf_has", { p: "expenses" });
+  if (error || ok !== true) throw new HttpError(403, "Expenditures are limited to authorized administrators.");
+  const { data: orgId } = await db.rpc("my_org_id");
+  if (typeof orgId !== "string") throw new HttpError(403, "Your account is not active.");
+  return { orgId };
+}
+
+const EXPENSE_ACTIONS = new Set(["upload-expense-file", "expense-file-url"]);
+
 async function requireWorkforce(db: SupabaseClient): Promise<{ orgId: string }> {
   const { data: ok, error } = await db.rpc("wf_has", { p: "manage" });
   if (error || ok !== true) throw new HttpError(403, "Workforce Management is limited to authorized administrators.");
@@ -75,13 +86,41 @@ Deno.serve(async (req) => {
     await requireAuth(req);
     const db = userClient(req);
     const admin = createAdminClient();
-    const { orgId } = await requireWorkforce(db);
 
     const isForm = (req.headers.get("content-type") ?? "").includes("multipart/form-data");
 
     if (isForm) {
       const form = await req.formData();
       const action = String(form.get("action") ?? "");
+
+      if (action === "upload-expense-file") {
+        const { orgId } = await requireExpenses(db);
+        const expenditureId = readString(form.get("expenditureId"), 64) || null;
+        const paymentId = readString(form.get("paymentId"), 64) || null;
+        if (!expenditureId === !paymentId) throw new HttpError(400, "Attach the file to an expenditure or a payment.");
+        const { bytes, kind, name } = await readFile(form);
+        const path = `${orgId}/expenses/${crypto.randomUUID()}.${kind}`;
+        const { error: upErr } = await admin.storage.from(BUCKET).upload(path, bytes, { contentType: MIME[kind], upsert: false });
+        if (upErr) {
+          console.error("expense upload failed", upErr.message);
+          throw new HttpError(500, "Couldn't store the file. Please try again.");
+        }
+        const { data, error } = await db.rpc("ex_register_attachment", {
+          p_exp: expenditureId,
+          p_pay: paymentId,
+          p_path: path,
+          p_name: name,
+          p_mime: MIME[kind],
+          p_size: bytes.length,
+        });
+        if (error) {
+          await admin.storage.from(BUCKET).remove([path]);
+          throw new HttpError(400, dbMessage(error, "Couldn't save the file."));
+        }
+        return json({ ok: true, id: data });
+      }
+
+      const { orgId } = await requireWorkforce(db);
 
       if (action === "upload-document") {
         const { bytes, kind, name } = await readFile(form);
@@ -139,6 +178,33 @@ Deno.serve(async (req) => {
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const action = readString(body.action, 40);
+
+    if (action === "expense-file-url") {
+      const { orgId } = await requireExpenses(db);
+      const id = readString(body.id, 64);
+      const mode = body.mode === "download" ? "download" : "preview";
+      // RLS on ex_attachments enforces org + Expenditures permission.
+      const { data: att, error } = await db
+        .from("ex_attachments")
+        .select("id, storage_path, file_name, expenditure_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (error || !att) throw new HttpError(404, "File not found.");
+      if (!String(att.storage_path).startsWith(`${orgId}/expenses/`)) throw new HttpError(404, "File not found.");
+      const { data: signed, error: sErr } = await admin.storage
+        .from(BUCKET)
+        .createSignedUrl(att.storage_path, URL_TTL_SECONDS, mode === "download" ? { download: att.file_name } : undefined);
+      if (sErr || !signed) throw new HttpError(500, "Couldn't open the file.");
+      await db.rpc("ex_log_event", {
+        p_action: mode,
+        p_exp: att.expenditure_id,
+        p_summary: `${mode === "download" ? "Downloaded" : "Previewed"} ${att.file_name}`,
+      });
+      return json({ ok: true, url: signed.signedUrl, expiresIn: URL_TTL_SECONDS });
+    }
+
+    if (EXPENSE_ACTIONS.has(action)) throw new HttpError(400, "Unknown action.");
+    const { orgId } = await requireWorkforce(db);
 
     if (action === "document-url") {
       const versionId = readString(body.versionId, 64);

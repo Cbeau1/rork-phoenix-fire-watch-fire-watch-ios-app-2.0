@@ -31,6 +31,13 @@ import Support from "./pages/Support";
 import Team from "./pages/Team";
 import Terms from "./pages/Terms";
 import WatchNotes from "./pages/WatchNotes";
+import ExDetail from "./pages/expenditures/ExDetail";
+import ExLayout from "./pages/expenditures/ExLayout";
+import ExOverview from "./pages/expenditures/ExOverview";
+import ExRecords from "./pages/expenditures/ExRecords";
+import ExReimbursements from "./pages/expenditures/ExReimbursements";
+import ExReports from "./pages/expenditures/ExReports";
+import ExSettings from "./pages/expenditures/ExSettings";
 import { AgencyList, AgencyProfile } from "./pages/workforce/Agencies";
 import Directory from "./pages/workforce/Directory";
 import { InvoiceDetail, InvoiceList } from "./pages/workforce/Invoices";
@@ -147,6 +154,15 @@ const AppRoutes = () => {
           <Route path="reminders" element={<Reminders />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<WorkforceSettings />} />
+          <Route path="*" element={<NotFound embedded />} />
+        </Route>
+        <Route path="/expenditures" element={<ExLayout />}>
+          <Route index element={<ExOverview />} />
+          <Route path="records" element={<ExRecords />} />
+          <Route path="records/:id" element={<ExDetail />} />
+          <Route path="reimbursements" element={<ExReimbursements />} />
+          <Route path="reports" element={<ExReports />} />
+          <Route path="settings" element={<ExSettings />} />
           <Route path="*" element={<NotFound embedded />} />
         </Route>
         <Route path="*" element={<NotFound embedded />} />

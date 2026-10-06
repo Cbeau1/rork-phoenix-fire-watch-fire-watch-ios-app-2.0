@@ -18,6 +18,751 @@ export type Database = {
   }
   public: {
     Tables: {
+      ex_allocations: {
+        Row: {
+          amount: number
+          id: string
+          org_id: string
+          payment_id: string
+          reimbursement_id: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          org_id: string
+          payment_id: string
+          reimbursement_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          org_id?: string
+          payment_id?: string
+          reimbursement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_allocations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "ex_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_allocations_reimbursement_id_fkey"
+            columns: ["reimbursement_id"]
+            isOneToOne: false
+            referencedRelation: "ex_reimbursements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_attachments: {
+        Row: {
+          archive_reason: string
+          archived_at: string | null
+          archived_by: string | null
+          expenditure_id: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          org_id: string
+          payment_id: string | null
+          size_bytes: number
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          archive_reason?: string
+          archived_at?: string | null
+          archived_by?: string | null
+          expenditure_id?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          org_id: string
+          payment_id?: string | null
+          size_bytes: number
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          archive_reason?: string
+          archived_at?: string | null
+          archived_by?: string | null
+          expenditure_id?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          org_id?: string
+          payment_id?: string | null
+          size_bytes?: number
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_attachments_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_attachments_expenditure_id_fkey"
+            columns: ["expenditure_id"]
+            isOneToOne: false
+            referencedRelation: "ex_expenditures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_attachments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_attachments_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "ex_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          org_id: string
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          org_id: string
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          org_id?: string
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_counters: {
+        Row: {
+          kind: string
+          last: number
+          org_id: string
+        }
+        Insert: {
+          kind: string
+          last?: number
+          org_id: string
+        }
+        Update: {
+          kind?: string
+          last?: number
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_counters_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_expenditures: {
+        Row: {
+          account_label: string
+          agency_id: string | null
+          agency_invoice_id: string | null
+          amount: number
+          archive_reason: string
+          archived_at: string | null
+          archived_by: string | null
+          category_id: string
+          client_recovery_flag: string
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string
+          duplicate_note: string
+          duplicate_reviewed_at: string | null
+          duplicate_reviewed_by: string | null
+          id: string
+          invoice_ref: string
+          notes: string
+          org_id: string
+          paid_by: string
+          payer_name: string
+          payer_worker_id: string | null
+          payment_method: string
+          person_reimb_flag: string
+          placement_id: string | null
+          property_id: string | null
+          property_name: string
+          purpose: string
+          spent_on: string
+          tax_amount: number | null
+          updated_at: string
+          updated_by: string | null
+          vendor: string
+        }
+        Insert: {
+          account_label?: string
+          agency_id?: string | null
+          agency_invoice_id?: string | null
+          amount: number
+          archive_reason?: string
+          archived_at?: string | null
+          archived_by?: string | null
+          category_id: string
+          client_recovery_flag?: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description: string
+          duplicate_note?: string
+          duplicate_reviewed_at?: string | null
+          duplicate_reviewed_by?: string | null
+          id?: string
+          invoice_ref?: string
+          notes?: string
+          org_id: string
+          paid_by: string
+          payer_name?: string
+          payer_worker_id?: string | null
+          payment_method: string
+          person_reimb_flag?: string
+          placement_id?: string | null
+          property_id?: string | null
+          property_name?: string
+          purpose?: string
+          spent_on: string
+          tax_amount?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          vendor: string
+        }
+        Update: {
+          account_label?: string
+          agency_id?: string | null
+          agency_invoice_id?: string | null
+          amount?: number
+          archive_reason?: string
+          archived_at?: string | null
+          archived_by?: string | null
+          category_id?: string
+          client_recovery_flag?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string
+          duplicate_note?: string
+          duplicate_reviewed_at?: string | null
+          duplicate_reviewed_by?: string | null
+          id?: string
+          invoice_ref?: string
+          notes?: string
+          org_id?: string
+          paid_by?: string
+          payer_name?: string
+          payer_worker_id?: string | null
+          payment_method?: string
+          person_reimb_flag?: string
+          placement_id?: string | null
+          property_id?: string | null
+          property_name?: string
+          purpose?: string
+          spent_on?: string
+          tax_amount?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          vendor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_expenditures_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "wf_agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_agency_invoice_id_fkey"
+            columns: ["agency_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "wf_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ex_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_duplicate_reviewed_by_fkey"
+            columns: ["duplicate_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_payer_worker_id_fkey"
+            columns: ["payer_worker_id"]
+            isOneToOne: false
+            referencedRelation: "wf_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "wf_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_history: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string
+          after: Json | null
+          before: Json | null
+          changed_fields: string[]
+          created_at: string
+          expenditure_id: string | null
+          id: number
+          org_id: string
+          payment_id: string | null
+          reimbursement_id: string | null
+          summary: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string
+          after?: Json | null
+          before?: Json | null
+          changed_fields?: string[]
+          created_at?: string
+          expenditure_id?: string | null
+          id?: never
+          org_id: string
+          payment_id?: string | null
+          reimbursement_id?: string | null
+          summary?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string
+          after?: Json | null
+          before?: Json | null
+          changed_fields?: string[]
+          created_at?: string
+          expenditure_id?: string | null
+          id?: never
+          org_id?: string
+          payment_id?: string | null
+          reimbursement_id?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_payment_reversals: {
+        Row: {
+          org_id: string
+          payment_id: string
+          reason: string
+          reversed_at: string
+          reversed_by: string | null
+        }
+        Insert: {
+          org_id: string
+          payment_id: string
+          reason: string
+          reversed_at?: string
+          reversed_by?: string | null
+        }
+        Update: {
+          org_id?: string
+          payment_id?: string
+          reason?: string
+          reversed_at?: string
+          reversed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_payment_reversals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_payment_reversals_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: true
+            referencedRelation: "ex_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_payment_reversals_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_payments: {
+        Row: {
+          amount: number
+          code: string
+          currency: string
+          direction: string
+          id: string
+          method: string
+          notes: string
+          org_id: string
+          paid_on: string
+          party_name: string
+          recorded_at: string
+          recorded_by: string | null
+          reference: string
+        }
+        Insert: {
+          amount: number
+          code: string
+          currency: string
+          direction: string
+          id?: string
+          method: string
+          notes?: string
+          org_id: string
+          paid_on: string
+          party_name: string
+          recorded_at?: string
+          recorded_by?: string | null
+          reference?: string
+        }
+        Update: {
+          amount?: number
+          code?: string
+          currency?: string
+          direction?: string
+          id?: string
+          method?: string
+          notes?: string
+          org_id?: string
+          paid_on?: string
+          party_name?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          reference?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_reimbursements: {
+        Row: {
+          agency_invoice_id: string | null
+          approved_amount: number | null
+          code: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          due_on: string | null
+          expenditure_id: string
+          id: string
+          invoice_ref: string
+          notes: string
+          org_id: string
+          party_agency_id: string | null
+          party_name: string
+          party_property_id: string | null
+          party_type: string
+          party_worker_id: string | null
+          requested_amount: number
+          requested_on: string
+          review_note: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agency_invoice_id?: string | null
+          approved_amount?: number | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          due_on?: string | null
+          expenditure_id: string
+          id?: string
+          invoice_ref?: string
+          notes?: string
+          org_id: string
+          party_agency_id?: string | null
+          party_name: string
+          party_property_id?: string | null
+          party_type: string
+          party_worker_id?: string | null
+          requested_amount: number
+          requested_on?: string
+          review_note?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agency_invoice_id?: string | null
+          approved_amount?: number | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          due_on?: string | null
+          expenditure_id?: string
+          id?: string
+          invoice_ref?: string
+          notes?: string
+          org_id?: string
+          party_agency_id?: string | null
+          party_name?: string
+          party_property_id?: string | null
+          party_type?: string
+          party_worker_id?: string | null
+          requested_amount?: number
+          requested_on?: string
+          review_note?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_reimbursements_agency_invoice_id_fkey"
+            columns: ["agency_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "wf_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_expenditure_id_fkey"
+            columns: ["expenditure_id"]
+            isOneToOne: false
+            referencedRelation: "ex_expenditures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_party_agency_id_fkey"
+            columns: ["party_agency_id"]
+            isOneToOne: false
+            referencedRelation: "wf_agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_party_property_id_fkey"
+            columns: ["party_property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_party_worker_id_fkey"
+            columns: ["party_worker_id"]
+            isOneToOne: false
+            referencedRelation: "wf_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_reimbursements_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_shift_links: {
+        Row: {
+          created_at: string
+          expenditure_id: string
+          org_id: string
+          shift_id: string
+        }
+        Insert: {
+          created_at?: string
+          expenditure_id: string
+          org_id: string
+          shift_id: string
+        }
+        Update: {
+          created_at?: string
+          expenditure_id?: string
+          org_id?: string
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_shift_links_expenditure_id_fkey"
+            columns: ["expenditure_id"]
+            isOneToOne: false
+            referencedRelation: "ex_expenditures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_shift_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_shift_links_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -1243,6 +1988,7 @@ export type Database = {
         Row: {
           can_admin: boolean
           can_documents: boolean
+          can_expenses: boolean
           can_finance: boolean
           can_manage: boolean
           can_pay: boolean
@@ -1256,6 +2002,7 @@ export type Database = {
         Insert: {
           can_admin?: boolean
           can_documents?: boolean
+          can_expenses?: boolean
           can_finance?: boolean
           can_manage?: boolean
           can_pay?: boolean
@@ -1269,6 +2016,7 @@ export type Database = {
         Update: {
           can_admin?: boolean
           can_documents?: boolean
+          can_expenses?: boolean
           can_finance?: boolean
           can_manage?: boolean
           can_pay?: boolean
@@ -2242,6 +2990,105 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ex__date: {
+        Args: { allow_null?: boolean; label: string; v: string }
+        Returns: string
+      }
+      ex__diff: { Args: { a: Json; b: Json }; Returns: Record<string, unknown> }
+      ex__log: {
+        Args: {
+          p_action: string
+          p_after?: Json
+          p_before?: Json
+          p_exp: string
+          p_fields?: string[]
+          p_pay: string
+          p_reimb: string
+          p_summary: string
+        }
+        Returns: undefined
+      }
+      ex__money: {
+        Args: { allow_null?: boolean; label: string; v: string }
+        Returns: number
+      }
+      ex__next: { Args: { o: string; p_kind: string }; Returns: string }
+      ex__paid: { Args: { r: string }; Returns: number }
+      ex__recompute: { Args: { r: string }; Returns: undefined }
+      ex__require: { Args: never; Returns: string }
+      ex__uuid: { Args: { v: string }; Returns: string }
+      ex_access: { Args: never; Returns: boolean }
+      ex_archive_attachment: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
+      ex_archive_expenditure: {
+        Args: { p_archive: boolean; p_id: string; p_reason: string }
+        Returns: undefined
+      }
+      ex_confirm_duplicate: {
+        Args: { p_id: string; p_note: string }
+        Returns: undefined
+      }
+      ex_log_event: {
+        Args: { p_action: string; p_exp: string; p_summary: string }
+        Returns: undefined
+      }
+      ex_lookups: { Args: never; Returns: Json }
+      ex_possible_duplicates: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_exclude: string
+          p_ref: string
+          p_vendor: string
+        }
+        Returns: {
+          amount: number
+          code: string
+          id: string
+          invoice_ref: string
+          spent_on: string
+          vendor: string
+        }[]
+      }
+      ex_record_payment: { Args: { p: Json }; Returns: Json }
+      ex_register_attachment: {
+        Args: {
+          p_exp: string
+          p_mime: string
+          p_name: string
+          p_path: string
+          p_pay: string
+          p_size: number
+        }
+        Returns: string
+      }
+      ex_reverse_payment: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
+      ex_review_reimbursement: {
+        Args: {
+          p_action: string
+          p_amount: string
+          p_id: string
+          p_note: string
+        }
+        Returns: undefined
+      }
+      ex_save_category: {
+        Args: {
+          p_active: boolean
+          p_id: string
+          p_kind: string
+          p_name: string
+          p_sort: number
+        }
+        Returns: string
+      }
+      ex_save_expenditure: { Args: { p: Json; p_id: string }; Returns: Json }
+      ex_save_reimbursement: { Args: { p: Json; p_id: string }; Returns: Json }
       is_org_admin: { Args: never; Returns: boolean }
       my_org_id: { Args: never; Returns: string }
       verify_cron_secret: { Args: { p_secret: string }; Returns: boolean }
