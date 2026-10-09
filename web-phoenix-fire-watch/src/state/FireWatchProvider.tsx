@@ -16,6 +16,8 @@ import {
 import { friendlyError, isDuplicateError, isRetryableError, PHOTO_BUCKET, supabase } from "@/lib/supabase";
 import {
   DEFAULT_PATROL_INTERVAL,
+  NO_GEOFENCE,
+  type Geofence,
   type Patrol,
   type PatrolInput,
   type PatrolStatus,
@@ -42,6 +44,12 @@ const toProperty = (r: PropertyDbRow): Property => ({
   contactEmail: r.contact_email,
   notes: r.notes,
   patrolIntervalMinutes: r.patrol_interval_minutes ?? DEFAULT_PATROL_INTERVAL,
+  geofence: {
+    enabled: !!r.geofence_enabled && r.geofence_lat != null && r.geofence_lng != null && r.geofence_radius_m != null,
+    lat: r.geofence_lat,
+    lng: r.geofence_lng,
+    radiusM: r.geofence_radius_m,
+  },
   createdAt: r.created_at,
 });
 
@@ -56,6 +64,11 @@ const toPatrol = (r: PatrolDbRow): Patrol => ({
   photos: r.photos ?? [],
   loggedBy: r.logged_by,
   createdAt: r.created_at,
+  location:
+    r.latitude != null && r.longitude != null
+      ? { lat: r.latitude, lng: r.longitude, accuracyM: r.location_accuracy_m ?? 0 }
+      : null,
+  geofenceDistanceM: r.geofence_distance_m,
 });
 
 const toNote = (r: NoteDbRow): WatchNote => ({
@@ -140,6 +153,9 @@ async function runOp(op: OutboxOp, saveProgress: (next: OutboxOp) => Promise<voi
         status: p.status,
         notes: p.notes,
         photos: uploaded,
+        latitude: p.location?.lat ?? null,
+        longitude: p.location?.lng ?? null,
+        location_accuracy_m: p.location ? Math.round(p.location.accuracyM * 10) / 10 : null,
       });
       if (error && !isDuplicateError(error)) throw error;
       return { ...op, uploaded };
@@ -308,7 +324,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         case "property.create": {
           const { id, ...input } = op.property;
           setProperties((list) => [
-            { id, ...input, patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL, createdAt: op.createdAt },
+            { id, ...input, patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL, geofence: NO_GEOFENCE, createdAt: op.createdAt },
             ...list.filter((x) => x.id !== id),
           ]);
           break;
@@ -494,6 +510,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         id,
         ...rest,
         patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL,
+        geofence: NO_GEOFENCE,
         createdAt: new Date().toISOString(),
         syncState: result === "queued" ? "pending" : undefined,
       };
@@ -510,6 +527,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         id,
         ...cleaned,
         patrolIntervalMinutes: existing?.patrolIntervalMinutes ?? DEFAULT_PATROL_INTERVAL,
+        geofence: existing?.geofence ?? NO_GEOFENCE,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
         syncState: result === "queued" ? "pending" : undefined,
       };
@@ -530,6 +548,28 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         .eq("id", id);
       if (error) throw error;
       setProperties((list) => list.map((p) => (p.id === id ? { ...p, patrolIntervalMinutes: minutes } : p)));
+    },
+    [setProperties],
+  );
+
+  /** Admin-only: sets or clears the area officers must be inside to log patrols. Needs a connection. */
+  const setGeofence = useCallback(
+    async (id: string, geofence: Geofence): Promise<void> => {
+      if (opsRef.current.some((o) => o.kind === "property.create" && o.property.id === id)) {
+        throw new Error("This property hasn't uploaded yet. Try again once it's synced.");
+      }
+      if (!navigator.onLine) throw new Error(OFFLINE_ACTION);
+      const { error } = await supabase
+        .from("properties")
+        .update({
+          geofence_enabled: geofence.enabled,
+          geofence_lat: geofence.lat,
+          geofence_lng: geofence.lng,
+          geofence_radius_m: geofence.radiusM,
+        })
+        .eq("id", id);
+      if (error) throw error;
+      setProperties((list) => list.map((p) => (p.id === id ? { ...p, geofence } : p)));
     },
     [setProperties],
   );
@@ -577,6 +617,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         areas: input.areas,
         status: input.status,
         notes: input.notes.trim(),
+        location: input.location ?? null,
       };
       const result = await submit({ kind: "patrol.create", patrol, photos: input.photos, uploaded: [] });
       return {
@@ -656,6 +697,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
           id,
           ...rest,
           patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL,
+          geofence: NO_GEOFENCE,
           createdAt: op.createdAt,
           syncState: syncStateOf(op),
         });
@@ -769,6 +811,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
     addProperty,
     updateProperty,
     setPatrolInterval,
+    setGeofence,
     deleteProperty: deletePropertyMutation.mutateAsync,
     addPatrol,
     deletePatrol: deletePatrolMutation.mutateAsync,

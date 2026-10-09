@@ -47,6 +47,10 @@ struct PatrolRow: View {
                             if patrol.photoCount > 0 {
                                 Label("\(patrol.photoCount)", systemImage: "camera.fill")
                             }
+                            if patrol.geofenceDistanceM != nil || patrol.location != nil {
+                                Label("On site", systemImage: "checkmark.seal.fill")
+                                    .foregroundStyle(Color.fwClear)
+                            }
                             if !propertyNameIsShown {
                                 Text(Fmt.day(patrol.dateTime))
                             }

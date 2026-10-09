@@ -26,6 +26,12 @@ const Privacy = () => (
       <li>Properties: names, addresses and property contact details (name, phone, email) entered by your team.</li>
       <li>Patrol logs: date and time, officer name, areas patrolled, status, notes and any photos you attach.</li>
       <li>Watch notes shared with your team.</li>
+      <li>
+        Location for geofenced properties: when an Org Admin turns on a geofence for a property, your device's location
+        (latitude, longitude and GPS accuracy) is checked when you log a patrol there and saved with that patrol log as
+        proof you were on site. Location is only read while the Log Patrol screen is open for a geofenced property — never
+        in the background, and never for tracking.
+      </li>
     </ul>
     <h3>Information stored on your device</h3>
     <ul>
@@ -35,7 +41,7 @@ const Privacy = () => (
       </li>
     </ul>
     <p>
-      <strong>We do not collect</strong> your precise location, contacts, health data, browsing history or advertising
+      <strong>We do not collect</strong> your location outside of logging a patrol at a geofenced property, contacts, health data, browsing history or advertising
       identifiers. We do not use third-party advertising or cross-app tracking, and we do not sell or share personal
       information for advertising.
     </p>

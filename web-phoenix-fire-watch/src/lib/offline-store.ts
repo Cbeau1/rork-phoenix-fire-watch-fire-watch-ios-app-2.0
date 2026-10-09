@@ -1,7 +1,7 @@
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { createStore, del, entries, get, set, type UseStore } from "idb-keyval";
 
-import type { PatrolStatus, PropertyInput, WatchNote } from "./types";
+import type { PatrolLocation, PatrolStatus, PropertyInput, WatchNote } from "./types";
 
 export interface OpBase {
   /** Unique id of the queued operation. */
@@ -25,6 +25,8 @@ export interface QueuedPatrol {
   areas: string[];
   status: PatrolStatus;
   notes: string;
+  /** Captured when the patrol was logged, so offline uploads are checked against where the officer actually was. */
+  location?: PatrolLocation | null;
 }
 
 export type OutboxOp = OpBase &

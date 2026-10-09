@@ -1,15 +1,18 @@
-import { Camera, Loader2, Save, Shield, X } from "lucide-react";
+import { Camera, Loader2, MapPinX, Save, Shield, X } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { CameraCapture } from "@/components/fw/CameraCapture";
+import { GeofenceStatus, geofenceVerdict } from "@/components/fw/GeofenceStatus";
 import { Card, CardHeader, FieldError, FieldHint, FieldLabel, PageHeader } from "@/components/fw/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { toLocalInputValue } from "@/lib/format";
+import { isGeofenceActive } from "@/lib/geo";
 import { friendlyError } from "@/lib/supabase";
 import { STATUS_META, type PatrolStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -48,10 +51,14 @@ const LogPatrol = () => {
     setPhotos((p) => (p.length >= MAX_PHOTOS ? p : [...p, dataUrl]));
   }, []);
   const closeCamera = useCallback(() => setCameraOpen(false), []);
+  const fenced = !!property && isGeofenceActive(property.geofence);
+  const { state: geo, retry: retryGeo } = useGeolocation(fenced);
 
   if (!property) return <NotFound embedded />;
 
   const backTo = `/properties/${property.id}`;
+  const verdict = fenced ? geofenceVerdict(property, geo) : "inside";
+  const blockedByFence = fenced && verdict !== "inside";
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,6 +72,12 @@ const LogPatrol = () => {
     if (areaList.length === 0) next.areas = "List at least one area patrolled";
     setErrors(next);
     if (Object.keys(next).length > 0 || saving) return;
+    if (blockedByFence) {
+      toast.error(verdict === "checking" ? "Still checking your location" : "You're outside the geofence", {
+        description: `Patrols for ${property.name} can only be logged on site.`,
+      });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -76,6 +89,7 @@ const LogPatrol = () => {
         status,
         notes: notes.trim(),
         photos,
+        location: fenced && geo.status === "ready" ? geo.location : null,
       });
       if (saved.syncState === "pending") {
         toast.success("Patrol saved on this device", {
@@ -103,6 +117,7 @@ const LogPatrol = () => {
           className="border-b border-line pb-6"
         />
         <form onSubmit={(e) => void submit(e)} noValidate className="space-y-6 px-6 py-7 sm:px-7">
+          {fenced && <GeofenceStatus property={property} geo={geo} onRetry={retryGeo} />}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <FieldLabel htmlFor="dateTime" required>
@@ -228,9 +243,17 @@ const LogPatrol = () => {
             <Button type="button" variant="outline" onClick={() => navigate(backTo)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? <Loader2 className="animate-spin" /> : <Save />}
-              {saving ? (photos.length ? "Uploading…" : "Saving…") : "Log Patrol"}
+            <Button type="submit" disabled={saving || blockedByFence}>
+              {saving ? <Loader2 className="animate-spin" /> : blockedByFence ? <MapPinX /> : <Save />}
+              {saving
+                ? photos.length
+                  ? "Uploading…"
+                  : "Saving…"
+                : blockedByFence
+                  ? verdict === "checking"
+                    ? "Checking location…"
+                    : "Must be on site"
+                  : "Log Patrol"}
             </Button>
           </div>
         </form>

@@ -7,6 +7,7 @@ import {
   CloudUpload,
   ImageOff,
   MapPin,
+  MapPinCheck,
   Trash2,
   User,
   X,
@@ -17,6 +18,7 @@ import { Link } from "react-router-dom";
 
 import { usePhotoUrls } from "@/hooks/use-photo-urls";
 import { fullDateTime, timeOfDay } from "@/lib/format";
+import { formatDistance } from "@/lib/geo";
 import { STATUS_META, type Patrol } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +87,15 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
               <span className="inline-flex items-center gap-1 text-xs text-ink-3">
                 <Camera className="h-3.5 w-3.5" />
                 {patrol.photos.length}
+              </span>
+            )}
+            {patrol.geofenceDistanceM != null && (
+              <span
+                className="inline-flex items-center gap-1 text-xs text-status-clear"
+                title={`Logged ${formatDistance(patrol.geofenceDistanceM)} from the geofence center`}
+              >
+                <MapPinCheck className="h-3.5 w-3.5" />
+                On site
               </span>
             )}
           </div>

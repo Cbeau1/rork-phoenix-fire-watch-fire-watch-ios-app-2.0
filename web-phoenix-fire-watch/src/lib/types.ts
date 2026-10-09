@@ -13,8 +13,30 @@ export interface Property {
   notes: string;
   /** Minutes between required patrols; set by an org admin only. */
   patrolIntervalMinutes: number;
+  /** Area officers must be inside to log a patrol; set by an org admin only. */
+  geofence: Geofence;
   createdAt: string;
   syncState?: SyncState;
+}
+
+/** Circular geofence around a property. Patrols outside it are rejected when enabled. */
+export interface Geofence {
+  enabled: boolean;
+  lat: number | null;
+  lng: number | null;
+  radiusM: number | null;
+}
+
+export const NO_GEOFENCE: Geofence = { enabled: false, lat: null, lng: null, radiusM: null };
+export const GEOFENCE_MIN_M = 25;
+export const GEOFENCE_MAX_M = 5000;
+export const GEOFENCE_DEFAULT_M = 150;
+
+/** Where the device was when a patrol was logged. */
+export interface PatrolLocation {
+  lat: number;
+  lng: number;
+  accuracyM: number;
 }
 
 /** Patrol interval used until an org admin sets one for the property. */
@@ -32,6 +54,10 @@ export interface Patrol {
   photos: string[];
   loggedBy: string | null;
   createdAt: string;
+  /** Device location when logged (null for older logs or when no geofence applied). */
+  location?: PatrolLocation | null;
+  /** Distance from the geofence center in meters, computed by the server. */
+  geofenceDistanceM?: number | null;
   syncState?: SyncState;
 }
 
@@ -71,9 +97,9 @@ export const ROLE_LABEL: Record<Role, string> = {
   officer: "Fire Watch Officer",
 };
 
-export type PropertyInput = Omit<Property, "id" | "createdAt" | "syncState" | "patrolIntervalMinutes">;
+export type PropertyInput = Omit<Property, "id" | "createdAt" | "syncState" | "patrolIntervalMinutes" | "geofence">;
 /** Patrol payload from the form; `photos` are compressed JPEG data URLs to upload. */
-export type PatrolInput = Omit<Patrol, "id" | "createdAt" | "loggedBy" | "syncState">;
+export type PatrolInput = Omit<Patrol, "id" | "createdAt" | "loggedBy" | "syncState" | "geofenceDistanceM">;
 
 export const STATUS_META: Record<PatrolStatus, { label: string; color: string; text: string; bg: string; ring: string }> = {
   clear: {

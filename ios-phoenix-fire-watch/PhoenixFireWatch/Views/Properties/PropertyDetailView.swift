@@ -57,6 +57,8 @@ struct PropertyDetailView: View {
 
                 PatrolTimerCard(property: property)
 
+                GeofenceSection(property: property, isAdmin: auth.isAdmin)
+
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                     StatTile(label: "Total", value: stats.total, color: .fwEmber, symbol: "figure.walk")
                     StatTile(label: "Clear", value: stats.clear, color: .fwClear, symbol: "checkmark.shield.fill")

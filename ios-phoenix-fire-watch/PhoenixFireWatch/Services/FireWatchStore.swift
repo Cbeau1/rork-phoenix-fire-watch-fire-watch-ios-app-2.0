@@ -316,7 +316,9 @@ final class FireWatchStore {
             }
             let row = PatrolInsert(
                 id: p.id, propertyId: p.propertyId, dateTime: DateParser.iso(p.dateTime), officerName: p.officerName,
-                areas: p.areas, status: p.status.rawValue, notes: p.notes, photos: progress.uploaded
+                areas: p.areas, status: p.status.rawValue, notes: p.notes, photos: progress.uploaded,
+                latitude: p.location?.lat, longitude: p.location?.lng,
+                locationAccuracyM: p.location.map { ($0.accuracyM * 10).rounded() / 10 }
             )
             do {
                 try await db.from("patrols").insert(row).execute()
@@ -354,7 +356,8 @@ final class FireWatchStore {
             guard var p = op.patrol else { return }
             p = Patrol(
                 id: p.id, propertyId: p.propertyId, dateTime: p.dateTime, officerName: p.officerName, areas: p.areas,
-                status: p.status, notes: p.notes, photos: op.uploaded, loggedBy: user?.id, createdAt: op.createdAt
+                status: p.status, notes: p.notes, photos: op.uploaded, loggedBy: user?.id, createdAt: op.createdAt,
+                location: p.location
             )
             serverPatrols.removeAll { $0.id == p.id }
             serverPatrols.append(p)
@@ -453,6 +456,26 @@ final class FireWatchStore {
         }
     }
 
+    /// Admin-only: sets or clears the area officers must be inside to log patrols. Needs a connection.
+    func setGeofence(propertyId: String, geofence: Geofence) async throws {
+        if ops.contains(where: { $0.kind == .propertyCreate && $0.propertyId == propertyId }) {
+            throw AppError("This property hasn't uploaded yet. Try again once it's synced.")
+        }
+        guard isOnline else { throw AppError(ErrorText.offlineAction) }
+        do {
+            try await Backend.client.from("properties")
+                .update(GeofenceUpdate(geofence: geofence))
+                .eq("id", value: propertyId)
+                .execute()
+        } catch {
+            throw AppError(ErrorText.from(error))
+        }
+        if let i = serverProperties.firstIndex(where: { $0.id == propertyId }) {
+            serverProperties[i].geofence = geofence
+            LocalStore.save(serverProperties, as: cacheName("properties"))
+        }
+    }
+
     func deleteProperty(id: String) async throws {
         if let pending = ops.first(where: { $0.kind == .propertyCreate && $0.propertyId == id }) {
             let related = ops.filter {
@@ -484,6 +507,8 @@ final class FireWatchStore {
         var notes: String
         /// JPEG photo data captured live with the camera.
         var photos: [Data]
+        /// Where the officer was when logging (required at geofenced properties).
+        var location: PatrolLocation? = nil
     }
 
     @discardableResult
@@ -491,7 +516,8 @@ final class FireWatchStore {
         let files = try input.photos.map { try PhotoStore.save($0) }
         let patrol = Patrol(
             id: IDs.make(), propertyId: input.propertyId, dateTime: input.dateTime, officerName: input.officerName.trimmed,
-            areas: input.areas, status: input.status, notes: input.notes.trimmed, photos: [], loggedBy: user?.id, createdAt: Date()
+            areas: input.areas, status: input.status, notes: input.notes.trimmed, photos: [], loggedBy: user?.id, createdAt: Date(),
+            location: input.location
         )
         let op = OutboxOp(id: IDs.make(), kind: .patrolCreate, createdAt: Date(), patrol: patrol, photoFiles: files)
         return try await submit(op)

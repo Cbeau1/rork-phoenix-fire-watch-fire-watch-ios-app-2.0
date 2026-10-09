@@ -807,8 +807,12 @@ export type Database = {
           areas: string[]
           created_at: string
           date_time: string
+          geofence_distance_m: number | null
           id: string
+          latitude: number | null
+          location_accuracy_m: number | null
           logged_by: string | null
+          longitude: number | null
           notes: string
           officer_name: string
           org_id: string
@@ -820,8 +824,12 @@ export type Database = {
           areas?: string[]
           created_at?: string
           date_time: string
+          geofence_distance_m?: number | null
           id?: string
+          latitude?: number | null
+          location_accuracy_m?: number | null
           logged_by?: string | null
+          longitude?: number | null
           notes?: string
           officer_name: string
           org_id?: string
@@ -833,8 +841,12 @@ export type Database = {
           areas?: string[]
           created_at?: string
           date_time?: string
+          geofence_distance_m?: number | null
           id?: string
+          latitude?: number | null
+          location_accuracy_m?: number | null
           logged_by?: string | null
+          longitude?: number | null
           notes?: string
           officer_name?: string
           org_id?: string
@@ -915,6 +927,10 @@ export type Database = {
           contact_phone: string
           created_at: string
           created_by: string | null
+          geofence_enabled: boolean
+          geofence_lat: number | null
+          geofence_lng: number | null
+          geofence_radius_m: number | null
           id: string
           name: string
           notes: string
@@ -928,6 +944,10 @@ export type Database = {
           contact_phone?: string
           created_at?: string
           created_by?: string | null
+          geofence_enabled?: boolean
+          geofence_lat?: number | null
+          geofence_lng?: number | null
+          geofence_radius_m?: number | null
           id?: string
           name: string
           notes?: string
@@ -941,6 +961,10 @@ export type Database = {
           contact_phone?: string
           created_at?: string
           created_by?: string | null
+          geofence_enabled?: boolean
+          geofence_lat?: number | null
+          geofence_lng?: number | null
+          geofence_radius_m?: number | null
           id?: string
           name?: string
           notes?: string
@@ -3223,6 +3247,10 @@ export type Database = {
       }
       ex_save_expenditure: { Args: { p: Json; p_id: string }; Returns: Json }
       ex_save_reimbursement: { Args: { p: Json; p_id: string }; Returns: Json }
+      fw_distance_m: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       is_org_admin: { Args: never; Returns: boolean }
       my_org_id: { Args: never; Returns: string }
       tc__admin: {

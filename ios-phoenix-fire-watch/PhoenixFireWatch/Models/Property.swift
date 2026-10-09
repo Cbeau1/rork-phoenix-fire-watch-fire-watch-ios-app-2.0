@@ -11,6 +11,8 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
     var notes: String
     /// Minutes between required patrols; only org admins can change it.
     var patrolIntervalMinutes: Int
+    /// Circular area officers must be inside to log a patrol; admin-only.
+    var geofence: Geofence = .off
     let createdAt: Date
 
     static let defaultInterval = 60
@@ -22,6 +24,10 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         case contactEmail = "contact_email"
         case patrolIntervalMinutes = "patrol_interval_minutes"
         case createdAt = "created_at"
+        case geofenceEnabled = "geofence_enabled"
+        case geofenceLat = "geofence_lat"
+        case geofenceLng = "geofence_lng"
+        case geofenceRadiusM = "geofence_radius_m"
     }
 
     init(
@@ -33,6 +39,7 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         contactEmail: String,
         notes: String,
         patrolIntervalMinutes: Int,
+        geofence: Geofence = .off,
         createdAt: Date
     ) {
         self.id = id
@@ -43,6 +50,7 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         self.contactEmail = contactEmail
         self.notes = notes
         self.patrolIntervalMinutes = patrolIntervalMinutes
+        self.geofence = geofence
         self.createdAt = createdAt
     }
 
@@ -57,6 +65,29 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         notes = (try? c.decode(String.self, forKey: .notes)) ?? ""
         patrolIntervalMinutes = (try? c.decode(Int.self, forKey: .patrolIntervalMinutes)) ?? Property.defaultInterval
         createdAt = (try? c.decodeDate(forKey: .createdAt)) ?? Date()
+        geofence = Geofence(
+            enabled: (try? c.decodeIfPresent(Bool.self, forKey: .geofenceEnabled)) ?? false,
+            lat: try? c.decodeIfPresent(Double.self, forKey: .geofenceLat),
+            lng: try? c.decodeIfPresent(Double.self, forKey: .geofenceLng),
+            radiusM: try? c.decodeIfPresent(Int.self, forKey: .geofenceRadiusM)
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(address, forKey: .address)
+        try c.encode(contactName, forKey: .contactName)
+        try c.encode(contactPhone, forKey: .contactPhone)
+        try c.encode(contactEmail, forKey: .contactEmail)
+        try c.encode(notes, forKey: .notes)
+        try c.encode(patrolIntervalMinutes, forKey: .patrolIntervalMinutes)
+        try c.encode(createdAt, forKey: .createdAt)
+        try c.encode(geofence.enabled, forKey: .geofenceEnabled)
+        try c.encodeIfPresent(geofence.lat, forKey: .geofenceLat)
+        try c.encodeIfPresent(geofence.lng, forKey: .geofenceLng)
+        try c.encodeIfPresent(geofence.radiusM, forKey: .geofenceRadiusM)
     }
 }
 

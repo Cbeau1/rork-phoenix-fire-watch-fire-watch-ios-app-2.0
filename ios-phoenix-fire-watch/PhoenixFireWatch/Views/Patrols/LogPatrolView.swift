@@ -20,6 +20,7 @@ struct LogPatrolView: View {
     @State private var saving: Bool = false
     @State private var errors: [String: String] = [:]
     @State private var didPrefill: Bool = false
+    @State private var location: LocationService = LocationService()
 
     private let maxPhotos = 5
 
@@ -48,7 +49,14 @@ struct LogPatrolView: View {
                 Button("Cancel") { dismiss() }
             }
         }
-        .onAppear(perform: prefill)
+        .onAppear {
+            prefill()
+            if property?.geofence.isActive == true { location.start() }
+        }
+        .onDisappear { location.stop() }
+        .onChange(of: property?.geofence.isActive ?? false) { _, active in
+            if active { location.start() } else { location.stop() }
+        }
         .interactiveDismissDisabled(saving || !photos.isEmpty)
     }
 
@@ -70,6 +78,10 @@ struct LogPatrolView: View {
                         Text(property.name).font(.system(.headline, weight: .bold)).foregroundStyle(Color.fwInk)
                         Text(property.address).font(.caption).foregroundStyle(Color.fwInk2).lineLimit(1)
                     }
+                }
+
+                if property.geofence.isActive {
+                    GeofenceStatusCard(property: property, location: location)
                 }
 
                 VStack(alignment: .leading, spacing: 18) {
@@ -102,16 +114,21 @@ struct LogPatrolView: View {
 
                 photoSection(property)
 
+                let verdict = fenceVerdict(property)
                 Button {
                     Task { await save(property) }
                 } label: {
                     HStack(spacing: 8) {
-                        if saving { ProgressView().tint(.white) } else { Image(systemName: "checkmark.shield.fill") }
-                        Text(saving ? (photos.isEmpty ? "Saving…" : "Uploading…") : "Log Patrol")
+                        if saving {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: verdict.allowsLogging ? "checkmark.shield.fill" : "location.slash.fill")
+                        }
+                        Text(saving ? (photos.isEmpty ? "Saving…" : "Uploading…") : saveLabel(verdict))
                     }
                 }
                 .buttonStyle(EmberButtonStyle())
-                .disabled(saving)
+                .disabled(saving || !verdict.allowsLogging)
                 .padding(.bottom, 20)
             }
             .padding(16)
@@ -209,6 +226,19 @@ struct LogPatrolView: View {
         .fwCard()
     }
 
+    private func fenceVerdict(_ property: Property) -> GeofenceVerdict {
+        guard property.geofence.isActive else { return .inside(distance: 0) }
+        return GeofenceVerdict.evaluate(property.geofence, location: location)
+    }
+
+    private func saveLabel(_ verdict: GeofenceVerdict) -> String {
+        switch verdict {
+        case .inside: "Log Patrol"
+        case .checking: "Checking location…"
+        case .outside, .blocked: "Must Be On Site"
+        }
+    }
+
     private func save(_ property: Property) async {
         let areaList = areas.split(separator: ",").map { String($0).trimmed }.filter { !$0.isEmpty }
         var next: [String: String] = [:]
@@ -216,6 +246,11 @@ struct LogPatrolView: View {
         if areaList.isEmpty { next["areas"] = "List at least one area patrolled" }
         withAnimation { errors = next }
         guard next.isEmpty, !saving else { return }
+        let fenced = property.geofence.isActive
+        guard fenceVerdict(property).allowsLogging else {
+            router.show("You're outside the geofence", detail: "Patrols for \(property.name) can only be logged on site.", style: .error)
+            return
+        }
         saving = true
         do {
             let result = try await store.addPatrol(.init(
@@ -225,7 +260,8 @@ struct LogPatrolView: View {
                 areas: areaList,
                 status: status,
                 notes: notes,
-                photos: photos.map(\.data)
+                photos: photos.map(\.data),
+                location: fenced ? location.fix : nil
             ))
             timers.reschedule(properties: store.properties, patrols: store.patrols)
             if result == .queued {

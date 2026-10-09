@@ -14,6 +14,10 @@ nonisolated struct Patrol: Codable, Identifiable, Hashable, Sendable {
     let photos: [String]
     let loggedBy: String?
     let createdAt: Date
+    /// Device location when logged (only captured at geofenced properties).
+    var location: PatrolLocation? = nil
+    /// Meters from the geofence center, computed by the server.
+    var geofenceDistanceM: Double? = nil
     var syncState: SyncState? = nil
     var localPhotoFiles: [String] = []
 
@@ -24,6 +28,9 @@ nonisolated struct Patrol: Codable, Identifiable, Hashable, Sendable {
         case officerName = "officer_name"
         case loggedBy = "logged_by"
         case createdAt = "created_at"
+        case latitude, longitude
+        case locationAccuracyM = "location_accuracy_m"
+        case geofenceDistanceM = "geofence_distance_m"
     }
 
     init(
@@ -37,9 +44,13 @@ nonisolated struct Patrol: Codable, Identifiable, Hashable, Sendable {
         photos: [String],
         loggedBy: String?,
         createdAt: Date,
+        location: PatrolLocation? = nil,
+        geofenceDistanceM: Double? = nil,
         syncState: SyncState? = nil,
         localPhotoFiles: [String] = []
     ) {
+        self.location = location
+        self.geofenceDistanceM = geofenceDistanceM
         self.id = id
         self.propertyId = propertyId
         self.dateTime = dateTime
@@ -66,6 +77,12 @@ nonisolated struct Patrol: Codable, Identifiable, Hashable, Sendable {
         photos = (try? c.decode([String].self, forKey: .photos)) ?? []
         loggedBy = try? c.decodeIfPresent(String.self, forKey: .loggedBy)
         createdAt = (try? c.decodeDate(forKey: .createdAt)) ?? dateTime
+        if let lat = try? c.decodeIfPresent(Double.self, forKey: .latitude),
+           let lng = try? c.decodeIfPresent(Double.self, forKey: .longitude) {
+            let accuracy = (try? c.decodeIfPresent(Double.self, forKey: .locationAccuracyM)) ?? 0
+            location = PatrolLocation(lat: lat, lng: lng, accuracyM: accuracy)
+        }
+        geofenceDistanceM = try? c.decodeIfPresent(Double.self, forKey: .geofenceDistanceM)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -80,6 +97,10 @@ nonisolated struct Patrol: Codable, Identifiable, Hashable, Sendable {
         try c.encode(photos, forKey: .photos)
         try c.encodeIfPresent(loggedBy, forKey: .loggedBy)
         try c.encode(createdAt, forKey: .createdAt)
+        try c.encodeIfPresent(location?.lat, forKey: .latitude)
+        try c.encodeIfPresent(location?.lng, forKey: .longitude)
+        try c.encodeIfPresent(location?.accuracyM, forKey: .locationAccuracyM)
+        try c.encodeIfPresent(geofenceDistanceM, forKey: .geofenceDistanceM)
     }
 
     var photoCount: Int { max(photos.count, localPhotoFiles.count) }
@@ -100,11 +121,15 @@ nonisolated struct PatrolInsert: Encodable, Sendable {
     let status: String
     let notes: String
     let photos: [String]
+    var latitude: Double? = nil
+    var longitude: Double? = nil
+    var locationAccuracyM: Double? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, areas, status, notes, photos
+        case id, areas, status, notes, photos, latitude, longitude
         case propertyId = "property_id"
         case dateTime = "date_time"
         case officerName = "officer_name"
+        case locationAccuracyM = "location_accuracy_m"
     }
 }
