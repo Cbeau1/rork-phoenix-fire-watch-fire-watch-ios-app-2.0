@@ -81,6 +81,7 @@ struct PropertyDetailView: View {
             }
             .padding(16)
             .padding(.bottom, 24)
+            .fwReadable(900)
         }
         .refreshable { await store.refresh() }
         .toolbar {

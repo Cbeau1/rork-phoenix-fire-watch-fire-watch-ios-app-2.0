@@ -29,7 +29,7 @@ const describe = (op: OutboxOp): { title: string; detail: string } => {
 };
 
 /** Connection + offline queue indicator with a detail popover. */
-export const SyncStatus = ({ compact = false }: { compact?: boolean }) => {
+export const SyncStatus = ({ compact = false, iconOnly = false }: { compact?: boolean; iconOnly?: boolean }) => {
   const { sync } = useFireWatch();
   const { online, syncing, pendingCount, failedCount, queue, lastSyncedAt } = sync;
   const [open, setOpen] = useState<boolean>(false);
@@ -75,14 +75,17 @@ export const SyncStatus = ({ compact = false }: { compact?: boolean }) => {
           aria-label={`Sync status: ${label}`}
           className={cn(
             "focus-ring inline-flex items-center gap-2 rounded-lg border border-line bg-surface text-xs font-medium transition-colors hover:border-[#7A8394]",
-            compact ? "h-10 px-3" : "w-full px-3 py-2",
+            iconOnly ? "h-11 w-11 justify-center" : compact ? "h-10 px-3" : "w-full px-3 py-2",
           )}
         >
           <Icon className={cn("h-4 w-4 shrink-0", tone, Icon === Loader2 && "animate-spin")} />
-          <span className={cn("truncate", compact ? "hidden sm:inline" : "", tone)}>{label}</span>
+          {!iconOnly && <span className={cn("truncate", compact ? "hidden sm:inline" : "", tone)}>{label}</span>}
         </button>
       </PopoverTrigger>
-      <PopoverContent align={compact ? "end" : "start"} className="w-[320px] border-line bg-surface p-0 text-ink">
+      <PopoverContent
+        align={iconOnly ? "end" : compact ? "end" : "start"}
+        side={iconOnly ? "right" : undefined}
+        className="w-[320px] border-line bg-surface p-0 text-ink">
         <div className="border-b border-line px-4 py-3.5">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <span className={cn("h-2 w-2 rounded-full", online ? "bg-status-clear" : "bg-status-follow")} />

@@ -45,6 +45,7 @@ struct ScheduleView: View {
                     content
                 }
                 .padding(.vertical, 16)
+                .fwReadable(900)
             }
             .refreshable { await schedule.refresh() }
             .background(CanvasBackground())

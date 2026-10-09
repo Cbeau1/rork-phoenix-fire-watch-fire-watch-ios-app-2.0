@@ -53,6 +53,7 @@ struct PropertyFormView: View {
                 .disabled(saving)
             }
             .padding(16)
+            .fwReadable(680)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(CanvasBackground())

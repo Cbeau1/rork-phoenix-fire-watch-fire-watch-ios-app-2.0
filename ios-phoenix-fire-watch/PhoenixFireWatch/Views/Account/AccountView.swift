@@ -35,6 +35,7 @@ struct AccountView: View {
                         .padding(.vertical, 8)
                 }
                 .padding(16)
+                .fwReadable()
             }
             .scrollDismissesKeyboard(.interactively)
             .background(CanvasBackground())

@@ -96,6 +96,14 @@ extension View {
         modifier(FWCardModifier(padding: padding, borderColor: border))
     }
 
+    /// Caps content to a comfortable reading width and centers it, so screens
+    /// look composed on iPad instead of stretching edge to edge. No effect on iPhone.
+    func fwReadable(_ maxWidth: CGFloat = 760) -> some View {
+        self
+            .frame(maxWidth: maxWidth)
+            .frame(maxWidth: .infinity)
+    }
+
     /// Standard dark navigation chrome for every stack.
     func fwNavigationChrome() -> some View {
         self

@@ -50,6 +50,7 @@ struct TeamView: View {
                     .fwCard()
                 }
                 .padding(16)
+                .fwReadable()
             }
             .refreshable { await load() }
             .background(CanvasBackground())

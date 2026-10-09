@@ -32,6 +32,7 @@ struct WatchNotesView: View {
                     }
                 }
                 .padding(16)
+                .fwReadable()
                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: store.notes.map(\.id))
             }
             .scrollDismissesKeyboard(.interactively)

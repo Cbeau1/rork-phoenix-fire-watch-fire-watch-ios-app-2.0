@@ -115,6 +115,7 @@ struct LogPatrolView: View {
                 .padding(.bottom, 20)
             }
             .padding(16)
+            .fwReadable(680)
         }
         .scrollDismissesKeyboard(.interactively)
         .fullScreenCover(isPresented: $cameraOpen) {

@@ -30,6 +30,7 @@ struct MainTabView: View {
                 AccountView()
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .overlay(alignment: .top) {
             VStack(spacing: 8) {
                 TimerAlertBanner()

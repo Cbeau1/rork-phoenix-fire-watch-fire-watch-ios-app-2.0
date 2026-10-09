@@ -1,4 +1,19 @@
-import { AlarmClock, Briefcase, Building2, CalendarDays, Clock, FileText, LayoutGrid, LogOut, Menu, ReceiptText, UserCog, Users, Wallet } from "lucide-react";
+import {
+  AlarmClock,
+  Briefcase,
+  Building2,
+  CalendarDays,
+  Clock,
+  FileText,
+  LayoutGrid,
+  LogOut,
+  Menu,
+  ReceiptText,
+  UserCog,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -15,38 +30,110 @@ import { Crest } from "./Crest";
 import { PatrolTimerAlerts } from "./PatrolTimerAlerts";
 import { SyncStatus } from "./SyncStatus";
 
-const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutGrid, match: (p: string) => p === "/" || p.startsWith("/patrols") },
-  { to: "/properties", label: "Properties", icon: Building2, match: (p: string) => p.startsWith("/properties") },
-  { to: "/schedule", label: "Schedule", icon: CalendarDays, match: (p: string) => p.startsWith("/schedule") },
-  { to: "/notes", label: "Watch Notes", icon: FileText, match: (p: string) => p.startsWith("/notes") },
+type NavItem = { to: string; label: string; short: string; icon: LucideIcon; match: (p: string) => boolean };
+
+const NAV: NavItem[] = [
+  { to: "/", label: "Dashboard", short: "Home", icon: LayoutGrid, match: (p: string) => p === "/" || p.startsWith("/patrols") },
+  { to: "/properties", label: "Properties", short: "Sites", icon: Building2, match: (p: string) => p.startsWith("/properties") },
+  { to: "/schedule", label: "Schedule", short: "Schedule", icon: CalendarDays, match: (p: string) => p.startsWith("/schedule") },
+  { to: "/notes", label: "Watch Notes", short: "Notes", icon: FileText, match: (p: string) => p.startsWith("/notes") },
 ];
 
-const HOURS_NAV = { to: "/hours", label: "My Hours", icon: Clock, match: (p: string) => p.startsWith("/hours") };
-const PAYROLL_NAV = { to: "/payroll", label: "Payroll", icon: Wallet, match: (p: string) => p.startsWith("/payroll") };
-const TEAM_NAV = { to: "/team", label: "Team", icon: Users, match: (p: string) => p.startsWith("/team") };
-const WORKFORCE_NAV = {
+const HOURS_NAV: NavItem = { to: "/hours", label: "My Hours", short: "Hours", icon: Clock, match: (p: string) => p.startsWith("/hours") };
+const PAYROLL_NAV: NavItem = { to: "/payroll", label: "Payroll", short: "Payroll", icon: Wallet, match: (p: string) => p.startsWith("/payroll") };
+const TEAM_NAV: NavItem = { to: "/team", label: "Team", short: "Team", icon: Users, match: (p: string) => p.startsWith("/team") };
+const WORKFORCE_NAV: NavItem = {
   to: "/workforce",
   label: "Workforce Management",
+  short: "Workforce",
   icon: Briefcase,
   match: (p: string) => p.startsWith("/workforce"),
 };
-const EXPENSES_NAV = {
+const EXPENSES_NAV: NavItem = {
   to: "/expenditures",
   label: "Expenditures",
+  short: "Expenses",
   icon: ReceiptText,
   match: (p: string) => p.startsWith("/expenditures"),
 };
-const ACCOUNT_NAV = { to: "/account", label: "Account", icon: UserCog, match: (p: string) => p.startsWith("/account") };
+const ACCOUNT_NAV: NavItem = { to: "/account", label: "Account", short: "Account", icon: UserCog, match: (p: string) => p.startsWith("/account") };
+
+const useNavItems = (): NavItem[] => {
+  const { isAdmin } = useAuth();
+  const exAccess = useExAccess();
+  return isAdmin
+    ? [...NAV, HOURS_NAV, TEAM_NAV, PAYROLL_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
+    : [...NAV, HOURS_NAV, ACCOUNT_NAV];
+};
+
+/** Compact icon rail for tablets (768–1023px): every destination one tap away, without a drawer. */
+const TabletRail = () => {
+  const { pathname } = useLocation();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const items = useNavItems();
+  const { activeTimers } = usePatrolTimers();
+
+  return (
+    <aside
+      aria-label="Main"
+      className="fixed inset-y-0 left-0 z-30 hidden flex-col overflow-y-auto border-r border-line bg-rail pb-[max(1rem,var(--safe-bottom))] pl-[env(safe-area-inset-left)] pt-[max(1rem,var(--safe-top))] md:flex lg:hidden"
+      style={{ width: "calc(88px + env(safe-area-inset-left))" }}
+    >
+      <div className="flex justify-center pb-4">
+        <Crest size="sm" markOnly />
+      </div>
+      <nav className="flex flex-col gap-1 px-2">
+        {items.map(({ to, short, label, icon: Icon, match }) => {
+          const active = match(pathname);
+          const timerDot = to === "/properties" && activeTimers.length > 0;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "focus-ring relative flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium transition-colors",
+                active ? "bg-ember/[0.14] text-ember" : "text-ink-3 hover:bg-white/[0.04] hover:text-ink",
+              )}
+            >
+              <Icon className="h-[22px] w-[22px]" />
+              <span className="max-w-full truncate">{short}</span>
+              {timerDot && <span className="absolute right-4 top-2.5 h-2 w-2 animate-ember-pulse rounded-full bg-ember" />}
+            </NavLink>
+          );
+        })}
+      </nav>
+      <div className="mt-auto flex flex-col items-center gap-3 px-2 pt-4">
+        <SyncStatus iconOnly />
+        <div
+          title={user?.name}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-raised text-sm font-semibold text-silver ring-1 ring-line"
+        >
+          {initials(user?.name ?? "")}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            navigate("/");
+            void signOut();
+          }}
+          aria-label="Sign out"
+          className="focus-ring flex h-11 w-11 items-center justify-center rounded-lg text-ink-3 hover:bg-white/[0.04] hover:text-ink"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+      </div>
+    </aside>
+  );
+};
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { pathname } = useLocation();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const exAccess = useExAccess();
-  const items = isAdmin
-    ? [...NAV, HOURS_NAV, TEAM_NAV, PAYROLL_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
-    : [...NAV, HOURS_NAV, ACCOUNT_NAV];
+  const items = useNavItems();
 
   return (
     <div className="flex min-h-full flex-col">
@@ -162,9 +249,10 @@ export const AppShell = () => {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[268px] overflow-y-auto border-r border-line bg-rail lg:block">
         <SidebarContent />
       </aside>
+      <TabletRail />
 
       {/* Safe-area padding keeps the bar below the status bar / notch when installed to the home screen. */}
-      <header className="sticky top-0 z-30 border-b border-line bg-rail/90 pt-[var(--safe-top)] backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 border-b border-line bg-rail/90 pt-[var(--safe-top)] backdrop-blur md:hidden">
         <div className="flex h-16 items-center justify-between pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))]">
           <Crest size="sm" />
           <div className="flex items-center gap-2">
@@ -191,8 +279,8 @@ export const AppShell = () => {
         </SheetContent>
       </Sheet>
 
-      <main className="lg:pl-[268px]">
-        <div key={pathname} className="mx-auto w-full max-w-[1320px] animate-fade-up px-4 py-6 sm:px-6 md:px-8 lg:py-9">
+      <main className="md:pl-[calc(88px+env(safe-area-inset-left))] lg:pl-[268px]">
+        <div key={pathname} className="mx-auto w-full max-w-[1320px] animate-fade-up px-4 py-6 sm:px-6 md:px-8 md:pt-[max(1.5rem,var(--safe-top))] lg:py-9">
           <Outlet />
         </div>
       </main>

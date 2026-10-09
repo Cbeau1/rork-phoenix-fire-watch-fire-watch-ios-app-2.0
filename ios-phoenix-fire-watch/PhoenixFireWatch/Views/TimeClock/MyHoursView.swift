@@ -17,6 +17,7 @@ struct MyHoursView: View {
             }
             .padding(16)
             .padding(.bottom, 20)
+            .fwReadable()
         }
         .refreshable { await clock.refresh() }
         .background(CanvasBackground())

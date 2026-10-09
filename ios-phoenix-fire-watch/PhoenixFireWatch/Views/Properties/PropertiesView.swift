@@ -3,6 +3,7 @@ import SwiftUI
 struct PropertiesView: View {
     @Environment(FireWatchStore.self) private var store
     @Environment(PatrolTimerStore.self) private var timers
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var path: [Route] = []
     @State private var query: String = ""
     @State private var showNew: Bool = false
@@ -15,10 +16,16 @@ struct PropertiesView: View {
         }
     }
 
+    private var columns: [GridItem] {
+        sizeClass == .regular && !filtered.isEmpty
+            ? [GridItem(.adaptive(minimum: 340), spacing: 12, alignment: .top)]
+            : [GridItem(.flexible())]
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                LazyVStack(spacing: 10) {
+                LazyVGrid(columns: columns, spacing: 10) {
                     if store.properties.isEmpty && store.hasLoaded {
                         EmptyStateView(symbol: "building.2.fill", title: "No properties yet", message: "Add the buildings your team monitors to start logging patrols.")
                         Button("Add Property") { showNew = true }
@@ -35,7 +42,8 @@ struct PropertiesView: View {
                         .buttonStyle(PressableStyle())
                     }
                 }
-                .padding(16)
+                .padding(sizeClass == .regular ? 24 : 16)
+                .fwReadable(1100)
             }
             .refreshable { await store.refresh() }
             .searchable(text: $query, prompt: "Search properties")

@@ -5,7 +5,10 @@ struct DashboardView: View {
     @Environment(FireWatchStore.self) private var store
     @Environment(PatrolTimerStore.self) private var timers
     @Environment(AppRouter.self) private var router
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var path: [Route] = []
+
+    private var isWide: Bool { sizeClass == .regular }
     @State private var showNewProperty: Bool = false
     @State private var showQuickNote: Bool = false
 
@@ -23,11 +26,19 @@ struct DashboardView: View {
                         activeTimers
                     }
                     sites
-                    recentPatrols
-                    notesPreview
+                    if isWide {
+                        HStack(alignment: .top, spacing: 16) {
+                            recentPatrols
+                            notesPreview
+                        }
+                    } else {
+                        recentPatrols
+                        notesPreview
+                    }
                 }
-                .padding(16)
+                .padding(isWide ? 24 : 16)
                 .padding(.bottom, 20)
+                .fwReadable(1100)
             }
             .refreshable {
                 await store.flush()
@@ -140,7 +151,7 @@ struct DashboardView: View {
             } else {
                 let latest = latestPatrolBySite
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    LazyVStack(spacing: 12) {
+                    LazyVGrid(columns: siteColumns, spacing: 12) {
                         ForEach(store.properties) { property in
                             SiteCardView(
                                 property: property,
@@ -155,6 +166,12 @@ struct DashboardView: View {
                 }
             }
         }
+    }
+
+    private var siteColumns: [GridItem] {
+        isWide
+            ? [GridItem(.adaptive(minimum: 340), spacing: 12, alignment: .top)]
+            : [GridItem(.flexible())]
     }
 
     private var latestPatrolBySite: [String: Patrol] {
@@ -404,6 +421,7 @@ struct AllPatrolsView: View {
                 .padding(.horizontal, 16)
             }
             .padding(.vertical, 12)
+            .fwReadable(860)
         }
         .background(CanvasBackground())
         .navigationTitle("All Patrols")

@@ -2,7 +2,7 @@
   "appContext": {
     "appName": "Phoenix Fire Watch",
     "category": "fire watch and security patrol logging for security companies",
-    "summary": "Phoenix Fire Watch lets fire watch and security patrol companies manage monitored properties, log patrols with live time-stamped photos and status (Clear, Follow-up, Incident), run repeating patrol timers that alert officers 5 minutes before each patrol is due, share team watch notes, and send signed PDF shift reports to property contacts. Works offline and syncs with the web dashboard.",
+    "summary": "Phoenix Fire Watch lets fire watch and security patrol companies manage monitored properties, log patrols with live time-stamped photos and status (Clear, Follow-up, Incident), run repeating patrol timers that alert officers 5 minutes before each patrol is due, clock in and out of shifts, share team watch notes, and send signed PDF shift reports to property contacts. Works offline and syncs with the web dashboard.",
     "domainKeywords": [
       "fire watch",
       "security patrol",
@@ -12,7 +12,7 @@
       "patrol timer",
       "shift report",
       "incident",
-      "time-stamped photos",
+      "time clock",
       "compliance"
     ],
     "forbiddenInterpretations": [
@@ -25,16 +25,16 @@
     ]
   },
   "theme": {
-    "style": "Near-black command-center darkness lit by controlled red ember light that matches the app's dark UI and #DC2626 alert accents. Moody and disciplined rather than chaotic, with the mood of a night shift under emergency lighting. Surfaces use smoky charcoal gradients, faint warm haze, thin glowing red lines and soft rim light. Upper areas stay deep black and calm for headlines, and the glow pools low behind the device.",
-    "headlineFont": "font-family: 'Inter', sans-serif; weight 800; @import url('https://fonts.googleapis.com/css2?family=Inter:wght@800&display=swap');",
-    "headlineFontSize": 132,
+    "style": "Night-shift command center: near-black and charcoal canvases lit by low, smoldering ember-red glows like warning beacons and emergency lighting seen through haze. The mood is calm, vigilant and authoritative, never chaotic, with fine smoke wisps, dark glass layers and subtle grain. Crimson #DC2626 light sits low in the frame and the upper area stays dark and quiet for headlines.",
+    "headlineFont": "font-family: 'Inter', sans-serif; weight 800; @import url('https://fonts.googleapis.com/css2?family=Inter:wght@800&display=swap')",
+    "headlineFontSize": 128,
     "mockupIds": {
       "iphone": "deep-blue",
       "ipad": "space-gray"
     },
     "palette": {
       "primary": "#0B0B0D",
-      "secondary": "#1F1F24",
+      "secondary": "#1F1F23",
       "accent": "#DC2626"
     },
     "layoutId": "hero-clipped"
@@ -42,37 +42,37 @@
   "slides": [
     {
       "label": "Dashboard",
-      "backgroundPrompt": "Cinematic abstract digital art of a near-black obsidian void with a broad, soft crimson ember glow rising from the bottom center, drifting fine glowing red and deep orange particles suspended in faint smoky haze. The lighting is dramatic volumetric light from below with scarlet red fading into charcoal, and the upper 30% is pure calm black. Subtle film grain adds depth, with soft depth-of-field blur at the edges. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
-      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/4b188865-e3dd-462f-8a63-398cb431cdcc.png"
-    },
-    {
-      "label": "Patrol Timer",
-      "backgroundPrompt": "Abstract digital art of a deep charcoal-to-black gradient with a single large diffused sphere of soft crimson red light glowing behind the lower center, surrounded by faint concentric halos of dim ruby light. The lighting is a gentle central backlight with a warm red bloom fading outward into obsidian, and the top third stays dark and uncluttered. The texture is velvety smooth with subtle grain. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
-      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/5a518a18-9914-445d-a6ef-715189383e86.png"
-    },
-    {
-      "label": "Log Patrol",
-      "backgroundPrompt": "Abstract 3D rendered scene of dark graphite space crossed by two sleek diagonal streaks of scarlet red light sweeping from the lower left to the mid right, with thin motion trails dissolving into smoky charcoal haze. The streaks carry sharp rim lighting against cool gunmetal gray shadows, and the upper 30% fades to calm near-black. There is shallow depth of field and fine grain. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
-      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/31c01748-a275-467f-845f-51c9b9fea410.png"
+      "backgroundPrompt": "Cinematic abstract digital art of a vast near-black void with a soft, wide ember glow of deep crimson and smoldering scarlet pooling along the bottom center, fading upward into pure charcoal black. Gentle volumetric haze and faint drifting smoke wisps catch the warm red light from below, with fine film grain and soft depth of field at the edges, while the upper 30% stays dark and calm. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
+      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/c8793ca6-b013-46be-860f-7e1d6e1fbed4.png"
     },
     {
       "label": "Properties",
-      "backgroundPrompt": "Minimal abstract digital art of a deep black expanse split by one thin glowing crimson horizon line across the lower third, with a soft red atmospheric glow bleeding upward into dark charcoal haze. Faint reflections shimmer on a glossy black floor below the line, under low horizontal cinematic lighting. The upper half stays vast, still and dark with subtle grain. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
-      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/8e5bc2fb-49c3-4bd8-be81-0ddf544298da.png"
+      "backgroundPrompt": "Minimal abstract digital art of a deep obsidian black expanse split by a single thin, razor-fine horizon line of glowing crimson light across the lower third, softly blooming into dark maroon haze above and below. Lighting is a cool, restrained side glow from the left with subtle grain texture, and the top half is open, empty and near-black. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
+      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/18b0b847-c295-4096-b08b-e4a9b10c069d.png"
+    },
+    {
+      "label": "Patrol Timer",
+      "backgroundPrompt": "Abstract 3D rendered scene on a dark charcoal gray canvas with a large, diffused circular halo of blood red and warm ember orange light radiating from the lower center, its edges dissolving into soft smoky gradients. The light glows softly from behind, with faint concentric ripples of dim crimson and gentle depth blur, and the upper 30% fades to deep graphite black. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
+      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/0720c4c6-85ae-4b39-b6b2-c7557c82381a.png"
+    },
+    {
+      "label": "Log Patrol",
+      "backgroundPrompt": "Dynamic abstract digital art of graphite black space crossed by sweeping long-exposure streaks of scarlet and hot crimson light that arc diagonally from the lower left toward the lower right, with motion-blurred trails and tiny glowing embers scattered along their paths. Dramatic rim lighting from below adds energy and subtle grain gives texture, while the top region stays dark, smooth and uncluttered. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
+      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/2f7e5fd2-d090-4695-8dab-750467e16d9b.png"
     },
     {
       "label": "Shift Report",
-      "backgroundPrompt": "Abstract digital art of layered translucent smoky dark glass panels stacked at gentle angles, each edge catching a warm rim light of ember red and soft amber from the right side. Deep obsidian shadows fill the spaces between the layers, and a warm crimson glow pools in the lower right. The upper 30% is calm matte black, with fine grain and soft depth blur. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
-      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/108cfa8a-5e73-4303-b31f-caa44454210e.png"
+      "backgroundPrompt": "Photorealistic abstract render of layered translucent planes of smoky dark glass stacked at shallow angles in the lower half, each edge catching a warm ember-orange and deep crimson rim light from the right side. Soft smoke drifts between the layers, creating rich depth and reflections against a charcoal black backdrop, and the upper third fades to calm, near-black darkness. 8K quality, ultra smooth gradients, premium feel, no text, no letters, no UI elements, no device mockups",
+      "backgroundUrl": "https://r2-pub.rork.com/app-store-screenshots/2b73f02b-658a-4e58-be93-b50aaaa3d591.png"
     }
   ],
   "headlines": {
     "en": {
       "Dashboard": "Every Patrol<br>Accounted For",
+      "Properties": "Every Site<br>One Screen",
       "Patrol Timer": "Never Miss<br>A Round",
       "Log Patrol": "Log It<br>In Seconds",
-      "Properties": "Every Site<br>One Place",
-      "Shift Report": "Signed Reports<br>Ready To Send"
+      "Shift Report": "Signed Reports<br>Sent Fast"
     }
   }
 }
