@@ -24,7 +24,7 @@ const INK_3: RGB = [138, 141, 148];
 const LINE: RGB = [224, 225, 229];
 const PAPER_2: RGB = [247, 247, 248];
 const CANVAS: RGB = [11, 11, 12];
-const SILVER: RGB = [198, 201, 206];
+const HEAD_FILL: RGB = [240, 241, 243];
 const EMBER: RGB = [220, 38, 38];
 
 const STATUS_RGB: Record<PatrolStatus, RGB> = {
@@ -153,34 +153,37 @@ export async function buildShiftReport(opts: ShiftReportOptions): Promise<{ blob
     doc.text(label.toUpperCase(), M + 10, y, { charSpace: 1.2 });
   };
 
-  // ---- Page 1 header band
-  setFill(CANVAS);
-  doc.rect(0, 0, W, 98, "F");
-  setFill(EMBER);
-  doc.rect(0, 98, W, 3, "F");
-  if (logo) doc.addImage(logo.data, "JPEG", M - 8, 14, 70, 70);
+  // ---- Page 1 letterhead (clean white, brand mark + hairline rule with ember accent)
+  if (logo) doc.addImage(logo.data, "JPEG", M, 26, 46, 46);
+  const lx = M + 58;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(21);
-  setText(SILVER);
-  doc.text("PHOENIX", M + 70, 47, { charSpace: 2.4 });
+  doc.setFontSize(17);
+  setText(INK);
+  doc.text("PHOENIX", lx, 44, { charSpace: 2.2 });
   doc.setFontSize(7.5);
   setText(EMBER);
-  doc.text("FIRE WATCH", M + 71, 61, { charSpace: 3.6 });
+  doc.text("FIRE WATCH", lx + 0.5, 58, { charSpace: 3.4 });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  setText([154, 157, 163]);
-  doc.text(orgName, M + 71, 76, { maxWidth: 220 });
+  setText(INK_3);
+  doc.text(orgName, lx, 74, { maxWidth: 200 });
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  setText([255, 255, 255]);
-  doc.text("FIRE WATCH SHIFT REPORT", W - M, 42, { align: "right", charSpace: 0.8 });
+  doc.setFontSize(12.5);
+  setText(INK);
+  doc.text("FIRE WATCH SHIFT REPORT", W - M, 40, { align: "right", charSpace: 0.8 });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  setText([170, 173, 179]);
-  doc.text(periodLabel, W - M, 58, { align: "right" });
-  doc.text(`Report ID  ${reportId}`, W - M, 71, { align: "right" });
-  doc.text(`Generated  ${format(now, "MMM d, yyyy · h:mm a")}`, W - M, 84, { align: "right" });
+  setText(INK_2);
+  doc.text(periodLabel, W - M, 56, { align: "right" });
+  setText(INK_3);
+  doc.text(`Report ID  ${reportId}`, W - M, 70, { align: "right" });
+  doc.text(`Generated  ${format(now, "MMM d, yyyy · h:mm a")}`, W - M, 83, { align: "right" });
+
+  setFill(LINE);
+  doc.rect(M + 52, 97.7, W - 2 * M - 52, 0.6, "F");
+  setFill(EMBER);
+  doc.rect(M, 97, 52, 1.8, "F");
 
   // ---- Property title
   let y = 136;
@@ -352,8 +355,8 @@ export async function buildShiftReport(opts: ShiftReportOptions): Promise<{ blob
       overflow: "linebreak",
     },
     headStyles: {
-      fillColor: CANVAS,
-      textColor: [255, 255, 255],
+      fillColor: HEAD_FILL,
+      textColor: INK,
       fontStyle: "bold",
       fontSize: 7.5,
       cellPadding: { top: 7, bottom: 7, left: 6, right: 6 },
@@ -617,23 +620,20 @@ export async function buildShiftReport(opts: ShiftReportOptions): Promise<{ blob
   for (let i = 1; i <= pages; i += 1) {
     doc.setPage(i);
     if (i > 1) {
-      setFill(CANVAS);
-      doc.rect(0, 0, W, 44, "F");
-      setFill(EMBER);
-      doc.rect(0, 44, W, 2, "F");
-      if (logo) doc.addImage(logo.data, "JPEG", M - 4, 6, 32, 32);
+      if (logo) doc.addImage(logo.data, "JPEG", M, 10, 26, 26);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      setText(SILVER);
-      doc.text("PHOENIX", M + 34, 22, { charSpace: 1.4 });
-      doc.setFontSize(5.5);
-      setText(EMBER);
-      doc.text("FIRE WATCH", M + 34.5, 31, { charSpace: 2.4 });
+      doc.setFontSize(10);
+      setText(INK);
+      doc.text("PHOENIX FIRE WATCH", M + 34, 20, { charSpace: 1.2 });
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      setText([200, 202, 206]);
+      setText(INK_3);
       const title = (doc.splitTextToSize(`${property.name}  ·  ${periodLabel}`, 330) as string[])[0] ?? "";
       doc.text(title, W - M, 26, { align: "right" });
+      setFill(LINE);
+      doc.rect(M + 52, 43.7, W - 2 * M - 52, 0.5, "F");
+      setFill(EMBER);
+      doc.rect(M, 43, 52, 1.6, "F");
     }
     setDraw(LINE);
     doc.setLineWidth(0.6);

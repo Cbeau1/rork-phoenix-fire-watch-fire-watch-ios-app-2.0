@@ -24,6 +24,8 @@ enum ReportBuilder {
     private static let ink3 = UIColor(red: 138 / 255, green: 141 / 255, blue: 148 / 255, alpha: 1)
     private static let line = UIColor(red: 226 / 255, green: 228 / 255, blue: 232 / 255, alpha: 1)
     private static let zebra = UIColor(red: 246 / 255, green: 247 / 255, blue: 248 / 255, alpha: 1)
+    private static let canvas = UIColor(red: 11 / 255, green: 11 / 255, blue: 12 / 255, alpha: 1)
+    private static let headFill = UIColor(red: 240 / 255, green: 241 / 255, blue: 243 / 255, alpha: 1)
     private static let signatureInk = UIColor(red: 24 / 255, green: 38 / 255, blue: 84 / 255, alpha: 1)
 
     static func build(_ request: ReportRequest) async -> Data {
@@ -46,7 +48,7 @@ enum ReportBuilder {
                 ctx.beginPage()
                 pageNumber += 1
                 drawHeader(crest: crest, compact: pageNumber > 1)
-                y = pageNumber > 1 ? 84 : 118
+                y = pageNumber > 1 ? 66 : 104
             }
 
             func ensure(_ height: CGFloat) {
@@ -102,11 +104,11 @@ enum ReportBuilder {
             y += 24
             let cols: [(String, CGFloat)] = [("#", 22), ("Date / Time", 88), ("Officer", 84), ("Areas Patrolled", 128), ("Status", 64), ("Notes", 110), ("Photos", 36)]
             func tableHeader() {
-                UIColor.black.setFill()
+                headFill.setFill()
                 UIRectFill(CGRect(x: margin, y: y, width: page.width - margin * 2, height: 22))
                 var x = margin + 6
                 for c in cols {
-                    draw(c.0, at: CGPoint(x: x, y: y + 6), font: .systemFont(ofSize: 8, weight: .bold), color: .white, width: c.1 - 6)
+                    draw(c.0, at: CGPoint(x: x, y: y + 6), font: .systemFont(ofSize: 8, weight: .bold), color: ink, width: c.1 - 6)
                     x += c.1
                 }
                 y += 22
@@ -216,21 +218,26 @@ enum ReportBuilder {
 
     // MARK: - Drawing helpers
 
+    /// White letterhead: brand mark + wordmark on the left, report title on the right, hairline rule with ember accent.
     private static func drawHeader(crest: UIImage?, compact: Bool) {
-        let h: CGFloat = compact ? 50 : 80
-        UIColor(red: 11 / 255, green: 11 / 255, blue: 12 / 255, alpha: 1).setFill()
-        UIRectFill(CGRect(x: 0, y: 0, width: page.width, height: h))
-        ember.setFill()
-        UIRectFill(CGRect(x: 0, y: h, width: page.width, height: 3))
-        let crestSize: CGFloat = compact ? 30 : 52
-        crest?.draw(in: CGRect(x: margin, y: (h - crestSize) / 2, width: crestSize, height: crestSize))
+        let crestSize: CGFloat = compact ? 28 : 44
+        let top: CGFloat = compact ? 10 : 18
+        let chip = CGRect(x: margin, y: top, width: crestSize, height: crestSize)
+        canvas.setFill()
+        UIBezierPath(roundedRect: chip, cornerRadius: crestSize * 0.24).fill()
+        crest?.draw(in: chip.insetBy(dx: crestSize * 0.08, dy: crestSize * 0.08))
         let tx = margin + crestSize + 12
-        draw("PHOENIX", at: CGPoint(x: tx, y: compact ? 12 : 20), font: UIFont(name: "Georgia-Bold", size: compact ? 13 : 18) ?? .boldSystemFont(ofSize: 16), color: UIColor(white: 0.8, alpha: 1), width: 200, kern: 3)
-        draw("FIRE WATCH", at: CGPoint(x: tx, y: compact ? 29 : 44), font: .systemFont(ofSize: compact ? 6.5 : 8, weight: .semibold), color: ember, width: 200, kern: 3)
+        draw("PHOENIX", at: CGPoint(x: tx, y: top + (compact ? 1 : 4)), font: UIFont(name: "Georgia-Bold", size: compact ? 13 : 16) ?? .boldSystemFont(ofSize: 15), color: ink, width: 200, kern: 3)
+        draw("FIRE WATCH", at: CGPoint(x: tx, y: top + (compact ? 17 : 23)), font: .systemFont(ofSize: compact ? 6.5 : 7.5, weight: .semibold), color: ember, width: 200, kern: 3)
         let title = "FIRE WATCH SHIFT REPORT"
-        let font = UIFont.systemFont(ofSize: compact ? 8 : 10, weight: .bold)
+        let font = UIFont.systemFont(ofSize: compact ? 8 : 10.5, weight: .bold)
         let w = (title as NSString).size(withAttributes: [.font: font, .kern: 1.5]).width
-        draw(title, at: CGPoint(x: page.width - margin - w, y: compact ? 20 : 34), font: font, color: .white, width: w + 4, kern: 1.5)
+        draw(title, at: CGPoint(x: page.width - margin - w, y: top + (compact ? 3 : 7)), font: font, color: ink, width: w + 4, kern: 1.5)
+        let ry: CGFloat = compact ? 46 : 72
+        line.setFill()
+        UIRectFill(CGRect(x: margin, y: ry, width: page.width - margin * 2, height: 0.8))
+        ember.setFill()
+        UIRectFill(CGRect(x: margin, y: ry - 0.5, width: 52, height: 1.8))
     }
 
     private static func sectionTitle(_ text: String, y: CGFloat) {
