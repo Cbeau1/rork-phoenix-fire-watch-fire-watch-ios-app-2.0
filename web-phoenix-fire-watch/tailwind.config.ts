@@ -1,6 +1,9 @@
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
+/** Theme color backed by an RGB-channel CSS variable (supports Tailwind opacity modifiers). */
+const c = (name: string): string => `rgb(var(--c-${name}) / <alpha-value>)`;
+
 export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
@@ -21,49 +24,56 @@ export default {
         crest: ["Cinzel", "serif"],
       },
       colors: {
-        /* Navy Command theme — single source of truth for web colors (mirrors iOS Theme.swift). */
+        /* Navy Command theme (Dark + Light) — values are CSS variables defined per theme in index.css
+           (mirrors iOS Theme.swift). Alpha modifiers like bg-primary/10 keep working. */
         canvas: {
-          DEFAULT: "#0F172A",
-          deep: "#0B1220",
+          DEFAULT: c("canvas"),
+          deep: c("canvas-deep"),
         },
-        rail: "#1E293B",
+        rail: c("rail"),
         surface: {
-          DEFAULT: "#1E293B",
-          hover: "#243247",
+          DEFAULT: c("surface"),
+          hover: c("surface-hover"),
         },
         raised: {
-          DEFAULT: "#273449",
-          hover: "#2F3D54",
+          DEFAULT: c("raised"),
+          hover: c("raised-hover"),
         },
-        field: "#0F172A",
+        field: c("field"),
         line: {
-          DEFAULT: "#334155",
-          strong: "#475569",
-          hover: "#64748B",
+          DEFAULT: c("line"),
+          strong: c("line-strong"),
+          hover: c("line-hover"),
         },
-        silver: "#E2E8F0",
+        silver: c("silver"),
         ink: {
-          DEFAULT: "#F8FAFC",
-          2: "#CBD5E1",
-          3: "#94A3B8",
+          DEFAULT: c("ink"),
+          2: c("ink-2"),
+          3: c("ink-3"),
         },
         link: {
-          DEFAULT: "#60A5FA",
-          hover: "#93C5FD",
+          DEFAULT: c("link"),
+          hover: c("link-hover"),
         },
         danger: {
           DEFAULT: "#DC2626",
           hover: "#B91C1C",
-          ink: "#F87171",
+          ink: c("status-incident-ink"),
         },
         status: {
-          clear: "#22C55E",
-          follow: "#F59E0B",
+          clear: c("status-clear"),
+          follow: c("status-follow"),
           incident: {
-            DEFAULT: "#DC2626",
-            ink: "#F87171",
+            DEFAULT: c("status-incident"),
+            ink: c("status-incident-ink"),
           },
         },
+        info: {
+          DEFAULT: c("info"),
+          ink: c("info-ink"),
+        },
+        "on-clear": c("on-clear"),
+        scrim: "var(--scrim)",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -110,8 +120,8 @@ export default {
         },
       },
       boxShadow: {
-        card: "0 1px 2px rgba(2, 6, 23, 0.35), 0 1px 1px rgba(2, 6, 23, 0.2)",
-        pop: "0 18px 40px -12px rgba(2, 6, 23, 0.7)",
+        card: "var(--shadow-card)",
+        pop: "var(--shadow-pop)",
       },
       borderRadius: {
         lg: "var(--radius)",

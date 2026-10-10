@@ -15,7 +15,7 @@ const DrawerPortal = DrawerPrimitive.Portal;
 const DrawerClose = DrawerPrimitive.Close;
 
 const DrawerOverlay = ({ ref, className, ...props }: React.ComponentPropsWithRef<typeof DrawerPrimitive.Overlay>) => (
-  <DrawerPrimitive.Overlay ref={ref} className={cn("fixed inset-0 z-50 bg-black/80", className)} {...props} />
+  <DrawerPrimitive.Overlay ref={ref} className={cn("fixed inset-0 z-50 bg-scrim backdrop-blur-[1px]", className)} {...props} />
 );
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 

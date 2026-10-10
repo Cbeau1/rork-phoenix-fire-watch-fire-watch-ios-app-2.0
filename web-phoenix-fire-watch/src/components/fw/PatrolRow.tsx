@@ -20,6 +20,7 @@ import { usePhotoUrls } from "@/hooks/use-photo-urls";
 import { fullDateTime, timeOfDay } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
 import { STATUS_META, type Patrol } from "@/lib/types";
+import { tint } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 import { StatusBadge } from "./primitives";
@@ -52,12 +53,12 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
         aria-expanded={hasDetail ? open : undefined}
         className={cn(
           "focus-ring flex min-w-0 flex-1 items-start gap-4 rounded-lg px-4 py-3.5 text-left transition-colors sm:px-5",
-          hasDetail && "hover:bg-white/[0.02]",
+          hasDetail && "hover:bg-ink/[0.05]",
         )}
       >
         <span
           className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ring-4"
-          style={{ backgroundColor: meta.color, ["--tw-ring-color" as string]: `${meta.color}22` }}
+          style={{ backgroundColor: meta.color, ["--tw-ring-color" as string]: tint(meta.color, 13) }}
           aria-hidden
         />
         <div className="min-w-0 flex-1">

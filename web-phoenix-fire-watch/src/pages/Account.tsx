@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
+import { AppearanceCard } from "@/components/fw/AppearanceCard";
 import { Card, CardHeader, FieldError, FieldHint, FieldLabel, PageHeader } from "@/components/fw/primitives";
 import {
   AlertDialog,
@@ -26,7 +27,7 @@ import { useFireWatch } from "@/state/FireWatchProvider";
 type DeleteScope = "self" | "organization";
 
 const Account = () => {
-  useDocumentTitle("Account");
+  useDocumentTitle("Settings");
   const { user, isAdmin, online, updateName, changePassword, setRetention, deleteAccount } = useAuth();
   const { sync } = useFireWatch();
 
@@ -121,9 +122,11 @@ const Account = () => {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Account" subtitle={`${ROLE_LABEL[user.role]} · ${user.orgName}`} />
+      <PageHeader title="Settings" subtitle={`${ROLE_LABEL[user.role]} · ${user.orgName}`} />
 
-      <Card>
+      <AppearanceCard />
+
+      <Card className="mt-5">
         <CardHeader icon={UserCog} title="Profile" subtitle="Your name appears on patrol logs, notes and signed reports" />
         <form onSubmit={(e) => void saveName(e)} className="grid gap-5 px-6 py-6 sm:grid-cols-2 sm:px-7">
           <div>

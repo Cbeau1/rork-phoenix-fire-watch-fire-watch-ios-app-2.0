@@ -2,46 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Navy Command design system. Hex tokens live in tailwind.config.ts; shadcn tokens below are HSL
-   mirrors of the same values: canvas #0F172A, surface #1E293B, line #334155, ink #F8FAFC / #CBD5E1,
-   primary #2563EB (hover #1D4ED8), link/focus #60A5FA, success #22C55E, warning #F59E0B, danger #DC2626. */
+/* Navy Command design system — Light + Dark. Theme colors are RGB-channel variables (--c-*) consumed by
+   tailwind.config.ts; shadcn tokens are HSL mirrors. <html> gets .dark or .light before first paint (inline
+   script in index.html), then ThemeProvider keeps it in sync with Settings → Appearance.
+   Light: canvas #F1F5F9, cards #FFFFFF, borders #E2E8F0, ink #0F172A / #475569, primary #2563EB, link #1D4ED8.
+   Dark:  canvas #0F172A, cards #1E293B, borders #334155, ink #F8FAFC / #CBD5E1, primary #2563EB, link #60A5FA. */
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --c-canvas: 241 245 249;
+    --c-canvas-deep: 226 232 240;
+    --c-rail: 255 255 255;
+    --c-surface: 255 255 255;
+    --c-surface-hover: 248 250 252;
+    --c-raised: 241 245 249;
+    --c-raised-hover: 226 232 240;
+    --c-field: 255 255 255;
+    --c-line: 226 232 240;
+    --c-line-strong: 124 138 160;
+    --c-line-hover: 100 116 139;
+    --c-silver: 30 41 59;
+    --c-ink: 15 23 42;
+    --c-ink-2: 71 85 105;
+    --c-ink-3: 91 107 128;
+    --c-link: 29 78 216;
+    --c-link-hover: 30 64 175;
+    --c-status-clear: 20 108 52;
+    --c-status-follow: 154 71 8;
+    --c-status-incident: 220 38 38;
+    --c-status-incident-ink: 185 28 28;
+    --c-on-clear: 255 255 255;
+    --c-info: 2 132 199;
+    --c-info-ink: 3 105 161;
 
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
+    --scrim: rgba(15, 23, 42, 0.45);
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.06);
+    --shadow-pop: 0 18px 40px -12px rgba(15, 23, 42, 0.22);
+    --glow-a: rgba(37, 99, 235, 0.06);
+    --glow-b: rgba(29, 78, 216, 0.03);
 
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
-
+    --background: 210 40% 96%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 217 30% 22%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 30% 22%;
-    --muted-foreground: 213 27% 84%;
-
-    --accent: 217 30% 22%;
-    --accent-foreground: 210 40% 98%;
-
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 19% 35%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 216 15% 56%;
+    --ring: 224 76% 48%;
+    --radius: 0.625rem;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 19% 35%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 224 76% 48%;
 
+    color-scheme: light;
+  }
+
+  .dark {
+    --c-canvas: 15 23 42;
+    --c-canvas-deep: 11 18 32;
+    --c-rail: 30 41 59;
+    --c-surface: 30 41 59;
+    --c-surface-hover: 36 50 71;
+    --c-raised: 39 52 73;
+    --c-raised-hover: 47 61 84;
+    --c-field: 15 23 42;
+    --c-line: 51 65 85;
+    --c-line-strong: 71 85 105;
+    --c-line-hover: 100 116 139;
+    --c-silver: 226 232 240;
+    --c-ink: 248 250 252;
+    --c-ink-2: 203 213 225;
+    --c-ink-3: 148 163 184;
+    --c-link: 96 165 250;
+    --c-link-hover: 147 197 253;
+    --c-status-clear: 34 197 94;
+    --c-status-follow: 245 158 11;
+    --c-status-incident: 220 38 38;
+    --c-status-incident-ink: 248 113 113;
+    --c-on-clear: 4 36 15;
+    --c-info: 56 189 248;
+    --c-info-ink: 125 211 252;
+
+    --scrim: rgba(2, 6, 23, 0.8);
+    --shadow-card: 0 1px 2px rgba(2, 6, 23, 0.35), 0 1px 1px rgba(2, 6, 23, 0.2);
+    --shadow-pop: 0 18px 40px -12px rgba(2, 6, 23, 0.7);
+    --glow-a: rgba(37, 99, 235, 0.08);
+    --glow-b: rgba(96, 165, 250, 0.04);
+
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+    --secondary: 217 30% 22%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 30% 22%;
+    --muted-foreground: 213 27% 84%;
+    --accent: 217 30% 22%;
+    --accent-foreground: 210 40% 98%;
     --border: 215 25% 27%;
     --input: 215 19% 35%;
     --ring: 213 94% 68%;
-
-    --radius: 0.625rem;
-
     --sidebar-background: 217 33% 17%;
     --sidebar-foreground: 213 27% 84%;
-    --sidebar-primary: 221 83% 53%;
-    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 30% 22%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 215 25% 27%;
@@ -78,6 +158,10 @@
     --safe-top: max(env(safe-area-inset-top, 0px), 54px);
     --safe-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
   }
+  /* Installed web app in Light mode uses the solid (non-translucent) iOS status bar, so content starts below it. */
+  html.fw-sb-solid {
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
 
   body {
     min-height: 100vh;
@@ -85,6 +169,10 @@
   }
 
   ::selection {
+    background: rgba(37, 99, 235, 0.3);
+    color: inherit;
+  }
+  .dark ::selection {
     background: rgba(37, 99, 235, 0.45);
     color: #fff;
   }
@@ -97,19 +185,25 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: rgb(var(--c-line-strong) / 0.55);
     border-radius: 999px;
-    border: 2px solid #0f172a;
+    border: 2px solid rgb(var(--c-canvas));
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: rgb(var(--c-line-hover));
   }
 
   input[type="datetime-local"]::-webkit-calendar-picker-indicator,
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.8);
     cursor: pointer;
+    opacity: 0.75;
+  }
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    opacity: 1;
   }
 
   input[type="checkbox"],
@@ -121,9 +215,9 @@
 @layer utilities {
   .canvas-glow {
     background:
-      radial-gradient(900px 480px at 100% -10%, rgba(37, 99, 235, 0.08), transparent 60%),
-      radial-gradient(700px 420px at 0% 110%, rgba(96, 165, 250, 0.04), transparent 60%),
-      #0f172a;
+      radial-gradient(900px 480px at 100% -10%, var(--glow-a), transparent 60%),
+      radial-gradient(700px 420px at 0% 110%, var(--glow-b), transparent 60%),
+      rgb(var(--c-canvas));
   }
 
   .focus-ring {
@@ -168,28 +262,28 @@
   }
 }
 
-/* Leaflet maps (geofence) — match the Navy Command palette. */
+/* Leaflet maps (geofence) — follow the active theme. */
 .fw-map.leaflet-container {
-  background: #0b1220;
+  background: rgb(var(--c-canvas-deep));
   font-family: inherit;
 }
 .fw-map .leaflet-control-attribution {
-  background: rgba(15, 23, 42, 0.85);
-  color: #94a3b8;
+  background: rgb(var(--c-surface) / 0.85);
+  color: rgb(var(--c-ink-3));
   font-size: 10px;
 }
 .fw-map .leaflet-control-attribution a {
-  color: #60a5fa;
+  color: rgb(var(--c-link));
 }
 .fw-map .leaflet-bar a {
-  background: #1e293b;
-  color: #f8fafc;
-  border-bottom-color: #334155;
+  background: rgb(var(--c-surface));
+  color: rgb(var(--c-ink));
+  border-bottom-color: rgb(var(--c-line));
 }
 .fw-map .leaflet-bar a:hover {
-  background: #273449;
+  background: rgb(var(--c-raised));
 }
 .fw-map .leaflet-bar {
-  border: 1px solid #334155;
-  box-shadow: none;
+  border: 1px solid rgb(var(--c-line));
+  box-shadow: var(--shadow-card);
 }

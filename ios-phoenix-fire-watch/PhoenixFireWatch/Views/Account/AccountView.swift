@@ -17,6 +17,7 @@ struct AccountView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     profileCard
+                    AppearanceCard()
                     if auth.isAdmin { teamCard }
                     passwordCard
                     if auth.isAdmin { dataCard }
@@ -39,7 +40,7 @@ struct AccountView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(CanvasBackground())
-            .navigationTitle("Account")
+            .navigationTitle("Settings")
             .fwNavigationChrome()
             .sheet(isPresented: $showDelete) { DeleteAccountSheet() }
             .navigationDestination(isPresented: $showTeam) { TeamView() }

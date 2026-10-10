@@ -119,7 +119,7 @@ struct PayToggleButton: View {
                 Text(isPaid ? "Paid" : "Mark Paid")
                     .font(.system(.caption, weight: .bold))
             }
-            .foregroundStyle(isPaid ? Color.black : Color.fwClear)
+            .foregroundStyle(isPaid ? Color.fwOnClear : Color.fwClear)
             .padding(.horizontal, 11)
             .frame(minHeight: 34)
             .background(isPaid ? Color.fwClear : Color.fwClear.opacity(0.08), in: Capsule())

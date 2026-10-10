@@ -1,11 +1,12 @@
 import "leaflet/dist/leaflet.css";
-import { THEME } from "@/lib/theme";
 
 import * as L from "leaflet";
 import { memo, useEffect, useRef, useState } from "react";
 
+import { RAW, type ResolvedTheme } from "@/lib/theme";
 import { GEOFENCE_MAX_M, GEOFENCE_MIN_M, type PatrolLocation } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/state/ThemeProvider";
 
 export interface LatLng {
   lat: number;
@@ -29,10 +30,10 @@ interface GeofenceMapProps {
 }
 
 const TONE: Record<NonNullable<GeofenceMapProps["tone"]>, string> = {
-  primary: THEME.primary,
-  clear: THEME.success,
-  incident: THEME.danger,
-  muted: THEME.ink3,
+  primary: RAW.primary,
+  clear: RAW.success,
+  incident: RAW.danger,
+  muted: RAW.muted,
 };
 
 /** Esri basemaps: free for low-volume use and need no API key. */
@@ -41,7 +42,7 @@ const TILE_ATTRIBUTION = "Tiles &copy; Esri, Maxar, Earthstar Geographics, HERE,
 
 type BaseStyle = "satellite" | "map";
 
-const buildLayers = (style: BaseStyle): L.TileLayer[] =>
+const buildLayers = (style: BaseStyle, theme: ResolvedTheme): L.TileLayer[] =>
   style === "satellite"
     ? [
         L.tileLayer(esri("World_Imagery"), { attribution: TILE_ATTRIBUTION, maxZoom: 20, maxNativeZoom: 19 }),
@@ -49,8 +50,15 @@ const buildLayers = (style: BaseStyle): L.TileLayer[] =>
         L.tileLayer(esri("Reference/World_Boundaries_and_Places"), { maxZoom: 20, maxNativeZoom: 19 }),
       ]
     : [
-        L.tileLayer(esri("Canvas/World_Dark_Gray_Base"), { attribution: TILE_ATTRIBUTION, maxZoom: 20, maxNativeZoom: 16 }),
-        L.tileLayer(esri("Canvas/World_Dark_Gray_Reference"), { maxZoom: 20, maxNativeZoom: 16 }),
+        L.tileLayer(esri(theme === "dark" ? "Canvas/World_Dark_Gray_Base" : "Canvas/World_Light_Gray_Base"), {
+          attribution: TILE_ATTRIBUTION,
+          maxZoom: 20,
+          maxNativeZoom: 16,
+        }),
+        L.tileLayer(esri(theme === "dark" ? "Canvas/World_Dark_Gray_Reference" : "Canvas/World_Light_Gray_Reference"), {
+          maxZoom: 20,
+          maxNativeZoom: 16,
+        }),
       ];
 
 const clampRadius = (m: number) => Math.round(Math.min(GEOFENCE_MAX_M, Math.max(GEOFENCE_MIN_M, m)));
@@ -97,6 +105,7 @@ export const GeofenceMap = memo(
     const resizing = useRef<boolean>(false);
     const baseLayers = useRef<L.TileLayer[]>([]);
     const [style, setStyle] = useState<BaseStyle>("satellite");
+    const { resolved: theme } = useTheme();
     const state = useRef<{ center: LatLng | null; radius: number }>({ center, radius: radiusM });
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
@@ -130,13 +139,13 @@ export const GeofenceMap = memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Base map (satellite or dark street map).
+    // Base map (satellite, or a street map matching the light/dark theme).
     useEffect(() => {
       const m = map.current;
       if (!m) return;
       baseLayers.current.forEach((l) => l.remove());
-      baseLayers.current = buildLayers(style).map((l) => l.addTo(m));
-    }, [style]);
+      baseLayers.current = buildLayers(style, theme).map((l) => l.addTo(m));
+    }, [style, theme]);
 
     // Circle, center and resize handle.
     useEffect(() => {
@@ -243,9 +252,9 @@ export const GeofenceMap = memo(
       if (!youMarker.current) {
         youRing.current = L.circle(ll, {
           radius: you.accuracyM,
-          color: THEME.link,
+          color: RAW.link,
           weight: 1,
-          fillColor: THEME.link,
+          fillColor: RAW.link,
           fillOpacity: 0.12,
           interactive: false,
         }).addTo(m);

@@ -26,7 +26,7 @@ struct MainTabView: View {
                 WatchNotesView()
             }
             .badge(store.notes.count)
-            Tab("Account", systemImage: "person.crop.circle", value: AppTab.account) {
+            Tab("Settings", systemImage: "gearshape.fill", value: AppTab.account) {
                 AccountView()
             }
         }

@@ -1,10 +1,32 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0F172A" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#F1F5F9" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Apply the saved appearance (Light / Dark / System) before first paint — no flash of the wrong theme.
+         Keep the key and colors in sync with src/lib/theme.ts. -->
+    <script>
+      (function () {
+        var pref = "system";
+        try {
+          pref = localStorage.getItem("pfw-theme") || "system";
+        } catch (e) {}
+        var dark = pref === "dark" || (pref !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var root = document.documentElement;
+        root.classList.add(dark ? "dark" : "light");
+        root.style.colorScheme = dark ? "dark" : "light";
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#0F172A" : "#F1F5F9");
+        // Installed iOS web app: translucent (white-text) status bar in Dark, solid default bar in Light.
+        var standalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+        document
+          .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+          .setAttribute("content", dark ? "black-translucent" : "default");
+        if (standalone && !dark) root.classList.add("fw-sb-solid");
+      })();
+    </script>
 
     <title>Phoenix Fire Watch — Fire Watch Patrol Logs & Signed Shift Reports</title>
     <meta
@@ -25,7 +47,6 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Fire Watch" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />

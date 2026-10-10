@@ -9,7 +9,7 @@ import {
   LogOut,
   Menu,
   ReceiptText,
-  UserCog,
+  Settings,
   Users,
   Wallet,
   type LucideIcon,
@@ -56,7 +56,13 @@ const EXPENSES_NAV: NavItem = {
   icon: ReceiptText,
   match: (p: string) => p.startsWith("/expenditures"),
 };
-const ACCOUNT_NAV: NavItem = { to: "/account", label: "Account", short: "Account", icon: UserCog, match: (p: string) => p.startsWith("/account") };
+const ACCOUNT_NAV: NavItem = {
+  to: "/settings",
+  label: "Settings",
+  short: "Settings",
+  icon: Settings,
+  match: (p: string) => p.startsWith("/settings") || p.startsWith("/account"),
+};
 
 const useNavItems = (): NavItem[] => {
   const { isAdmin } = useAuth();
@@ -95,7 +101,7 @@ const TabletRail = () => {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "focus-ring relative flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium transition-colors",
-                active ? "bg-primary/[0.16] text-link" : "text-ink-2 hover:bg-white/[0.04] hover:text-ink",
+                active ? "bg-primary/[0.16] text-link" : "text-ink-2 hover:bg-ink/[0.05] hover:text-ink",
               )}
             >
               <Icon className="h-[22px] w-[22px]" />
@@ -120,7 +126,7 @@ const TabletRail = () => {
             void signOut();
           }}
           aria-label="Sign out"
-          className="focus-ring flex h-11 w-11 items-center justify-center rounded-lg text-ink-3 hover:bg-white/[0.04] hover:text-ink"
+          className="focus-ring flex h-11 w-11 items-center justify-center rounded-lg text-ink-3 hover:bg-ink/[0.05] hover:text-ink"
         >
           <LogOut className="h-5 w-5" />
         </button>
@@ -159,7 +165,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
                 "focus-ring group relative flex items-center gap-3.5 px-7 py-3.5 text-[15px] font-medium transition-colors",
                 active
                   ? "bg-gradient-to-r from-primary/[0.14] to-transparent text-link"
-                  : "text-ink-2 hover:bg-white/[0.03] hover:text-ink",
+                  : "text-ink-2 hover:bg-ink/[0.05] hover:text-ink",
               )}
             >
               <span
@@ -198,7 +204,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
             navigate("/");
             void signOut();
           }}
-          className="focus-ring flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-2 transition-colors hover:bg-white/[0.03] hover:text-ink"
+          className="focus-ring flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink-2 transition-colors hover:bg-ink/[0.05] hover:text-ink"
         >
           <LogOut className="h-[18px] w-[18px]" />
           Sign Out
@@ -223,7 +229,7 @@ const RunningTimers = ({ onNavigate }: { onNavigate?: () => void }) => {
           key={property.id}
           to={`/properties/${property.id}`}
           onClick={onNavigate}
-          className="focus-ring flex items-center gap-2 truncate rounded-lg px-2 py-1.5 text-sm text-ink-2 hover:bg-white/[0.04] hover:text-ink"
+          className="focus-ring flex items-center gap-2 truncate rounded-lg px-2 py-1.5 text-sm text-ink-2 hover:bg-ink/[0.05] hover:text-ink"
         >
           <span className="h-1.5 w-1.5 shrink-0 animate-primary-pulse rounded-full bg-link" />
           <span className="truncate">{property.name}</span>

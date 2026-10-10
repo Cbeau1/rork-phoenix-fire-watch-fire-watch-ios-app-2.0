@@ -60,7 +60,7 @@ export const TONE_CLASS: Record<Tone, string> = {
   red: "bg-status-incident/12 text-status-incident-ink ring-status-incident/35",
   slate: "bg-surface text-ink-2 ring-line",
   primary: "bg-primary/12 text-link ring-link/35",
-  blue: "bg-sky-400/12 text-sky-300 ring-sky-400/35",
+  blue: "bg-info/12 text-info-ink ring-info/35",
 };
 
 export const SOURCE_LABEL: Record<WorkerSource, string> = {

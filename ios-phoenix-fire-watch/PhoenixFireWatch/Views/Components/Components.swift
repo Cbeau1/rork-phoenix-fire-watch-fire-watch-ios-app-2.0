@@ -291,7 +291,7 @@ struct ToastView: View {
         .padding(14)
         .background(Color.fwSurface.opacity(0.97), in: .rect(cornerRadius: 14))
         .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(color.opacity(0.35), lineWidth: 1) }
-        .shadow(color: .black.opacity(0.5), radius: 20, y: 10)
+        .shadow(color: Color.fwShadowStrong, radius: 20, y: 10)
         .padding(.horizontal, 16)
     }
 }

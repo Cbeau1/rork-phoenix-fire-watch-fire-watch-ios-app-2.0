@@ -1,7 +1,7 @@
 import { AlarmClock, BellOff, BellRing, Loader2, Lock, MonitorSmartphone, Pencil } from "lucide-react";
 import { memo, useState } from "react";
 import { toast } from "sonner";
-import { THEME } from "@/lib/theme";
+import { THEME, tint } from "@/lib/theme";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -41,6 +41,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
   const overdue = !!schedule && schedule.overdueSince !== null;
   const warning = !!schedule && !overdue && schedule.isWarning;
   const tone = overdue ? THEME.danger : warning ? THEME.warning : THEME.primary;
+  const toneText = overdue ? THEME.dangerInk : warning ? THEME.warning : THEME.link;
 
   const changeInterval = async (value: string) => {
     const minutes = Number(value);
@@ -80,7 +81,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
         <div
           aria-hidden
           className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl"
-          style={{ backgroundColor: `${tone}14` }}
+          style={{ backgroundColor: tint(tone, 8) }}
         />
       )}
 
@@ -89,14 +90,14 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
         <div className="flex items-center gap-5 md:w-auto">
           <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
             <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90">
-              <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS} fill="none" stroke={THEME.line} strokeWidth={RING_STROKE} />
+              <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS} fill="none" style={{ stroke: THEME.line }} strokeWidth={RING_STROKE} />
               {schedule && (
                 <circle
                   cx={RING_SIZE / 2}
                   cy={RING_SIZE / 2}
                   r={RADIUS}
                   fill="none"
-                  stroke={tone}
+                  style={{ stroke: tone }}
                   strokeWidth={RING_STROKE}
                   strokeLinecap="round"
                   strokeDasharray={CIRC}
@@ -113,7 +114,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
                   </span>
                   <span
                     className="mt-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
-                    style={{ color: tone }}
+                    style={{ color: toneText }}
                   >
                     {overdue ? "Overdue" : warning ? "Due soon" : "Next patrol"}
                   </span>

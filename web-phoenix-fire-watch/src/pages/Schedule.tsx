@@ -37,18 +37,25 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
 import { useFireWatch } from "@/state/FireWatchProvider";
 import { useSchedule } from "@/state/useSchedule";
+import { useTheme } from "@/state/ThemeProvider";
+import type { ResolvedTheme } from "@/lib/theme";
 
 const ALL = "all";
 
 /** One hue per weekday (Mon → Sun) so each day scans at a glance. */
-const DAY_COLORS = ["#F87171", "#FB923C", "#FBBF24", "#4ADE80", "#38BDF8", "#A78BFA", "#F472B6"] as const;
+const DAY_COLORS: Record<ResolvedTheme, readonly string[]> = {
+  dark: ["#F87171", "#FB923C", "#FBBF24", "#4ADE80", "#38BDF8", "#A78BFA", "#F472B6"],
+  /* Deeper shades keep weekday labels ≥4.5:1 on white cards. */
+  light: ["#B91C1C", "#C2410C", "#A16207", "#15803D", "#0369A1", "#6D28D9", "#BE185D"],
+};
 
 /** Monday = 0 … Sunday = 6, matching the Monday-start week grid. */
-const dayColor = (d: Date): string => DAY_COLORS[(d.getDay() + 6) % 7];
+const dayColor = (d: Date, theme: ResolvedTheme): string => DAY_COLORS[theme][(d.getDay() + 6) % 7];
 
 const Schedule = () => {
   useDocumentTitle("Schedule");
   const { user } = useAuth();
+  const { resolved: theme } = useTheme();
   const { properties, propertyById } = useFireWatch();
   const [weekStart, setWeekStart] = useState<Date>(() => weekStartOf(new Date()));
   const [propertyFilter, setPropertyFilter] = useState<string>(ALL);
@@ -301,7 +308,7 @@ const Schedule = () => {
                 const key = toDateKey(d);
                 const list = byDay.get(key) ?? [];
                 const today = isToday(d);
-                const color = dayColor(d);
+                const color = dayColor(d, theme);
                 if (!isAdmin && list.length === 0) {
                   return (
                     <li

@@ -14,6 +14,7 @@ import { friendlyError } from "@/lib/supabase";
 import { AuthProvider, useAuth } from "@/state/AuthProvider";
 import { FireWatchProvider, useFireWatch } from "@/state/FireWatchProvider";
 import { PatrolTimerProvider } from "@/state/PatrolTimerProvider";
+import { ThemeProvider } from "@/state/ThemeProvider";
 
 import AcceptTerms from "./pages/AcceptTerms";
 import AcknowledgeGuide from "./pages/AcknowledgeGuide";
@@ -147,6 +148,7 @@ const AppRoutes = () => {
         <Route path="/hours" element={<MyHours />} />
         <Route path="/payroll" element={<Payroll />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/settings" element={<Account />} />
         <Route path="/workforce" element={<WorkforceLayout />}>
           <Route index element={<WorkforceHome />} />
           <Route path="directory" element={<Directory />} />
@@ -199,11 +201,12 @@ const App = () => (
       },
     }}
   >
+    <ThemeProvider>
     <AuthProvider>
       <FireWatchProvider>
         <PatrolTimerProvider>
         <TooltipProvider>
-          <Toaster theme="dark" position="bottom-right" />
+          <Toaster position="bottom-right" />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
               <Route path="/privacy" element={<Privacy />} />
@@ -216,6 +219,7 @@ const App = () => (
         </PatrolTimerProvider>
       </FireWatchProvider>
     </AuthProvider>
+    </ThemeProvider>
   </PersistQueryClientProvider>
 );
 

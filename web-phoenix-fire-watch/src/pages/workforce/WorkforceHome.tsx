@@ -102,7 +102,7 @@ const WorkforceHome = () => {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard delay={0} label="Active direct employees" value={stats.direct} icon={Users} to="/workforce/directory?source=direct&status=active" />
         <MetricCard delay={30} label="Active agency workers" value={stats.agency} icon={Briefcase} to="/workforce/directory?source=agency&status=active" />
-        <MetricCard delay={60} label="Onboarding / pending placement" value={stats.intake} icon={ClipboardList} to="/workforce/directory?status=intake" tone="text-sky-300" />
+        <MetricCard delay={60} label="Onboarding / pending placement" value={stats.intake} icon={ClipboardList} to="/workforce/directory?status=intake" tone="text-info-ink" />
         <MetricCard delay={90} label="Missing required paperwork" value={stats.paperwork} icon={FileWarning} to="/workforce/directory?flag=paperwork" tone="text-status-follow" />
         <MetricCard
           delay={120}
@@ -114,7 +114,7 @@ const WorkforceHome = () => {
           locked={!wf.perms.personnel}
         />
         <MetricCard delay={150} label="Equipment awaiting return" value={stats.equipment} icon={Package} to="/workforce/directory?flag=equipment" tone="text-status-follow" />
-        <MetricCard delay={180} label="Assignments ending soon" value={stats.ending} icon={CalendarClock} to="/workforce/placements?view=ending" tone="text-sky-300" />
+        <MetricCard delay={180} label="Assignments ending soon" value={stats.ending} icon={CalendarClock} to="/workforce/placements?view=ending" tone="text-info-ink" />
         <MetricCard
           delay={210}
           label="Invoices awaiting review / payment"

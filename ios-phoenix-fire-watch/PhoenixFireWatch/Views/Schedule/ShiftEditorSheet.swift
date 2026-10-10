@@ -271,7 +271,6 @@ struct ShiftEditorSheet: View {
                 displayedComponents: .hourAndMinute
             )
             .labelsHidden()
-            .colorScheme(.dark)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)

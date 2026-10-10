@@ -81,7 +81,7 @@ export const ShiftCard = memo(
               className={cn(
                 "focus-ring flex h-9 w-full items-center justify-center gap-1.5 rounded-md text-xs font-semibold transition-all duration-200 active:scale-[0.97]",
                 paid
-                  ? "bg-status-clear text-[#04240f] hover:bg-status-clear/90"
+                  ? "bg-status-clear text-on-clear hover:bg-status-clear/90"
                   : "border border-line-strong text-ink-2 hover:border-status-clear/60 hover:bg-status-clear/10 hover:text-status-clear",
               )}
             >

@@ -87,7 +87,7 @@ export const HistoryList = ({ entries }: { entries: HistoryEntry[] }) =>
         return (
           <li key={h.id} className="rounded-lg border border-line bg-raised px-4 py-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className={cn("text-sm font-medium", passive ? "text-sky-300" : h.action.includes("reversed") || h.action === "archive" ? "text-status-incident-ink" : "text-ink")}>
+              <span className={cn("text-sm font-medium", passive ? "text-info-ink" : h.action.includes("reversed") || h.action === "archive" ? "text-status-incident-ink" : "text-ink")}>
                 {HISTORY_ACTION[h.action] ?? h.action.replace(/_/g, " ")}
               </span>
               <span className="text-xs text-ink-3">{fmtDateTime(h.created_at)}</span>
@@ -256,7 +256,7 @@ const DirectionPanel = ({
                   {v.r.notes && <span className="whitespace-pre-line sm:col-span-2">Notes: {v.r.notes}</span>}
                 </div>
                 {v.r.status === "approved" && v.paid === 0 && (
-                  <p className="mt-2 text-xs text-sky-300">Approved — not paid. It only shows as paid after a payment is recorded.</p>
+                  <p className="mt-2 text-xs text-info-ink">Approved — not paid. It only shows as paid after a payment is recorded.</p>
                 )}
 
                 {v.payments.length > 0 && (

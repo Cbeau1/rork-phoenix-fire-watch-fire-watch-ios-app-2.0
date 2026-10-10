@@ -10,6 +10,9 @@ struct PhoenixFireWatchApp: App {
     @State private var clock = TimeClockStore()
     @State private var network = NetworkMonitor()
     @State private var router = AppRouter.shared
+    @AppStorage(AppearancePreference.storageKey) private var appearanceRaw: String = AppearancePreference.system.rawValue
+
+    private var appearance: AppearancePreference { AppearancePreference.from(appearanceRaw) }
 
     init() {
         NotificationDelegate.shared.register()
@@ -28,8 +31,11 @@ struct PhoenixFireWatchApp: App {
                 .environment(clock)
                 .environment(network)
                 .environment(router)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appearance.colorScheme)
                 .tint(Color.fwLink)
+                .onChange(of: appearanceRaw, initial: true) { _, _ in
+                    AppearanceController.apply(appearance)
+                }
         }
     }
 }
