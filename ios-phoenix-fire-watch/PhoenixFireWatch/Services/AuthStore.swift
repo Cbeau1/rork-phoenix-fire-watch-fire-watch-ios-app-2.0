@@ -6,6 +6,7 @@ enum AuthStatus: Equatable {
     case loading
     case signedOut
     case needsTerms
+    case needsFieldGuide
     case ready
     case noAccess(String)
 }
@@ -61,7 +62,11 @@ final class AuthStore {
     private func apply(_ next: SessionUser?) {
         user = next
         if let next {
-            status = next.termsAccepted ? .ready : .needsTerms
+            if !next.termsAccepted {
+                status = .needsTerms
+            } else {
+                status = next.needsFieldGuide ? .needsFieldGuide : .ready
+            }
         }
     }
 
@@ -71,7 +76,7 @@ final class AuthStore {
         do {
             let rows: [ProfileRow] = try await Backend.client
                 .from("profiles")
-                .select("id, full_name, email, role, active, org_id, terms_accepted_at, organizations(name, retention_days)")
+                .select("id, full_name, email, role, active, org_id, terms_accepted_at, field_guide_acknowledged_at, organizations(name, retention_days)")
                 .eq("id", value: id)
                 .limit(1)
                 .execute()
@@ -90,7 +95,8 @@ final class AuthStore {
                 orgId: row.orgId,
                 orgName: row.organizations?.name ?? "",
                 retentionDays: row.organizations?.retentionDays,
-                termsAccepted: row.termsAcceptedAt != nil
+                termsAccepted: row.termsAcceptedAt != nil,
+                guideAcknowledgedAt: row.fieldGuideAcknowledgedAt
             )
             LocalStore.save(next, as: Self.profileCacheFile)
             apply(next)
@@ -202,6 +208,22 @@ final class AuthStore {
             .update(["terms_accepted_at": AnyJSON.string(DateParser.iso(Date()))])
             .eq("id", value: id)
             .execute()
+        await loadProfile()
+    }
+
+    /// Records that the officer read and acknowledged the New Employee Field Guide.
+    func acknowledgeFieldGuide() async throws {
+        guard let id = sessionUserId else { return }
+        do {
+            try await Backend.client
+                .from("profiles")
+                .update(["field_guide_acknowledged_at": AnyJSON.string(DateParser.iso(Date()))])
+                .eq("id", value: id)
+                .execute()
+        } catch {
+            if ErrorText.isNetwork(error) { throw AppError("You're offline. Connect once to acknowledge the field guide.") }
+            throw AppError(ErrorText.from(error))
+        }
         await loadProfile()
     }
 

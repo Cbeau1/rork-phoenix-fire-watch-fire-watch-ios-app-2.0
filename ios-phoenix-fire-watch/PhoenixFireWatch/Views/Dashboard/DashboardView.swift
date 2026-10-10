@@ -35,6 +35,7 @@ struct DashboardView: View {
                         recentPatrols
                         notesPreview
                     }
+                    FieldGuideCardView(acknowledgedAt: auth.user?.guideAcknowledgedAt)
                 }
                 .padding(isWide ? 24 : 16)
                 .padding(.bottom, 20)

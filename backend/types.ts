@@ -883,6 +883,7 @@ export type Database = {
           active: boolean
           created_at: string
           email: string
+          field_guide_acknowledged_at: string | null
           full_name: string
           id: string
           org_id: string
@@ -893,6 +894,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           email: string
+          field_guide_acknowledged_at?: string | null
           full_name: string
           id: string
           org_id: string
@@ -903,6 +905,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           email?: string
+          field_guide_acknowledged_at?: string | null
           full_name?: string
           id?: string
           org_id?: string
@@ -3262,6 +3265,7 @@ export type Database = {
           active: boolean
           created_at: string
           email: string
+          field_guide_acknowledged_at: string | null
           full_name: string
           id: string
           org_id: string
@@ -3295,6 +3299,7 @@ export type Database = {
           active: boolean
           created_at: string
           email: string
+          field_guide_acknowledged_at: string | null
           full_name: string
           id: string
           org_id: string

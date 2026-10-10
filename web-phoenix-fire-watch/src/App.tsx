@@ -16,6 +16,7 @@ import { FireWatchProvider, useFireWatch } from "@/state/FireWatchProvider";
 import { PatrolTimerProvider } from "@/state/PatrolTimerProvider";
 
 import AcceptTerms from "./pages/AcceptTerms";
+import AcknowledgeGuide from "./pages/AcknowledgeGuide";
 import Account from "./pages/Account";
 import AllPatrols from "./pages/AllPatrols";
 import Dashboard from "./pages/Dashboard";
@@ -181,6 +182,7 @@ const Gate = () => {
   if (status === "signed-out") return <SignIn />;
   if (status === "no-access") return <NoAccess />;
   if (status === "needs-terms") return <AcceptTerms />;
+  if (status === "needs-guide") return <AcknowledgeGuide />;
   return <AppRoutes />;
 };
 

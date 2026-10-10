@@ -16,7 +16,7 @@ export interface SignUpInput {
   acceptedTerms: boolean;
 }
 
-export type AuthStatus = "loading" | "signed-out" | "needs-terms" | "ready" | "no-access";
+export type AuthStatus = "loading" | "signed-out" | "needs-terms" | "needs-guide" | "ready" | "no-access";
 
 const signInMessage = (message: string): string => {
   if (/invalid login credentials/i.test(message)) return "Incorrect email or password.";
@@ -72,7 +72,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, role, active, org_id, terms_accepted_at, organizations(name, retention_days)")
+        .select("id, full_name, email, role, active, org_id, terms_accepted_at, field_guide_acknowledged_at, organizations(name, retention_days)")
         .eq("id", userId ?? "")
         .maybeSingle();
       if (error) throw error;
@@ -98,13 +98,17 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, [profileQuery.data]);
 
   const termsAccepted = !!profileQuery.data?.terms_accepted_at;
+  const guideAcknowledgedAt = profileQuery.data?.field_guide_acknowledged_at ?? null;
+  // Officers must acknowledge the New Employee Field Guide once; admins (owners) are exempt.
+  const needsGuide = user?.role === "officer" && !guideAcknowledgedAt;
 
   let status: AuthStatus = "loading";
   if (recovering) status = "signed-out";
   else if (sessionReady && !userId) status = "signed-out";
   else if (userId && profileQuery.data !== undefined) {
     if (!user) status = "no-access";
-    else status = termsAccepted ? "ready" : "needs-terms";
+    else if (!termsAccepted) status = "needs-terms";
+    else status = needsGuide ? "needs-guide" : "ready";
   } else if (userId && profileQuery.isError) status = "no-access";
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -191,6 +195,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
   }, [queryClient, userId]);
 
+  const acknowledgeGuide = useCallback(async () => {
+    if (!userId) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ field_guide_acknowledged_at: new Date().toISOString() })
+      .eq("id", userId);
+    if (error) throw error;
+    await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+  }, [queryClient, userId]);
+
   const renameOrg = useCallback(
     async (name: string) => {
       if (!user) return;
@@ -241,6 +255,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     changePassword,
     updateName,
     acceptTerms,
+    guideAcknowledgedAt,
+    acknowledgeGuide,
     renameOrg,
     setRetention,
     deleteAccount,

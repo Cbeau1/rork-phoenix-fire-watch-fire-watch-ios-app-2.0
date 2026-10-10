@@ -39,6 +39,7 @@ struct ContentView: View {
         case .loading: "loading"
         case .signedOut: "signedOut"
         case .needsTerms: "terms"
+        case .needsFieldGuide: "fieldGuide"
         case .noAccess: "noAccess"
         case .ready: "ready"
         }
@@ -53,6 +54,8 @@ struct ContentView: View {
             SignInView()
         case .needsTerms:
             AcceptTermsView()
+        case .needsFieldGuide:
+            FieldGuideGateView()
         case .noAccess(let message):
             NoAccessView(message: message)
         case .ready:

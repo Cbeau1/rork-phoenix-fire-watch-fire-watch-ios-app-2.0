@@ -23,8 +23,12 @@ nonisolated struct SessionUser: Codable, Hashable, Sendable {
     /// Organization data-retention period in days; nil keeps records until deleted.
     let retentionDays: Int?
     let termsAccepted: Bool
+    /// When the officer acknowledged the New Employee Field Guide (ISO string); nil = not yet.
+    var guideAcknowledgedAt: String? = nil
 
     var isAdmin: Bool { role == .admin }
+    /// Officers must acknowledge the field guide once before using the app; admins are exempt.
+    var needsFieldGuide: Bool { role == .officer && guideAcknowledgedAt == nil }
 
     var initials: String {
         let parts = name.split(separator: " ").prefix(2)
@@ -42,6 +46,7 @@ nonisolated struct ProfileRow: Decodable, Sendable {
     let active: Bool
     let orgId: String
     let termsAcceptedAt: String?
+    let fieldGuideAcknowledgedAt: String?
     let organizations: OrgRow?
 
     nonisolated struct OrgRow: Decodable, Sendable {
@@ -59,6 +64,7 @@ nonisolated struct ProfileRow: Decodable, Sendable {
         case fullName = "full_name"
         case orgId = "org_id"
         case termsAcceptedAt = "terms_accepted_at"
+        case fieldGuideAcknowledgedAt = "field_guide_acknowledged_at"
     }
 }
 

@@ -2,6 +2,7 @@ import { ArrowRight, Building2, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { FieldGuideCard } from "@/components/fw/FieldGuide";
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { Card, CardHeader, EmptyState, PageHeader } from "@/components/fw/primitives";
 import { QuickNoteDialog } from "@/components/fw/QuickNoteDialog";
@@ -11,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { timeAgo } from "@/lib/format";
 import type { Patrol } from "@/lib/types";
+import { useAuth } from "@/state/AuthProvider";
 import { useFireWatch } from "@/state/FireWatchProvider";
 
 const Dashboard = () => {
   useDocumentTitle("Dashboard");
   const { properties, patrols, notes, propertyById } = useFireWatch();
+  const { guideAcknowledgedAt } = useAuth();
 
   const lastPatrolBySite = useMemo<Map<string, Patrol>>(() => {
     const m = new Map<string, Patrol>();
@@ -168,6 +171,8 @@ const Dashboard = () => {
           )}
         </Card>
       </div>
+
+      <FieldGuideCard acknowledgedAt={guideAcknowledgedAt} />
 
       <QuickNoteDialog open={noteOpen} onOpenChange={setNoteOpen} />
     </>
