@@ -1,6 +1,7 @@
 import { AlarmClock, BellOff, BellRing, Loader2, Lock, MonitorSmartphone, Pencil } from "lucide-react";
 import { memo, useState } from "react";
 import { toast } from "sonner";
+import { THEME } from "@/lib/theme";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -39,7 +40,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
 
   const overdue = !!schedule && schedule.overdueSince !== null;
   const warning = !!schedule && !overdue && schedule.isWarning;
-  const tone = overdue ? "#EF4444" : warning ? "#F5A524" : "#DC2626";
+  const tone = overdue ? THEME.danger : warning ? THEME.warning : THEME.primary;
 
   const changeInterval = async (value: string) => {
     const minutes = Number(value);
@@ -72,7 +73,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
     <section
       className={cn(
         "relative mt-5 overflow-hidden rounded-xl border bg-surface transition-colors",
-        on ? (overdue ? "border-status-incident/50" : warning ? "border-status-follow/50" : "border-ember/35") : "border-line",
+        on ? (overdue ? "border-status-incident/50" : warning ? "border-status-follow/50" : "border-primary/35") : "border-line",
       )}
     >
       {on && (
@@ -88,7 +89,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
         <div className="flex items-center gap-5 md:w-auto">
           <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
             <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90">
-              <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS} fill="none" stroke="#636B7B" strokeWidth={RING_STROKE} />
+              <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RADIUS} fill="none" stroke={THEME.line} strokeWidth={RING_STROKE} />
               {schedule && (
                 <circle
                   cx={RING_SIZE / 2}
@@ -141,7 +142,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
             {schedule ? (
               overdue ? (
                 <p>
-                  <span className="font-medium text-status-incident">Patrol was due at {timeLabel(schedule.overdueSince ?? now)}.</span>{" "}
+                  <span className="font-medium text-status-incident-ink">Patrol was due at {timeLabel(schedule.overdueSince ?? now)}.</span>{" "}
                   Log it to restart the countdown.
                 </p>
               ) : (
@@ -161,12 +162,12 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
             <span className="text-xs font-medium uppercase tracking-[0.14em] text-ink-3">Interval</span>
             {isAdmin && editing ? (
               <Select defaultOpen value={String(interval)} onValueChange={(v) => void changeInterval(v)} onOpenChange={(o) => !o && !saving && setEditing(false)}>
-                <SelectTrigger aria-label="Patrol interval" className="h-9 w-40 border-[#7A8394] bg-raised text-ink focus:ring-ember/50">
+                <SelectTrigger aria-label="Patrol interval" className="h-9 w-40 border-line-strong bg-field text-ink focus:ring-link/50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-line bg-surface text-ink">
                   {options.map((m) => (
-                    <SelectItem key={m} value={String(m)} className="focus:bg-ember focus:text-white">
+                    <SelectItem key={m} value={String(m)} className="focus:bg-primary focus:text-white">
                       Every {formatInterval(m)}
                     </SelectItem>
                   ))}
@@ -175,7 +176,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
             ) : (
               <span className="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-raised px-3 text-sm font-medium text-ink">
                 Every {formatInterval(interval)}
-                {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-ember" />}
+                {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-link" />}
               </span>
             )}
             {isAdmin ? (
@@ -183,7 +184,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-ember hover:bg-ember/10"
+                  className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-link hover:bg-primary/10"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Change
@@ -202,7 +203,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
         <div className="flex flex-col gap-3 border-t border-line pt-5 md:w-64 md:self-stretch md:justify-center md:border-l md:border-t-0 md:pl-6 md:pt-0">
           <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-line bg-raised/70 px-4 py-3.5">
             <span className="flex items-center gap-3">
-              {on ? <BellRing className="h-5 w-5 text-ember" /> : <BellOff className="h-5 w-5 text-ink-3" />}
+              {on ? <BellRing className="h-5 w-5 text-link" /> : <BellOff className="h-5 w-5 text-ink-3" />}
               <span>
                 <span className="block text-[15px] font-semibold text-ink">{on ? "Timer on" : "Timer off"}</span>
                 <span className="block text-xs text-ink-3">Just for you, on this device</span>
@@ -212,7 +213,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
               checked={on}
               onCheckedChange={toggle}
               aria-label={`Patrol timer for ${property.name}`}
-              className="h-7 w-12 data-[state=checked]:bg-ember data-[state=unchecked]:bg-[#7A8394] [&>span]:h-6 [&>span]:w-6 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-5"
+              className="h-7 w-12 data-[state=checked]:bg-primary data-[state=unchecked]:bg-line-strong [&>span]:h-6 [&>span]:w-6 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-5"
             />
           </label>
 
@@ -222,7 +223,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
                 <button
                   type="button"
                   onClick={() => void enableNotifications()}
-                  className="focus-ring w-full rounded-lg border border-ember/40 bg-ember/10 px-3 py-2 text-left font-medium text-ember hover:bg-ember/15"
+                  className="focus-ring w-full rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-left font-medium text-link hover:bg-primary/15"
                 >
                   Allow notifications to get alerts while the app is in the background
                 </button>
@@ -241,7 +242,7 @@ export const PatrolTimerCard = memo(({ property }: { property: Property }) => {
                   checked={keepAwake}
                   onCheckedChange={setKeepAwake}
                   aria-label="Keep screen on while timers run"
-                  className="h-5 w-9 data-[state=checked]:bg-ember data-[state=unchecked]:bg-[#7A8394] [&>span]:h-4 [&>span]:w-4 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-4"
+                  className="h-5 w-9 data-[state=checked]:bg-primary data-[state=unchecked]:bg-line-strong [&>span]:h-4 [&>span]:w-4 [&>span]:bg-white data-[state=checked]:[&>span]:translate-x-4"
                 />
               </label>
             </div>
@@ -258,8 +259,8 @@ const TimerHeading = ({ on }: { on: boolean }) => (
     <div className="flex items-center gap-2.5">
       <h2 className="font-display text-xl font-bold text-ink sm:text-[22px]">Patrol Timer</h2>
       {on && (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-ember/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ember ring-1 ring-inset ring-ember/30">
-          <span className="h-1.5 w-1.5 animate-ember-pulse rounded-full bg-ember" />
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-link ring-1 ring-inset ring-link/30">
+          <span className="h-1.5 w-1.5 animate-primary-pulse rounded-full bg-link" />
           Running
         </span>
       )}

@@ -34,7 +34,7 @@ export interface EntryLog {
 }
 
 export const ENTRY_STATUS: Record<EntryStatus, { label: string; tone: Tone }> = {
-  open: { label: "Clocked in", tone: "ember" },
+  open: { label: "Clocked in", tone: "green" },
   pending: { label: "Needs approval", tone: "amber" },
   approved: { label: "Approved", tone: "green" },
   rejected: { label: "Rejected", tone: "red" },

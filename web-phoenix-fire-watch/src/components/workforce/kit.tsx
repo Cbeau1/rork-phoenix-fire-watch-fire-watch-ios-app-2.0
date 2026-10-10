@@ -22,9 +22,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { TONE_CLASS, type Tone } from "@/lib/workforce/constants";
 import { cn } from "@/lib/utils";
 
-export const selectTrigger = "h-11 w-full border-line bg-raised text-ink";
+export const selectTrigger = "h-11 w-full border-line-strong bg-field text-ink";
 export const selectContent = "border-line bg-surface text-ink";
-export const selectItem = "focus:bg-ember focus:text-white";
+export const selectItem = "focus:bg-primary focus:text-white";
 const NONE = "__none__";
 
 export const Pill = ({ tone, children, className }: { tone: Tone; children: ReactNode; className?: string }) => (
@@ -90,14 +90,14 @@ export const SectionCard = ({
 
 export const Loading = ({ label = "Loading…" }: { label?: string }) => (
   <div className="flex items-center justify-center gap-3 py-16 text-sm text-ink-2" role="status">
-    <Loader2 className="h-5 w-5 animate-spin text-ember" />
+    <Loader2 className="h-5 w-5 animate-spin text-link" />
     {label}
   </div>
 );
 
 export const ErrorBlock = ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
   <div className="flex flex-col items-center gap-3 rounded-lg border border-status-incident/40 bg-status-incident/10 px-5 py-8 text-center" role="alert">
-    <AlertTriangle className="h-6 w-6 text-status-incident" />
+    <AlertTriangle className="h-6 w-6 text-status-incident-ink" />
     <p className="text-sm text-ink">{message}</p>
     {onRetry && (
       <Button variant="outline" size="sm" onClick={onRetry}>
@@ -129,7 +129,7 @@ export const Restricted = ({ what }: { what: string }) => (
 
 export const AccessDenied = () => (
   <div className="mx-auto max-w-lg py-20 text-center">
-    <ShieldAlert className="mx-auto h-12 w-12 text-ember" strokeWidth={1.5} />
+    <ShieldAlert className="mx-auto h-12 w-12 text-link" strokeWidth={1.5} />
     <h1 className="mt-5 font-display text-3xl font-extrabold text-ink">Administrators only</h1>
     <p className="mt-2 text-ink-2">
       Workforce Management is limited to authorized administrators. If you need access, ask your organization admin.
@@ -191,7 +191,7 @@ export const ConfirmDialog = ({
             e.preventDefault();
             onConfirm();
           }}
-          className={cn(destructive ? "bg-status-incident hover:bg-status-incident/90" : "bg-ember hover:bg-ember-hover", "text-white")}
+          className={cn(destructive ? "bg-status-incident hover:bg-status-incident/90" : "bg-primary hover:bg-primary-hover", "text-white")}
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           {confirmLabel}
@@ -465,7 +465,7 @@ export const CheckField = ({
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 accent-[#DC2626]"
+        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
       />
       <label htmlFor={id} className="text-sm text-ink">
         {label}
@@ -502,7 +502,7 @@ export const WorkforceNav = ({ finance }: { finance: boolean }) => {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "focus-ring block whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
-                  active ? "bg-ember text-white" : "text-ink-2 hover:bg-raised hover:text-ink",
+                  active ? "bg-primary text-white" : "text-ink-2 hover:bg-raised hover:text-ink",
                 )}
               >
                 {i.label}

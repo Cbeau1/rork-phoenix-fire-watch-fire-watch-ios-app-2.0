@@ -28,7 +28,7 @@ const MetricCard = ({
   value,
   icon: Icon,
   to,
-  tone = "text-ember",
+  tone = "text-link",
   locked,
   delay,
 }: {
@@ -41,7 +41,7 @@ const MetricCard = ({
   delay: number;
 }) =>
   locked ? (
-    <div className="flex flex-col justify-between rounded-xl border border-line bg-surface p-5" style={{ animationDelay: `${delay}ms` }}>
+    <div className="flex flex-col justify-between rounded-xl border border-line bg-surface shadow-card p-5" style={{ animationDelay: `${delay}ms` }}>
       <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-2">{label}</div>
       <div className="mt-3 flex items-center gap-2 text-sm text-ink-3">
         <Lock className="h-4 w-4" />
@@ -51,7 +51,7 @@ const MetricCard = ({
   ) : (
     <Link
       to={to}
-      className="focus-ring group animate-fade-up rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#7A8394] hover:bg-[#4A5260]"
+      className="focus-ring group animate-fade-up rounded-xl border border-line bg-surface shadow-card p-5 transition-colors hover:border-line-strong hover:bg-surface-hover"
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -130,7 +130,7 @@ const WorkforceHome = () => {
           title="Open reminders"
           subtitle="In-app only — nothing is emailed or texted."
           action={
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild variant="ghost" size="sm" className="text-link hover:text-link-hover">
               <Link to="/workforce/reminders">View all</Link>
             </Button>
           }
@@ -145,7 +145,7 @@ const WorkforceHome = () => {
                 <li key={r.id}>
                   <Link
                     to={r.worker_id ? `/workforce/workers/${r.worker_id}` : r.entity_type === "invoice" ? `/workforce/invoices/${r.entity_id}` : "/workforce/reminders"}
-                    className="focus-ring flex items-center justify-between gap-3 rounded-lg border border-line bg-raised px-4 py-3 hover:border-[#7A8394]"
+                    className="focus-ring flex items-center justify-between gap-3 rounded-lg border border-line bg-raised px-4 py-3 hover:border-line-strong"
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium text-ink">{r.title}</div>
@@ -170,7 +170,7 @@ const WorkforceHome = () => {
               { to: "/workforce/reports", label: "Exports & reports", sub: "CSV and PDF, permission-aware" },
               { to: "/workforce/settings", label: "Settings & audit log", sub: "Checklists, reminders, permissions" },
             ].map((l) => (
-              <Link key={l.to} to={l.to} className="focus-ring rounded-lg border border-line bg-raised px-4 py-3 hover:border-[#7A8394]">
+              <Link key={l.to} to={l.to} className="focus-ring rounded-lg border border-line bg-raised px-4 py-3 hover:border-line-strong">
                 <div className="text-sm font-medium text-ink">{l.label}</div>
                 <div className="text-xs text-ink-3">{l.sub}</div>
               </Link>

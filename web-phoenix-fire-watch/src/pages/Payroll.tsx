@@ -19,6 +19,7 @@ import {
 import { Fragment, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { THEME } from "@/lib/theme";
 
 import { PageHeader } from "@/components/fw/primitives";
 import { Button } from "@/components/ui/button";
@@ -165,7 +166,7 @@ const Payroll = () => {
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-lg py-20 text-center">
-        <ShieldAlert className="mx-auto h-12 w-12 text-ember" strokeWidth={1.5} />
+        <ShieldAlert className="mx-auto h-12 w-12 text-link" strokeWidth={1.5} />
         <h1 className="mt-5 font-display text-3xl font-extrabold text-ink">Administrators only</h1>
         <p className="mt-2 text-ink-2">Payroll is limited to organization admins. You can see your own hours on My Hours.</p>
         <Button asChild className="mt-7">
@@ -199,7 +200,7 @@ const Payroll = () => {
       />
 
       {/* Period controls */}
-      <div className="mb-5 flex flex-col gap-3 rounded-xl border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-5 flex flex-col gap-3 rounded-xl border border-line bg-surface shadow-card p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" aria-label="Previous period" onClick={() => shift(-1)}>
             <ChevronLeft />
@@ -228,7 +229,7 @@ const Payroll = () => {
               }}
               className={cn(
                 "focus-ring rounded-md px-4 py-2 text-sm font-medium transition-colors",
-                period.days === d ? "bg-ember text-white" : "text-ink-2 hover:bg-raised hover:text-ink",
+                period.days === d ? "bg-primary text-white" : "text-ink-2 hover:bg-raised hover:text-ink",
               )}
             >
               {d === 7 ? "1 week" : "2 weeks"}
@@ -239,11 +240,11 @@ const Payroll = () => {
 
       {/* Metrics */}
       <div className={cn("mb-5 grid grid-cols-2 gap-3", showPay ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
-        {showPay && <Metric label="Est. gross pay" value={fmtCents(grossTotal)} dot="#22C55E" sub="Approved hours × rate, before taxes" />}
-        <Metric label="Approved hours" value={fmtHours(totals.approved)} dot="#22C55E" />
-        <Metric label="Awaiting approval" value={fmtHours(totals.pending)} dot="#F5A524" sub={`${pending.length} ${pending.length === 1 ? "entry" : "entries"}`} />
-        <Metric label="Overtime (approved)" value={fmtHours(totals.overtime)} dot="#DC2626" sub="Over 40 hrs / week" />
-        <Metric label="On the clock now" value={String(openQ.data?.length ?? 0)} dot="#22C55E" pulse={(openQ.data?.length ?? 0) > 0} />
+        {showPay && <Metric label="Est. gross pay" value={fmtCents(grossTotal)} dot={THEME.success} sub="Approved hours × rate, before taxes" />}
+        <Metric label="Approved hours" value={fmtHours(totals.approved)} dot={THEME.success} />
+        <Metric label="Awaiting approval" value={fmtHours(totals.pending)} dot={THEME.warning} sub={`${pending.length} ${pending.length === 1 ? "entry" : "entries"}`} />
+        <Metric label="Overtime (approved)" value={fmtHours(totals.overtime)} dot={THEME.warning} sub="Over 40 hrs / week" />
+        <Metric label="On the clock now" value={String(openQ.data?.length ?? 0)} dot={THEME.success} pulse={(openQ.data?.length ?? 0) > 0} />
       </div>
 
       {showPay && missingRate.length > 0 && (
@@ -251,7 +252,7 @@ const Payroll = () => {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-follow" />
           <span>
             No pay rate on file for {missingRate.join(", ")} — those hours aren't in the gross pay total.{" "}
-            <Link to="/team" className="font-medium text-ember underline-offset-2 hover:underline">
+            <Link to="/team" className="font-medium text-link underline-offset-2 hover:underline">
               Set rates on the Team page
             </Link>
           </span>
@@ -297,7 +298,7 @@ const Payroll = () => {
         }
       >
         {selectedIds.length > 0 && (
-          <div className="sticky top-16 z-10 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ember/40 bg-rail/95 px-4 py-2.5 backdrop-blur lg:top-2">
+          <div className="sticky top-16 z-10 mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/40 bg-rail/95 px-4 py-2.5 backdrop-blur lg:top-2">
             <span className="text-sm text-ink">
               {selectedIds.length} selected
             </span>
@@ -360,7 +361,7 @@ const Payroll = () => {
                               disabled={reviewable.length === 0}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => toggleAll(reviewable, e.target.checked)}
-                              className="h-4 w-4 accent-[#DC2626]"
+                              className="h-4 w-4 accent-primary"
                             />
                             <div className="min-w-0">
                               <div className="truncate font-medium text-ink">
@@ -375,7 +376,7 @@ const Payroll = () => {
                                 {showPay && est && <span className="font-mono text-xs text-status-clear">· {fmtCents(est.grossCents)}</span>}
                               </div>
                               {p.openCount > 0 && (
-                                <Pill tone="ember" className="mt-1">
+                                <Pill tone="green" className="mt-1">
                                   Clocked in
                                 </Pill>
                               )}
@@ -389,7 +390,7 @@ const Payroll = () => {
                             </td>
                           ))}
                         <td className="hidden px-3 py-3.5 text-right font-mono tabular-nums text-ink-2 md:table-cell">{fmtHours(p.regularMin)}</td>
-                        <td className={cn("hidden px-3 py-3.5 text-right font-mono tabular-nums md:table-cell", p.overMin > 0 ? "text-ember" : "text-ink-3")}>
+                        <td className={cn("hidden px-3 py-3.5 text-right font-mono tabular-nums md:table-cell", p.overMin > 0 ? "text-link" : "text-ink-3")}>
                           {fmtHours(p.overMin)}
                         </td>
                         <td className="hidden px-3 py-3.5 text-right font-mono font-semibold tabular-nums text-ink md:table-cell">{fmtHours(p.approvedMin)}</td>
@@ -472,7 +473,7 @@ const Payroll = () => {
 };
 
 const Metric = ({ label, value, dot, sub, pulse }: { label: string; value: string; dot: string; sub?: string; pulse?: boolean }) => (
-  <div className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+  <div className="rounded-xl border border-line bg-surface shadow-card p-4 sm:p-5">
     <div className="flex items-center gap-2">
       <span className={cn("h-2 w-2 rounded-full", pulse && "animate-pulse")} style={{ backgroundColor: dot }} aria-hidden />
       <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-2">{label}</span>
@@ -509,7 +510,7 @@ const EntryRow = ({
 }) => {
   const isOpen = e.status === "open";
   return (
-    <li className={cn("flex flex-col gap-3 rounded-lg border bg-raised px-3 py-3 sm:flex-row sm:items-center", selected ? "border-ember/60" : "border-line")}>
+    <li className={cn("flex flex-col gap-3 rounded-lg border bg-raised px-3 py-3 sm:flex-row sm:items-center", selected ? "border-primary/60" : "border-line")}>
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <input
           type="checkbox"
@@ -517,7 +518,7 @@ const EntryRow = ({
           checked={selected}
           disabled={isOpen}
           onChange={onSelect}
-          className="h-4 w-4 shrink-0 accent-[#DC2626]"
+          className="h-4 w-4 shrink-0 accent-primary"
         />
         <div className="w-20 shrink-0">
           <div className="text-sm font-semibold text-ink">{format(new Date(e.clockIn), "EEE")}</div>

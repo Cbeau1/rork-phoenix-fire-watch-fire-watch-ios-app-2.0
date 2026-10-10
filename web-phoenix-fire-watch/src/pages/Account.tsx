@@ -193,7 +193,7 @@ const Account = () => {
                 onValueChange={(v) => void changeRetention(v)}
                 disabled={savingRetention}
               >
-                <SelectTrigger aria-label="Retention period" className="h-10 w-full border-[#7A8394] bg-raised text-ink sm:w-52">
+                <SelectTrigger aria-label="Retention period" className="h-10 w-full border-line-strong bg-field text-ink sm:w-52">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-line bg-surface text-ink">
@@ -201,7 +201,7 @@ const Account = () => {
                     <SelectItem
                       key={o.label}
                       value={o.value === null ? "none" : String(o.value)}
-                      className="focus:bg-ember focus:text-white"
+                      className="focus:bg-primary focus:text-white"
                     >
                       {o.label}
                     </SelectItem>
@@ -220,13 +220,13 @@ const Account = () => {
             {sync.pendingCount > 0 ? ` (${sync.pendingCount} waiting now)` : ""}. Signing out clears the device copy.
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <Link to="/privacy" className="focus-ring inline-flex items-center gap-1.5 rounded text-ember hover:underline">
+            <Link to="/privacy" className="focus-ring inline-flex items-center gap-1.5 rounded text-link hover:underline">
               Privacy Policy <ExternalLink className="h-3.5 w-3.5" />
             </Link>
-            <Link to="/terms" className="focus-ring inline-flex items-center gap-1.5 rounded text-ember hover:underline">
+            <Link to="/terms" className="focus-ring inline-flex items-center gap-1.5 rounded text-link hover:underline">
               Terms of Service <ExternalLink className="h-3.5 w-3.5" />
             </Link>
-            <Link to="/support" className="focus-ring inline-flex items-center gap-1.5 rounded text-ember hover:underline">
+            <Link to="/support" className="focus-ring inline-flex items-center gap-1.5 rounded text-link hover:underline">
               Help &amp; Support <ExternalLink className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -269,7 +269,7 @@ const Account = () => {
           )}
           <p className="text-xs text-ink-3">
             Deletion happens right away. Questions? Contact{" "}
-            <a href={`mailto:${LEGAL.privacyEmail}`} className="text-ember hover:underline">
+            <a href={`mailto:${LEGAL.privacyEmail}`} className="text-link hover:underline">
               {LEGAL.privacyEmail}
             </a>
             .
@@ -291,7 +291,7 @@ const Account = () => {
           </AlertDialogHeader>
           <div>
             <FieldLabel htmlFor="confirm-delete">
-              Type <span className="font-mono text-status-incident">{requiredText}</span> to confirm
+              Type <span className="font-mono text-status-incident-ink">{requiredText}</span> to confirm
             </FieldLabel>
             <Input
               id="confirm-delete"
@@ -304,7 +304,7 @@ const Account = () => {
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={deleting}
-              className="border-[#7A8394] bg-transparent text-ink hover:bg-raised hover:text-ink"
+              className="border-line-strong bg-transparent text-ink hover:bg-raised hover:text-ink"
             >
               Cancel
             </AlertDialogCancel>

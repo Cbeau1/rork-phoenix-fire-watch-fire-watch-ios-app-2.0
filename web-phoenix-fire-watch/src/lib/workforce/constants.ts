@@ -52,14 +52,14 @@ export const PERM_META: Record<Perm, { label: string; description: string }> = {
 /** Permissions that don't depend on general Workforce access. */
 export const INDEPENDENT_PERMS = new Set<Perm>(["expenses"]);
 
-export type Tone = "green" | "amber" | "red" | "slate" | "ember" | "blue";
+export type Tone = "green" | "amber" | "red" | "slate" | "primary" | "blue";
 
 export const TONE_CLASS: Record<Tone, string> = {
   green: "bg-status-clear/12 text-status-clear ring-status-clear/35",
   amber: "bg-status-follow/12 text-status-follow ring-status-follow/35",
-  red: "bg-status-incident/12 text-status-incident ring-status-incident/35",
+  red: "bg-status-incident/12 text-status-incident-ink ring-status-incident/35",
   slate: "bg-surface text-ink-2 ring-line",
-  ember: "bg-ember/12 text-ember ring-ember/35",
+  primary: "bg-primary/12 text-link ring-link/35",
   blue: "bg-sky-400/12 text-sky-300 ring-sky-400/35",
 };
 
@@ -184,7 +184,7 @@ export const AGENCY_ONLY_CATEGORIES = new Set(["placement_confirmation"]);
 
 export const CLASSIFICATION: Record<string, { label: string; tone: Tone }> = {
   standard: { label: "Standard", tone: "slate" },
-  restricted: { label: "Restricted", tone: "ember" },
+  restricted: { label: "Restricted", tone: "red" },
   financial: { label: "Financial", tone: "amber" },
 };
 

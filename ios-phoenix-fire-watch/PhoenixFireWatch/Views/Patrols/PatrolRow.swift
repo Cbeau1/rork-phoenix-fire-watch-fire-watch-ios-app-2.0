@@ -20,7 +20,7 @@ struct PatrolRow: View {
                         Circle().fill(patrol.status.color.opacity(0.14)).frame(width: 36, height: 36)
                         Image(systemName: patrol.status.symbol)
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(patrol.status.color)
+                            .foregroundStyle(patrol.status.textColor)
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
@@ -30,7 +30,7 @@ struct PatrolRow: View {
                             Text("·").foregroundStyle(Color.fwInk3)
                             Text(patrol.status.label)
                                 .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(patrol.status.color)
+                                .foregroundStyle(patrol.status.textColor)
                         }
                         if let propertyName {
                             Text(propertyName)
@@ -119,7 +119,7 @@ struct PatrolRow: View {
                 } label: {
                     Label("Delete patrol", systemImage: "trash")
                         .font(.system(.footnote, weight: .semibold))
-                        .foregroundStyle(Color.fwIncident)
+                        .foregroundStyle(Color.fwIncidentInk)
                         .frame(minHeight: 36)
                 }
             }

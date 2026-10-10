@@ -36,7 +36,7 @@ const AcceptTerms = () => {
       <div className="w-full max-w-md animate-fade-up">
         <Crest size="lg" className="mb-8" />
         <div className="rounded-2xl border border-line bg-surface p-7 sm:p-8">
-          <FileCheck2 className="h-9 w-9 text-ember" strokeWidth={1.6} />
+          <FileCheck2 className="h-9 w-9 text-link" strokeWidth={1.6} />
           <h1 className="mt-4 font-display text-2xl font-bold text-ink">Welcome{user ? `, ${user.name.split(" ")[0]}` : ""}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-2">
             {user?.orgName ?? "Your organization"} set up your login. Before your first shift, please review how Phoenix
@@ -48,15 +48,15 @@ const AcceptTerms = () => {
               id="accept"
               checked={checked}
               onCheckedChange={(v) => setChecked(v === true)}
-              className="mt-0.5 h-5 w-5 border-[#8A93A3] data-[state=checked]:border-ember data-[state=checked]:bg-ember data-[state=checked]:text-white"
+              className="mt-0.5 h-5 w-5 border-line-hover data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
             />
             <label htmlFor="accept" className="text-sm leading-relaxed text-ink-2">
               I agree to the{" "}
-              <Link to="/terms" target="_blank" className="text-ember hover:underline">
+              <Link to="/terms" target="_blank" className="text-link hover:underline">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link to="/privacy" target="_blank" className="text-ember hover:underline">
+              <Link to="/privacy" target="_blank" className="text-link hover:underline">
                 Privacy Policy
               </Link>
               .

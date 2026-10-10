@@ -39,7 +39,7 @@ export const PageHeader = ({
 );
 
 export const Card = ({ className, children }: { className?: string; children: ReactNode }) => (
-  <section className={cn("rounded-xl border border-line bg-surface", className)}>{children}</section>
+  <section className={cn("rounded-xl border border-line bg-surface shadow-card", className)}>{children}</section>
 );
 
 export const CardHeader = ({
@@ -57,7 +57,7 @@ export const CardHeader = ({
 }) => (
   <div className={cn("flex items-start justify-between gap-4 px-6 pt-6 sm:px-7", className)}>
     <div className="flex min-w-0 items-start gap-4">
-      {Icon && <Icon className="mt-0.5 h-8 w-8 shrink-0 text-ember" strokeWidth={1.6} />}
+      {Icon && <Icon className="mt-0.5 h-8 w-8 shrink-0 text-link" strokeWidth={1.6} />}
       <div className="min-w-0">
         <h2 className="font-display text-xl font-bold text-ink sm:text-[22px]">{title}</h2>
         {subtitle && <p className="mt-1 text-sm text-ink-2">{subtitle}</p>}
@@ -83,7 +83,7 @@ export const StatCard = ({
   delay?: number;
 }) => (
   <div
-    className="group animate-fade-up rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#7A8394] sm:p-6"
+    className="group animate-fade-up rounded-xl border border-line bg-surface shadow-card p-5 transition-colors hover:border-line-strong sm:p-6"
     style={{ animationDelay: `${delay}ms` }}
   >
     <div className="flex items-center gap-2.5">
@@ -95,7 +95,7 @@ export const StatCard = ({
         {value}
       </span>
       <Icon
-        className={cn("h-8 w-8 text-ember transition-transform duration-300 group-hover:-translate-y-0.5", iconClass)}
+        className={cn("h-8 w-8 text-link transition-transform duration-300 group-hover:-translate-y-0.5", iconClass)}
         strokeWidth={1.6}
       />
     </div>
@@ -146,12 +146,12 @@ export const StatusBadge = ({ status, className }: { status: PatrolStatus; class
 export const FieldLabel = ({ htmlFor, children, required }: { htmlFor: string; children: ReactNode; required?: boolean }) => (
   <label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-ink">
     {children}
-    {required && <span className="ml-0.5 text-ember">*</span>}
+    {required && <span className="ml-0.5 text-link">*</span>}
   </label>
 );
 
 export const FieldError = ({ message }: { message?: string }) =>
-  message ? <p className="mt-1.5 text-xs text-status-incident">{message}</p> : null;
+  message ? <p className="mt-1.5 text-xs text-status-incident-ink">{message}</p> : null;
 
 export const FieldHint = ({ children }: { children: ReactNode }) => (
   <p className="mt-1.5 text-xs text-ink-3">{children}</p>

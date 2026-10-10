@@ -21,25 +21,48 @@ export default {
         crest: ["Cinzel", "serif"],
       },
       colors: {
-        canvas: "#23272D",
-        rail: "#1D2126",
-        surface: "#444B57",
-        raised: "#353B45",
-        line: "#636B7B",
-        silver: "#E4E7EC",
-        ink: {
-          DEFAULT: "#F7F8FA",
-          2: "#D8DCE2",
-          3: "#B4BAC5",
+        /* Navy Command theme — single source of truth for web colors (mirrors iOS Theme.swift). */
+        canvas: {
+          DEFAULT: "#0F172A",
+          deep: "#0B1220",
         },
-        ember: {
+        rail: "#1E293B",
+        surface: {
+          DEFAULT: "#1E293B",
+          hover: "#243247",
+        },
+        raised: {
+          DEFAULT: "#273449",
+          hover: "#2F3D54",
+        },
+        field: "#0F172A",
+        line: {
+          DEFAULT: "#334155",
+          strong: "#475569",
+          hover: "#64748B",
+        },
+        silver: "#E2E8F0",
+        ink: {
+          DEFAULT: "#F8FAFC",
+          2: "#CBD5E1",
+          3: "#94A3B8",
+        },
+        link: {
+          DEFAULT: "#60A5FA",
+          hover: "#93C5FD",
+        },
+        danger: {
           DEFAULT: "#DC2626",
-          hover: "#F04438",
+          hover: "#B91C1C",
+          ink: "#F87171",
         },
         status: {
           clear: "#22C55E",
-          follow: "#F5A524",
-          incident: "#EF4444",
+          follow: "#F59E0B",
+          incident: {
+            DEFAULT: "#DC2626",
+            ink: "#F87171",
+          },
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,16 +70,17 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "#2563EB",
+          hover: "#1D4ED8",
+          foreground: "#FFFFFF",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "#DC2626",
+          foreground: "#FFFFFF",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -85,6 +109,10 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      boxShadow: {
+        card: "0 1px 2px rgba(2, 6, 23, 0.35), 0 1px 1px rgba(2, 6, 23, 0.2)",
+        pop: "0 18px 40px -12px rgba(2, 6, 23, 0.7)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -111,14 +139,19 @@ export default {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        "ember-pulse": {
+        "alert-pulse": {
           "0%, 100%": { boxShadow: "0 0 0 0 rgba(220,38,38,0.55)" },
           "50%": { boxShadow: "0 0 0 5px rgba(220,38,38,0)" },
+        },
+        "primary-pulse": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(96,165,250,0.55)" },
+          "50%": { boxShadow: "0 0 0 5px rgba(96,165,250,0)" },
         },
       },
       animation: {
         "fade-up": "fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
-        "ember-pulse": "ember-pulse 2.4s ease-in-out infinite",
+        "alert-pulse": "alert-pulse 2.4s ease-in-out infinite",
+        "primary-pulse": "primary-pulse 2.4s ease-in-out infinite",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Silver phoenix crest with a soft ember glow.
+/// Silver phoenix crest with its brand ember glow (brand colors are kept as-is).
 struct CrestView: View {
     var size: CGFloat = 72
     var glow: Bool = true
@@ -14,7 +14,7 @@ struct CrestView: View {
             .background {
                 if glow {
                     Circle()
-                        .fill(Color.fwEmber.opacity(0.35))
+                        .fill(Color.fwBrandEmber.opacity(0.35))
                         .blur(radius: size * 0.28)
                         .scaleEffect(1.05)
                 }
@@ -36,7 +36,7 @@ struct Wordmark: View {
             Text("FIRE WATCH")
                 .font(.system(size: 11 * scale, weight: .semibold))
                 .tracking(5 * scale)
-                .foregroundStyle(Color.fwEmber)
+                .foregroundStyle(Color.fwLink)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Phoenix Fire Watch")
@@ -73,7 +73,7 @@ struct StatusPill: View {
             Text(status.label)
                 .font(.system(.caption, weight: .semibold))
         }
-        .foregroundStyle(status.color)
+        .foregroundStyle(status.textColor)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(status.color.opacity(0.12), in: Capsule())
@@ -87,7 +87,7 @@ struct SyncBadge: View {
     var body: some View {
         Label(state == .pending ? "Waiting to upload" : "Upload failed", systemImage: state == .pending ? "icloud.and.arrow.up" : "exclamationmark.icloud")
             .font(.system(.caption2, weight: .semibold))
-            .foregroundStyle(state == .pending ? Color.fwFollow : Color.fwIncident)
+            .foregroundStyle(state == .pending ? Color.fwFollow : Color.fwIncidentInk)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background((state == .pending ? Color.fwFollow : Color.fwIncident).opacity(0.12), in: Capsule())
@@ -135,12 +135,18 @@ struct FWField: View {
     var secure: Bool = false
     var autocapitalization: TextInputAutocapitalization = .sentences
     var error: String?
+    @FocusState private var isFocused: Bool
+
+    private var borderColor: Color {
+        if error != nil { return .fwIncident }
+        return isFocused ? .fwLink : .fwLineStrong
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 2) {
                 Text(label).font(.system(.subheadline, weight: .medium)).foregroundStyle(Color.fwInk)
-                if required { Text("*").foregroundStyle(Color.fwEmber) }
+                if required { Text("*").foregroundStyle(Color.fwLink) }
             }
             Group {
                 if secure {
@@ -153,16 +159,19 @@ struct FWField: View {
             }
             .textContentType(contentType)
             .autocorrectionDisabled(keyboard == .emailAddress || secure)
+            .focused($isFocused)
             .foregroundStyle(Color.fwInk)
+            .tint(Color.fwLink)
             .padding(.horizontal, 14)
             .frame(minHeight: 50)
-            .background(Color.fwRaised, in: .rect(cornerRadius: 11))
+            .background(Color.fwField, in: .rect(cornerRadius: 11))
             .overlay {
                 RoundedRectangle(cornerRadius: 11)
-                    .strokeBorder(error == nil ? Color.fwLineStrong : Color.fwIncident, lineWidth: 1)
+                    .strokeBorder(borderColor, lineWidth: isFocused ? 1.5 : 1)
             }
+            .animation(.easeOut(duration: 0.15), value: isFocused)
             if let error {
-                Text(error).font(.caption).foregroundStyle(Color.fwIncident)
+                Text(error).font(.caption).foregroundStyle(Color.fwIncidentInk)
             }
         }
     }
@@ -173,7 +182,7 @@ struct ErrorBanner: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.fwIncident)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.fwIncidentInk)
             Text(message).font(.subheadline).foregroundStyle(Color.fwInk)
             Spacer(minLength: 0)
         }
@@ -231,10 +240,10 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
-                Circle().fill(Color.fwEmber.opacity(0.1)).frame(width: 64, height: 64)
+                Circle().fill(Color.fwPrimary.opacity(0.1)).frame(width: 64, height: 64)
                 Image(systemName: symbol)
                     .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(Color.fwEmber)
+                    .foregroundStyle(Color.fwLink)
             }
             Text(title).font(.system(.headline, weight: .bold)).foregroundStyle(Color.fwInk)
             Text(message)
@@ -255,7 +264,7 @@ struct ToastView: View {
     private var color: Color {
         switch toast.style {
         case .success: .fwClear
-        case .error: .fwIncident
+        case .error: .fwIncidentInk
         case .info: .fwFollow
         }
     }

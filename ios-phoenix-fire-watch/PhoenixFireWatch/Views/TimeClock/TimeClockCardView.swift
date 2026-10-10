@@ -126,7 +126,7 @@ private struct PunchButtonStyle: ViewModifier {
         if isOn {
             content.buttonStyle(OutlineButtonStyle())
         } else {
-            content.buttonStyle(EmberButtonStyle())
+            content.buttonStyle(PrimaryButtonStyle())
         }
     }
 }

@@ -1,6 +1,7 @@
 import { AlertTriangle, Banknote, Building2, ClipboardCheck, HandCoins, Plus, ReceiptText, Scale, UserRound, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { THEME } from "@/lib/theme";
 
 import { ExpenditureForm } from "@/components/expenses/ExpenditureForm";
 import { MetricCard, ReceiptBadge } from "@/components/expenses/kit";
@@ -44,7 +45,7 @@ const ExOverview = () => {
         }
       />
 
-      <div className="mb-5 flex flex-col gap-3 rounded-xl border border-line bg-surface p-3 lg:flex-row lg:items-end">
+      <div className="mb-5 flex flex-col gap-3 rounded-xl border border-line bg-surface shadow-card p-3 lg:flex-row lg:items-end">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Date range">
           {PRESETS.map((p) => (
             <button
@@ -54,7 +55,7 @@ const ExOverview = () => {
               aria-pressed={preset === p.id}
               className={cn(
                 "focus-ring rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 ring-inset transition-colors",
-                preset === p.id ? "bg-ember text-white ring-ember" : "bg-raised text-ink-2 ring-line hover:text-ink",
+                preset === p.id ? "bg-primary text-white ring-link" : "bg-raised text-ink-2 ring-line hover:text-ink",
               )}
             >
               {p.label}
@@ -73,13 +74,13 @@ const ExOverview = () => {
       </p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Total recorded spending" value={fmtTotals(s.spending)} sub={`${s.count} expenditure${s.count === 1 ? "" : "s"} · purchase date`} dot="#DC2626" icon={ReceiptText} to={`/expenditures/records?${qs(r)}`} />
-        <MetricCard label="Paid by the business" value={fmtTotals(s.business)} sub="Business cards, accounts & cash" dot="#D8DCE2" icon={Building2} to={`/expenditures/records?${qs({ ...r, paidBy: "business" })}`} delay={40} />
-        <MetricCard label="Paid personally" value={fmtTotals(s.personal)} sub="Owner, employees or others — part of spending" dot="#F5A524" icon={UserRound} to={`/expenditures/records?${qs({ ...r, paidBy: "personal" })}`} delay={80} />
-        <MetricCard label="Reimbursements paid" value={fmtTotals(s.reimbursedPaid)} sub="Settles who paid · not extra spending" dot="#22C55E" icon={HandCoins} to={`/expenditures/reimbursements?${qs({ tab: "payments", dir: "to_person", ...r })}`} delay={120} />
-        <MetricCard label="Outstanding reimbursements" value={fmtTotals(s.outstanding)} sub="Approved, not yet paid back" dot="#EF4444" icon={Wallet} to="/expenditures/reimbursements?dir=to_person&status=outstanding" delay={160} />
-        <MetricCard label="Awaiting review" value={String(s.awaiting.count)} sub={s.awaiting.count ? `${fmtTotals(s.awaiting.totals)} requested` : "No requests waiting"} dot="#F5A524" icon={ClipboardCheck} to="/expenditures/reimbursements?dir=to_person&status=pending_review" delay={200} />
-        <MetricCard label="Missing receipts" value={String(s.missing.count)} sub={s.missing.count ? `${fmtTotals(s.missing.totals)} without a receipt` : "Every expense has a receipt"} dot="#F5A524" icon={AlertTriangle} to={`/expenditures/records?${qs({ ...r, missing: "1" })}`} delay={240} />
+        <MetricCard label="Total recorded spending" value={fmtTotals(s.spending)} sub={`${s.count} expenditure${s.count === 1 ? "" : "s"} · purchase date`} dot={THEME.primary} icon={ReceiptText} to={`/expenditures/records?${qs(r)}`} />
+        <MetricCard label="Paid by the business" value={fmtTotals(s.business)} sub="Business cards, accounts & cash" dot={THEME.ink2} icon={Building2} to={`/expenditures/records?${qs({ ...r, paidBy: "business" })}`} delay={40} />
+        <MetricCard label="Paid personally" value={fmtTotals(s.personal)} sub="Owner, employees or others — part of spending" dot={THEME.warning} icon={UserRound} to={`/expenditures/records?${qs({ ...r, paidBy: "personal" })}`} delay={80} />
+        <MetricCard label="Reimbursements paid" value={fmtTotals(s.reimbursedPaid)} sub="Settles who paid · not extra spending" dot={THEME.success} icon={HandCoins} to={`/expenditures/reimbursements?${qs({ tab: "payments", dir: "to_person", ...r })}`} delay={120} />
+        <MetricCard label="Outstanding reimbursements" value={fmtTotals(s.outstanding)} sub="Approved, not yet paid back" dot={THEME.link} icon={Wallet} to="/expenditures/reimbursements?dir=to_person&status=outstanding" delay={160} />
+        <MetricCard label="Awaiting review" value={String(s.awaiting.count)} sub={s.awaiting.count ? `${fmtTotals(s.awaiting.totals)} requested` : "No requests waiting"} dot={THEME.warning} icon={ClipboardCheck} to="/expenditures/reimbursements?dir=to_person&status=pending_review" delay={200} />
+        <MetricCard label="Missing receipts" value={String(s.missing.count)} sub={s.missing.count ? `${fmtTotals(s.missing.totals)} without a receipt` : "Every expense has a receipt"} dot={THEME.warning} icon={AlertTriangle} to={`/expenditures/records?${qs({ ...r, missing: "1" })}`} delay={240} />
         <MetricCard label="Client/agency recoveries" value={fmtTotals(s.recoveryOutstanding)} sub={`Outstanding · ${fmtTotals(s.recovered)} recovered in range (shown separately)`} dot="#38BDF8" icon={Scale} to="/expenditures/reimbursements?dir=from_client&status=outstanding" delay={280} />
       </div>
 
@@ -108,7 +109,7 @@ const ExOverview = () => {
             <ul className="space-y-2.5">
               {recent.map((x) => (
                 <li key={x.e.id}>
-                  <Link to={`/expenditures/records/${x.e.id}`} className="focus-ring flex items-center gap-3 rounded-lg border border-line bg-raised px-4 py-3 transition-colors hover:border-[#7A8394]">
+                  <Link to={`/expenditures/records/${x.e.id}`} className="focus-ring flex items-center gap-3 rounded-lg border border-line bg-raised px-4 py-3 transition-colors hover:border-line-strong">
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium text-ink">{x.e.vendor}</div>
                       <div className="truncate text-xs text-ink-3">
@@ -138,7 +139,7 @@ const ExOverview = () => {
             <ul className="space-y-2.5">
               {pending.map((v) => (
                 <li key={v.r.id}>
-                  <Link to={`/expenditures/records/${v.r.expenditure_id}`} className="focus-ring flex items-center gap-3 rounded-lg border border-line bg-raised px-4 py-3 transition-colors hover:border-[#7A8394]">
+                  <Link to={`/expenditures/records/${v.r.expenditure_id}`} className="focus-ring flex items-center gap-3 rounded-lg border border-line bg-raised px-4 py-3 transition-colors hover:border-line-strong">
                     <Banknote className="h-5 w-5 shrink-0 text-status-follow" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium text-ink">

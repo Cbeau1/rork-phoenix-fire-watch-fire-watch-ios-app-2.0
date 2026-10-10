@@ -59,7 +59,7 @@ struct TimerAlertBanner: View {
             Button("Log") {
                 router.openLogPatrol(propertyId: alert.property.id)
             }
-            .buttonStyle(EmberButtonStyle(fullWidth: false, compact: true))
+            .buttonStyle(PrimaryButtonStyle(fullWidth: false, compact: true))
             Button {
                 withAnimation { dismissed[alert.key] = alert.schedule.dueAt.addingTimeInterval(overdue ? 600 : 0) }
             } label: {

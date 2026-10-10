@@ -66,7 +66,7 @@ const PERSISTED_KEYS = new Set<string>(["profile", "properties", "patrols", "not
 const Splash = () => (
   <div className="canvas-glow flex min-h-screen flex-col items-center justify-center gap-8">
     <Crest size="lg" />
-    <Loader2 className="h-6 w-6 animate-spin text-ember" />
+    <Loader2 className="h-6 w-6 animate-spin text-link" />
   </div>
 );
 

@@ -109,7 +109,7 @@ enum PhotoStamper {
             let bar = CGRect(x: 0, y: size.height - barHeight, width: size.width, height: barHeight)
             UIColor.black.withAlphaComponent(0.6).setFill()
             ctx.fill(bar)
-            UIColor(red: 220 / 255, green: 38 / 255, blue: 38 / 255, alpha: 1).setFill()
+            UIColor(red: 0x25 / 255, green: 0x63 / 255, blue: 0xEB / 255, alpha: 1).setFill() // fwPrimary
             ctx.fill(CGRect(x: 0, y: bar.minY, width: fontSize * 0.35, height: barHeight))
             for (i, line) in all.enumerated() {
                 let font = i == 0

@@ -100,7 +100,7 @@ const WatchNotes = () => {
                       {timeAgo(n.createdAt)}
                     </time>
                     {n.syncState && (
-                      <span className={n.syncState === "failed" ? "text-xs text-status-incident" : "text-xs text-ember"}>
+                      <span className={n.syncState === "failed" ? "text-xs text-status-incident-ink" : "text-xs text-link"}>
                         {n.syncState === "failed" ? "· Not uploaded" : "· Waiting to upload"}
                       </span>
                     )}

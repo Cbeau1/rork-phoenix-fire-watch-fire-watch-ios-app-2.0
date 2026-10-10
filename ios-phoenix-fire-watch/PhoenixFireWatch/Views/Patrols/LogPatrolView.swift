@@ -80,10 +80,10 @@ struct LogPatrolView: View {
             Spacer()
             VStack(spacing: 14) {
                 ZStack {
-                    Circle().fill(Color.fwEmber.opacity(0.12)).frame(width: 64, height: 64)
+                    Circle().fill(Color.fwPrimary.opacity(0.12)).frame(width: 64, height: 64)
                     Image(systemName: "clock.badge.exclamationmark")
                         .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(Color.fwEmber)
+                        .foregroundStyle(Color.fwLink)
                 }
                 VStack(spacing: 6) {
                     Text("Clock in to log patrols")
@@ -113,7 +113,7 @@ struct LogPatrolView: View {
                         Text(clock.isPunching ? "Clocking in…" : "Clock In")
                     }
                 }
-                .buttonStyle(EmberButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(clock.isPunching)
             }
             .padding(24)
@@ -130,8 +130,8 @@ struct LogPatrolView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 12) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 11).fill(Color.fwEmber.opacity(0.12)).frame(width: 44, height: 44)
-                        Image(systemName: "shield.lefthalf.filled").foregroundStyle(Color.fwEmber).font(.system(size: 20, weight: .semibold))
+                        RoundedRectangle(cornerRadius: 11).fill(Color.fwPrimary.opacity(0.12)).frame(width: 44, height: 44)
+                        Image(systemName: "shield.lefthalf.filled").foregroundStyle(Color.fwLink).font(.system(size: 20, weight: .semibold))
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(property.name).font(.system(.headline, weight: .bold)).foregroundStyle(Color.fwInk)
@@ -149,7 +149,7 @@ struct LogPatrolView: View {
                         DatePicker("Date & Time", selection: $dateTime, in: ...Date().addingTimeInterval(300))
                             .labelsHidden()
                             .datePickerStyle(.compact)
-                            .tint(Color.fwEmber)
+                            .tint(Color.fwPrimary)
                     }
                     FWField(label: "Officer Name", text: $officerName, placeholder: "Full name", required: true, contentType: .name, autocapitalization: .words, error: errors["officer"])
                     VStack(alignment: .leading, spacing: 5) {
@@ -165,7 +165,7 @@ struct LogPatrolView: View {
                             .lineLimit(3...8)
                             .foregroundStyle(Color.fwInk)
                             .padding(14)
-                            .background(Color.fwRaised, in: .rect(cornerRadius: 11))
+                            .background(Color.fwField, in: .rect(cornerRadius: 11))
                             .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(Color.fwLineStrong, lineWidth: 1) }
                     }
                 }
@@ -186,7 +186,7 @@ struct LogPatrolView: View {
                         Text(saving ? (photos.isEmpty ? "Saving…" : "Uploading…") : saveLabel(verdict))
                     }
                 }
-                .buttonStyle(EmberButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(saving || !verdict.allowsLogging)
                 .padding(.bottom, 20)
             }
@@ -209,7 +209,7 @@ struct LogPatrolView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 2) {
                 Text("Status").font(.system(.subheadline, weight: .medium)).foregroundStyle(Color.fwInk)
-                Text("*").foregroundStyle(Color.fwEmber)
+                Text("*").foregroundStyle(Color.fwLink)
             }
             HStack(spacing: 8) {
                 ForEach(PatrolStatus.allCases) { s in
@@ -221,7 +221,7 @@ struct LogPatrolView: View {
                             StatusDot(color: s.color, size: 8)
                             Text(s.label).font(.system(.subheadline, weight: .semibold))
                         }
-                        .foregroundStyle(active ? s.color : Color.fwInk2)
+                        .foregroundStyle(active ? s.textColor : Color.fwInk2)
                         .frame(maxWidth: .infinity, minHeight: 46)
                         .background(active ? s.color.opacity(0.14) : Color.fwRaised, in: .rect(cornerRadius: 11))
                         .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(active ? s.color : Color.fwLineStrong, lineWidth: active ? 1.5 : 1) }

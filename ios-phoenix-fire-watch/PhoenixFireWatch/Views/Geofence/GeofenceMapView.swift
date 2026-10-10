@@ -6,7 +6,7 @@ struct GeofenceMapView: View {
     let center: CLLocationCoordinate2D
     let radiusM: Double
     var you: PatrolLocation?
-    var tint: Color = .fwEmber
+    var tint: Color = .fwPrimary
     var interactive: Bool = false
 
     @State private var position: MapCameraPosition = .automatic
@@ -25,13 +25,13 @@ struct GeofenceMapView: View {
             .annotationTitles(.hidden)
             if let you {
                 MapCircle(center: you.coordinate, radius: max(you.accuracyM, 3))
-                    .foregroundStyle(Color.blue.opacity(0.14))
+                    .foregroundStyle(Color.fwLink.opacity(0.14))
                 Annotation("You", coordinate: you.coordinate, anchor: .center) {
                     Circle()
-                        .fill(Color.blue)
+                        .fill(Color.fwLink)
                         .frame(width: 16, height: 16)
                         .overlay { Circle().strokeBorder(.white, lineWidth: 3) }
-                        .shadow(color: .blue.opacity(0.5), radius: 6)
+                        .shadow(color: Color.fwLink.opacity(0.5), radius: 6)
                 }
                 .annotationTitles(.hidden)
             }

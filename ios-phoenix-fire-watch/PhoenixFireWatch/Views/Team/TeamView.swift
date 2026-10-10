@@ -40,7 +40,7 @@ struct TeamView: View {
                         }
                         .padding(.bottom, 6)
                         if loading && members.isEmpty {
-                            ProgressView().tint(Color.fwEmber).frame(maxWidth: .infinity).padding(30)
+                            ProgressView().tint(Color.fwLink).frame(maxWidth: .infinity).padding(30)
                         }
                         ForEach(members) { member in
                             memberRow(member)
@@ -95,7 +95,7 @@ struct TeamView: View {
 
     private var orgCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(text: "Organization", color: .fwEmber)
+            SectionLabel(text: "Organization", color: .fwLink)
             if editingOrg {
                 FWField(label: "Name", text: $orgName, autocapitalization: .words)
                 HStack {
@@ -111,7 +111,7 @@ struct TeamView: View {
                             }
                         }
                     }
-                    .buttonStyle(EmberButtonStyle(compact: true))
+                    .buttonStyle(PrimaryButtonStyle(compact: true))
                     .disabled(orgName.trimmed.isEmpty)
                 }
             } else {
@@ -152,12 +152,12 @@ struct TeamView: View {
                 HStack(spacing: 6) {
                     Text(member.roleValue.label)
                         .font(.system(.caption2, weight: .semibold))
-                        .foregroundStyle(member.roleValue == .admin ? Color.fwEmber : Color.fwInk2)
+                        .foregroundStyle(member.roleValue == .admin ? Color.fwLink : Color.fwInk2)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background((member.roleValue == .admin ? Color.fwEmber : Color.fwInk3).opacity(0.14), in: Capsule())
+                        .background((member.roleValue == .admin ? Color.fwPrimary : Color.fwInk3).opacity(0.14), in: Capsule())
                     if !member.active {
-                        Text("Deactivated").font(.system(.caption2, weight: .semibold)).foregroundStyle(Color.fwIncident)
+                        Text("Deactivated").font(.system(.caption2, weight: .semibold)).foregroundStyle(Color.fwIncidentInk)
                     }
                 }
             }
@@ -264,7 +264,7 @@ struct AddEmployeeSheet: View {
                     } label: {
                         if busy { ProgressView().tint(.white) } else { Text("Create Login") }
                     }
-                    .buttonStyle(EmberButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(busy)
                 }
                 .padding(16)
@@ -332,7 +332,7 @@ struct ResetPasswordSheet: View {
                 } label: {
                     if busy { ProgressView().tint(.white) } else { Text("Reset Password") }
                 }
-                .buttonStyle(EmberButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
                 Spacer()
             }
             .padding(16)
@@ -374,7 +374,7 @@ struct CreatedLoginSheet: View {
                     }
                     .buttonStyle(OutlineButtonStyle())
                     ShareLink(item: shareText) { Text("Share") }
-                        .buttonStyle(EmberButtonStyle())
+                        .buttonStyle(PrimaryButtonStyle())
                 }
                 .sensoryFeedback(.success, trigger: copied)
                 Spacer()

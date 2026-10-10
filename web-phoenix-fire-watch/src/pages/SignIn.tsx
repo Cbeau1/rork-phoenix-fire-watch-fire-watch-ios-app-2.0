@@ -68,7 +68,7 @@ const ErrorBox = ({ message }: { message: string | null }) =>
   message ? (
     <p
       role="alert"
-      className="mt-5 rounded-lg border border-status-incident/30 bg-status-incident/10 px-3.5 py-2.5 text-sm text-status-incident"
+      className="mt-5 rounded-lg border border-status-incident/30 bg-status-incident/10 px-3.5 py-2.5 text-sm text-status-incident-ink"
     >
       {message}
     </p>
@@ -134,7 +134,7 @@ const ForgotPassword = ({ initialEmail, onDone }: { initialEmail: string; onDone
   if (notConfigured) {
     return (
       <div className="animate-fade-up p-7 sm:p-8">
-        <KeyRound className="h-9 w-9 text-ember" strokeWidth={1.6} />
+        <KeyRound className="h-9 w-9 text-link" strokeWidth={1.6} />
         <h1 className="mt-4 font-display text-2xl font-bold text-ink">Ask your admin</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-2">
           Email resets aren't available for this workspace yet. Your organization admin can set a new password for you
@@ -231,7 +231,7 @@ const ForgotPassword = ({ initialEmail, onDone }: { initialEmail: string; onDone
           type="button"
           disabled={busy}
           onClick={() => void sendCode()}
-          className="focus-ring rounded text-ember hover:underline disabled:opacity-40"
+          className="focus-ring rounded text-link hover:underline disabled:opacity-40"
         >
           Resend code
         </button>
@@ -307,7 +307,7 @@ const SignIn = () => {
     <div className="canvas-glow relative flex min-h-screen items-center justify-center overflow-hidden px-4 pb-[max(2.5rem,var(--safe-bottom))] pt-[max(2.5rem,var(--safe-top))]">
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/3 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-ember/[0.07] blur-3xl"
+        className="pointer-events-none absolute left-1/2 top-1/3 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/[0.07] blur-3xl"
       />
       <div className="relative w-full max-w-md animate-fade-up">
         <Crest size="lg" className="mb-9" />
@@ -370,7 +370,7 @@ const SignIn = () => {
                     <button
                       type="button"
                       onClick={() => switchMode("forgot")}
-                      className="focus-ring rounded text-xs font-medium text-ember hover:underline"
+                      className="focus-ring rounded text-xs font-medium text-link hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -380,7 +380,7 @@ const SignIn = () => {
               </div>
 
               {formError && (
-                <p role="alert" className="mt-5 rounded-lg border border-status-incident/30 bg-status-incident/10 px-3.5 py-2.5 text-sm text-status-incident">
+                <p role="alert" className="mt-5 rounded-lg border border-status-incident/30 bg-status-incident/10 px-3.5 py-2.5 text-sm text-status-incident-ink">
                   {formError}
                 </p>
               )}
@@ -481,15 +481,15 @@ const SignIn = () => {
                       checked={acceptedTerms}
                       onCheckedChange={(v) => setAcceptedTerms(v === true)}
                       aria-invalid={!!errors.terms}
-                      className="mt-0.5 h-5 w-5 border-[#8A93A3] data-[state=checked]:border-ember data-[state=checked]:bg-ember data-[state=checked]:text-white"
+                      className="mt-0.5 h-5 w-5 border-line-hover data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
                     />
                     <label htmlFor="su-terms" className="text-sm leading-relaxed text-ink-2">
                       I agree to the{" "}
-                      <Link to="/terms" target="_blank" className="text-ember hover:underline">
+                      <Link to="/terms" target="_blank" className="text-link hover:underline">
                         Terms of Service
                       </Link>{" "}
                       and{" "}
-                      <Link to="/privacy" target="_blank" className="text-ember hover:underline">
+                      <Link to="/privacy" target="_blank" className="text-link hover:underline">
                         Privacy Policy
                       </Link>
                       .
@@ -500,7 +500,7 @@ const SignIn = () => {
               </div>
 
               {formError && (
-                <p role="alert" className="mt-5 rounded-lg border border-status-incident/30 bg-status-incident/10 px-3.5 py-2.5 text-sm text-status-incident">
+                <p role="alert" className="mt-5 rounded-lg border border-status-incident/30 bg-status-incident/10 px-3.5 py-2.5 text-sm text-status-incident-ink">
                   {formError}
                 </p>
               )}
@@ -524,14 +524,14 @@ const SignIn = () => {
           {mode === "signin" ? (
             <>
               New company?{" "}
-              <button type="button" onClick={() => switchMode("signup")} className="focus-ring rounded text-ember hover:underline">
+              <button type="button" onClick={() => switchMode("signup")} className="focus-ring rounded text-link hover:underline">
                 Create an organization
               </button>
             </>
           ) : (
             <>
               Already have a login?{" "}
-              <button type="button" onClick={() => switchMode("signin")} className="focus-ring rounded text-ember hover:underline">
+              <button type="button" onClick={() => switchMode("signin")} className="focus-ring rounded text-link hover:underline">
                 Sign in
               </button>
             </>

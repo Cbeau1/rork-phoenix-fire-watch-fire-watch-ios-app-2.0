@@ -56,7 +56,7 @@ export const REIMB_STATUS: Record<string, { label: string; tone: Tone }> = {
   draft: { label: "Draft", tone: "slate" },
   pending_review: { label: "Pending review", tone: "amber" },
   approved: { label: "Approved · unpaid", tone: "blue" },
-  partially_reimbursed: { label: "Partially reimbursed", tone: "ember" },
+  partially_reimbursed: { label: "Partially reimbursed", tone: "primary" },
   fully_reimbursed: { label: "Fully reimbursed", tone: "green" },
   rejected: { label: "Rejected", tone: "red" },
   cancelled: { label: "Cancelled", tone: "slate" },
@@ -66,7 +66,7 @@ export const REIMB_STATUS: Record<string, { label: string; tone: Tone }> = {
 export const RECOVERY_STATUS: Record<string, { label: string; tone: Tone }> = {
   ...REIMB_STATUS,
   approved: { label: "Approved · not received", tone: "blue" },
-  partially_reimbursed: { label: "Partially recovered", tone: "ember" },
+  partially_reimbursed: { label: "Partially recovered", tone: "primary" },
   fully_reimbursed: { label: "Fully recovered", tone: "green" },
 };
 

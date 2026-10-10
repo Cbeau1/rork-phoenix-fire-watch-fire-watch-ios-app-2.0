@@ -11,22 +11,43 @@ extension Color {
         )
     }
 
-    // "Ember Command" palette — see .rork/DESIGN.md
-    nonisolated static let fwCanvas = Color(hex: 0x23272D)
-    nonisolated static let fwRail = Color(hex: 0x1D2126)
-    nonisolated static let fwSurface = Color(hex: 0x444B57)
-    nonisolated static let fwRaised = Color(hex: 0x353B45)
-    nonisolated static let fwLine = Color(hex: 0x636B7B)
-    nonisolated static let fwLineStrong = Color(hex: 0x7A8394)
-    nonisolated static let fwInk = Color(hex: 0xF7F8FA)
-    nonisolated static let fwInk2 = Color(hex: 0xD8DCE2)
-    nonisolated static let fwInk3 = Color(hex: 0xB4BAC5)
-    nonisolated static let fwSilver = Color(hex: 0xE4E7EC)
-    nonisolated static let fwEmber = Color(hex: 0xDC2626)
-    nonisolated static let fwEmberHover = Color(hex: 0xF04438)
+    // "Navy Command" palette — see .rork/DESIGN.md. Mirrors web tailwind.config.ts + src/lib/theme.ts.
+    /// Main background.
+    nonisolated static let fwCanvas = Color(hex: 0x0F172A)
+    /// Full-screen viewers (camera, report, map backdrops).
+    nonisolated static let fwCanvasDeep = Color(hex: 0x0B1220)
+    /// Navigation bars, tab bar, sheets' chrome.
+    nonisolated static let fwRail = Color(hex: 0x1E293B)
+    /// Cards, headers and elevated surfaces.
+    nonisolated static let fwSurface = Color(hex: 0x1E293B)
+    /// Tiles, chips and rows sitting inside a card.
+    nonisolated static let fwRaised = Color(hex: 0x273449)
+    /// Text inputs — inset, darker than the card so fields are obvious.
+    nonisolated static let fwField = Color(hex: 0x0F172A)
+    /// Borders and dividers.
+    nonisolated static let fwLine = Color(hex: 0x334155)
+    /// Input / outline-button borders.
+    nonisolated static let fwLineStrong = Color(hex: 0x475569)
+    nonisolated static let fwInk = Color(hex: 0xF8FAFC)
+    nonisolated static let fwInk2 = Color(hex: 0xCBD5E1)
+    nonisolated static let fwInk3 = Color(hex: 0x94A3B8)
+    nonisolated static let fwSilver = Color(hex: 0xE2E8F0)
+    /// Primary actions (white text on top).
+    nonisolated static let fwPrimary = Color(hex: 0x2563EB)
+    nonisolated static let fwPrimaryPressed = Color(hex: 0x1D4ED8)
+    /// Links, accent text/icons and focus.
+    nonisolated static let fwLink = Color(hex: 0x60A5FA)
+    nonisolated static let fwLinkHover = Color(hex: 0x93C5FD)
+    /// Success / active.
     nonisolated static let fwClear = Color(hex: 0x22C55E)
-    nonisolated static let fwFollow = Color(hex: 0xF5A524)
-    nonisolated static let fwIncident = Color(hex: 0xEF4444)
+    /// Warnings.
+    nonisolated static let fwFollow = Color(hex: 0xF59E0B)
+    /// Critical alerts and destructive actions (fills, borders).
+    nonisolated static let fwIncident = Color(hex: 0xDC2626)
+    /// Red for text/icons on navy (readable contrast).
+    nonisolated static let fwIncidentInk = Color(hex: 0xF87171)
+    /// Phoenix logo glow only — part of the brand mark, never used for UI.
+    nonisolated static let fwBrandEmber = Color(hex: 0xDC2626)
 }
 
 /// One hue per weekday (Mon → Sun) so Schedule days scan at a glance. Mirrors the web app.
@@ -60,13 +81,13 @@ enum FWFont {
     static let label: Font = .system(.caption2, design: .default, weight: .semibold)
 }
 
-/// Near-black canvas with a faint ember glow in the top-right corner.
+/// Navy canvas with a faint blue glow in the top-right corner.
 struct CanvasBackground: View {
     var body: some View {
         ZStack {
             Color.fwCanvas
             RadialGradient(
-                colors: [Color.fwEmber.opacity(0.16), Color.fwEmber.opacity(0)],
+                colors: [Color.fwPrimary.opacity(0.14), Color.fwPrimary.opacity(0)],
                 center: .topTrailing,
                 startRadius: 10,
                 endRadius: 420
@@ -88,6 +109,7 @@ struct FWCardModifier: ViewModifier {
             .overlay {
                 RoundedRectangle(cornerRadius: 14).strokeBorder(borderColor, lineWidth: 1)
             }
+            .shadow(color: Color.black.opacity(0.25), radius: 2, y: 1)
     }
 }
 
@@ -107,21 +129,21 @@ extension View {
     /// Standard dark navigation chrome for every stack.
     func fwNavigationChrome() -> some View {
         self
-            .toolbarBackground(Color.fwCanvas.opacity(0.92), for: .navigationBar)
+            .toolbarBackground(Color.fwRail.opacity(0.94), for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }
 
-/// Primary red action button with a press-down spring.
-struct EmberButtonStyle: ButtonStyle {
+/// Primary blue action button (white label) with a press-down spring.
+struct PrimaryButtonStyle: ButtonStyle {
     var fullWidth: Bool = true
     var compact: Bool = false
 
     func makeBody(configuration: Configuration) -> some View {
-        EmberButtonBody(configuration: configuration, fullWidth: fullWidth, compact: compact)
+        PrimaryButtonBody(configuration: configuration, fullWidth: fullWidth, compact: compact)
     }
 
-    private struct EmberButtonBody: View {
+    private struct PrimaryButtonBody: View {
         let configuration: Configuration
         let fullWidth: Bool
         let compact: Bool
@@ -134,7 +156,7 @@ struct EmberButtonStyle: ButtonStyle {
                 .padding(.horizontal, compact ? 14 : 18)
                 .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: compact ? 40 : 52)
                 .background(
-                    (configuration.isPressed ? Color.fwEmberHover : Color.fwEmber).opacity(isEnabled ? 1 : 0.45),
+                    (configuration.isPressed ? Color.fwPrimaryPressed : Color.fwPrimary).opacity(isEnabled ? 1 : 0.45),
                     in: .rect(cornerRadius: 12)
                 )
                 .scaleEffect(configuration.isPressed ? 0.97 : 1)
@@ -155,7 +177,7 @@ struct OutlineButtonStyle: ButtonStyle {
             .foregroundStyle(tint)
             .padding(.horizontal, compact ? 14 : 18)
             .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: compact ? 40 : 50)
-            .background(configuration.isPressed ? Color.fwRaised : Color.fwSurface, in: .rect(cornerRadius: 12))
+            .background(configuration.isPressed ? Color.fwRaised : Color.clear, in: .rect(cornerRadius: 12))
             .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Color.fwLineStrong, lineWidth: 1) }
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)

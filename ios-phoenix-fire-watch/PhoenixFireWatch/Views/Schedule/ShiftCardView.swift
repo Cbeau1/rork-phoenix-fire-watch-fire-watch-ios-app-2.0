@@ -15,13 +15,13 @@ struct ShiftCardView: View {
 
     private var accent: Color {
         if paid { return .fwClear }
-        if isMine { return .fwEmber }
+        if isMine { return .fwPrimary }
         return .fwLineStrong
     }
 
     private var fill: Color {
         if paid { return Color.fwClear.opacity(0.10) }
-        if isMine { return Color.fwEmber.opacity(0.09) }
+        if isMine { return Color.fwPrimary.opacity(0.09) }
         return .fwRaised
     }
 
@@ -44,7 +44,7 @@ struct ShiftCardView: View {
         .background(fill, in: .rect(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(paid ? Color.fwClear.opacity(0.45) : isMine ? Color.fwEmber.opacity(0.4) : Color.fwLine, lineWidth: 1)
+                .strokeBorder(paid ? Color.fwClear.opacity(0.45) : isMine ? Color.fwPrimary.opacity(0.4) : Color.fwLine, lineWidth: 1)
         }
         .overlay(alignment: .leading) {
             UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12)
@@ -65,10 +65,10 @@ struct ShiftCardView: View {
                     Text("YOU")
                         .font(.system(size: 9, weight: .heavy))
                         .tracking(1)
-                        .foregroundStyle(Color.fwEmber)
+                        .foregroundStyle(Color.fwLink)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.fwEmber.opacity(0.15), in: Capsule())
+                        .background(Color.fwPrimary.opacity(0.15), in: Capsule())
                 }
             }
             HStack(spacing: 6) {

@@ -202,7 +202,7 @@ const Schedule = () => {
             <ChevronRight className="!size-5" />
           </Button>
           {!isThisWeek && (
-            <Button variant="ghost" className="h-11 shrink-0 text-ember" onClick={() => setWeekStart(weekStartOf(new Date()))}>
+            <Button variant="ghost" className="h-11 shrink-0 text-link" onClick={() => setWeekStart(weekStartOf(new Date()))}>
               Today
             </Button>
           )}
@@ -222,7 +222,7 @@ const Schedule = () => {
               aria-pressed={onlyMine}
               className={cn(
                 "focus-ring shrink-0 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
-                onlyMine ? "border-ember bg-ember text-white" : "border-line bg-surface text-ink-2 hover:text-ink",
+                onlyMine ? "border-primary bg-primary text-white" : "border-line bg-surface text-ink-2 hover:text-ink",
               )}
             >
               My shifts
@@ -238,7 +238,7 @@ const Schedule = () => {
                 className={cn(
                   "focus-ring flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
                   propertyFilter === c.id
-                    ? "border-ember/60 bg-ember/15 text-ember"
+                    ? "border-primary/60 bg-primary/15 text-link"
                     : "border-line bg-surface text-ink-2 hover:text-ink",
                 )}
               >
@@ -251,7 +251,7 @@ const Schedule = () => {
 
       {schedule.isLoading ? (
         <div className="flex justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-ember" />
+          <Loader2 className="h-6 w-6 animate-spin text-link" />
         </div>
       ) : schedule.error ? (
         <Card>
@@ -323,7 +323,7 @@ const Schedule = () => {
                     key={key}
                     className={cn(
                       "relative flex animate-fade-up flex-col overflow-hidden rounded-xl border bg-surface lg:min-h-[360px]",
-                      today ? "border-ember/45" : "border-line",
+                      today ? "border-primary/45" : "border-line",
                     )}
                     style={{ animationDelay: `${i * 35}ms` }}
                   >
@@ -345,7 +345,7 @@ const Schedule = () => {
                           type="button"
                           onClick={() => openAdd(key)}
                           aria-label={`Add shift on ${format(d, "EEEE, MMM d")}`}
-                          className="focus-ring -mr-1.5 flex h-10 w-10 items-center justify-center rounded-lg text-ember transition-colors hover:bg-ember/10 active:scale-95"
+                          className="focus-ring -mr-1.5 flex h-10 w-10 items-center justify-center rounded-lg text-link transition-colors hover:bg-primary/10 active:scale-95"
                         >
                           <Plus className="h-5 w-5" />
                         </button>
@@ -357,7 +357,7 @@ const Schedule = () => {
                       <button
                         type="button"
                         onClick={() => openAdd(key)}
-                        className="focus-ring m-2.5 flex flex-1 items-center justify-center rounded-lg border border-dashed border-line py-5 text-xs text-ink-3 transition-colors hover:border-ember/40 hover:text-ember"
+                        className="focus-ring m-2.5 flex flex-1 items-center justify-center rounded-lg border border-dashed border-line py-5 text-xs text-ink-3 transition-colors hover:border-primary/40 hover:text-link"
                       >
                         No shifts · tap to add
                       </button>
@@ -484,7 +484,7 @@ const DayLabel = ({ date, today, muted, color }: { date: Date; today: boolean; m
       style={{ color: muted ? `${color}99` : color }}
     >
       {format(date, "EEE")}
-      {today && <span className="ml-1.5 text-ember lg:hidden">· Today</span>}
+      {today && <span className="ml-1.5 text-link lg:hidden">· Today</span>}
     </span>
     <span className={cn("font-display text-lg font-bold leading-tight", muted ? "text-ink-3" : "text-ink")}>
       {format(date, "MMM d")}

@@ -34,7 +34,7 @@ export const SiteThumb = memo(({ property, className }: { property: Property; cl
   return (
     <div
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-raised ring-1 ring-line transition-colors group-hover:ring-ember/30",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-raised ring-1 ring-line transition-colors group-hover:ring-link/30",
         className,
       )}
     >
@@ -145,12 +145,12 @@ export const SiteImageCard = ({ property }: { property: Property }) => {
         {...dragProps}
         className={cn(
           "mt-5 flex flex-col items-start gap-4 rounded-xl border border-dashed p-5 transition-colors sm:flex-row sm:items-center sm:p-6",
-          dragging ? "border-ember bg-ember/10" : "border-line bg-surface/60",
+          dragging ? "border-primary bg-primary/10" : "border-line bg-surface/60",
         )}
       >
         {fileInput}
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-raised ring-1 ring-line">
-          <ImagePlus className="h-7 w-7 text-ember" strokeWidth={1.6} />
+          <ImagePlus className="h-7 w-7 text-link" strokeWidth={1.6} />
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-lg font-bold text-ink">Add a site photo</h2>
@@ -163,7 +163,7 @@ export const SiteImageCard = ({ property }: { property: Property }) => {
           type="button"
           onClick={pick}
           disabled={!!busy}
-          className="focus-ring inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-ember px-5 text-sm font-semibold text-white transition-colors hover:bg-ember/90 disabled:opacity-60"
+          className="focus-ring inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           {busy === "upload" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
           {busy === "upload" ? "Uploading…" : "Choose Photo"}
@@ -179,7 +179,7 @@ export const SiteImageCard = ({ property }: { property: Property }) => {
       {...dragProps}
       className={cn(
         "relative mt-5 overflow-hidden rounded-xl border bg-raised",
-        dragging ? "border-ember ring-2 ring-ember/40" : "border-line",
+        dragging ? "border-primary ring-2 ring-link/40" : "border-line",
       )}
     >
       {fileInput}
@@ -204,7 +204,7 @@ export const SiteImageCard = ({ property }: { property: Property }) => {
         {busy && (
           <div className="absolute inset-0 flex items-center justify-center bg-canvas/60">
             <span className="flex items-center gap-2 rounded-full bg-canvas/90 px-4 py-2 text-sm font-medium text-ink ring-1 ring-line">
-              <Loader2 className="h-4 w-4 animate-spin text-ember" />
+              <Loader2 className="h-4 w-4 animate-spin text-link" />
               {busy === "upload" ? "Uploading photo…" : "Removing…"}
             </span>
           </div>
@@ -214,7 +214,7 @@ export const SiteImageCard = ({ property }: { property: Property }) => {
             type="button"
             onClick={pick}
             disabled={!!busy}
-            className="focus-ring inline-flex h-10 items-center gap-2 rounded-lg bg-canvas/85 px-3.5 text-sm font-semibold text-ink ring-1 ring-line backdrop-blur transition-colors hover:bg-canvas hover:text-ember disabled:opacity-50"
+            className="focus-ring inline-flex h-10 items-center gap-2 rounded-lg bg-canvas/85 px-3.5 text-sm font-semibold text-ink ring-1 ring-line backdrop-blur transition-colors hover:bg-canvas hover:text-link disabled:opacity-50"
           >
             <RefreshCw className="h-4 w-4" />
             Change
@@ -224,7 +224,7 @@ export const SiteImageCard = ({ property }: { property: Property }) => {
             onClick={() => setConfirmRemove(true)}
             disabled={!!busy}
             aria-label="Remove site photo"
-            className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-lg bg-canvas/85 text-ink-2 ring-1 ring-line backdrop-blur transition-colors hover:bg-canvas hover:text-status-incident disabled:opacity-50"
+            className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-lg bg-canvas/85 text-ink-2 ring-1 ring-line backdrop-blur transition-colors hover:bg-canvas hover:text-status-incident-ink disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -240,7 +240,7 @@ export const SiteImageCard = ({ property }: { property: Property }) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#7A8394] bg-transparent text-ink hover:bg-raised hover:text-ink">
+            <AlertDialogCancel className="border-line-strong bg-transparent text-ink hover:bg-raised hover:text-ink">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

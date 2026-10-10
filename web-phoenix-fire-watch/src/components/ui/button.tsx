@@ -5,18 +5,18 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-canvas transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-canvas transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link/70 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-ember text-white hover:bg-ember-hover",
+        default: "bg-primary text-white hover:bg-primary-hover",
         destructive: "bg-status-incident text-white hover:bg-status-incident/90",
         "destructive-outline":
-          "border border-status-incident/60 bg-transparent text-status-incident hover:bg-status-incident/10",
-        outline: "border border-[#7A8394] bg-transparent text-ink hover:bg-raised hover:border-[#8A93A3]",
-        secondary: "bg-raised text-ink hover:bg-[#3E4550]",
+          "border border-status-incident/60 bg-transparent text-status-incident-ink hover:bg-status-incident/10",
+        outline: "border border-line-strong bg-transparent text-ink hover:bg-raised hover:border-line-hover",
+        secondary: "bg-raised text-ink hover:bg-raised-hover",
         ghost: "text-ink-2 hover:bg-raised hover:text-ink",
-        link: "text-ember underline-offset-4 hover:underline",
+        link: "text-link underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",

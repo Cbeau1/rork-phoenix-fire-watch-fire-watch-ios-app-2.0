@@ -50,7 +50,7 @@ const Placements = () => {
           </Button>
         }
       />
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-3 sm:grid-cols-3 sm:p-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface shadow-card p-3 sm:grid-cols-3 sm:p-4">
         <SelectField
           label="Status"
           value={view === "ending" ? "ending" : status}
@@ -66,7 +66,7 @@ const Placements = () => {
         <SelectField label="Property" value={property} onChange={(v) => set("property", v)} allowNone noneLabel="All properties" options={wf.properties.map((p) => ({ value: p.id, label: p.name }))} />
       </div>
       {list.length === 0 ? (
-        <div className="rounded-xl border border-line bg-surface p-4">
+        <div className="rounded-xl border border-line bg-surface shadow-card p-4">
           <Empty title="No placements match" />
         </div>
       ) : (

@@ -93,7 +93,7 @@ struct DashboardView: View {
 
     private var activeTimers: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(text: "Your running timers", color: .fwEmber)
+            SectionLabel(text: "Your running timers", color: .fwLink)
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 VStack(spacing: 8) {
                     ForEach(timers.activePropertyIds, id: \.self) { id in
@@ -113,7 +113,7 @@ struct DashboardView: View {
     }
 
     private func timerRow(_ property: Property, _ s: PatrolSchedule, now: Date) -> some View {
-        let color: Color = s.isOverdue ? .fwIncident : s.isWarning ? .fwFollow : .fwEmber
+        let color: Color = s.isOverdue ? .fwIncident : s.isWarning ? .fwFollow : .fwPrimary
         return HStack(spacing: 12) {
             ZStack {
                 Circle().stroke(Color.fwLine, lineWidth: 4)
@@ -123,7 +123,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(property.name).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Color.fwInk).lineLimit(1)
                 Text(s.isOverdue ? "Overdue since \(Fmt.time(s.overdueSince ?? now))" : "Due at \(Fmt.time(s.dueAt))")
-                    .font(.caption).foregroundStyle(s.isOverdue ? Color.fwIncident : Color.fwInk2)
+                    .font(.caption).foregroundStyle(s.isOverdue ? Color.fwIncidentInk : Color.fwInk2)
             }
             Spacer()
             Text(s.isOverdue ? Fmt.countdown(now.timeIntervalSince(s.overdueSince ?? now)) : Fmt.countdown(s.remaining))
@@ -146,7 +146,7 @@ struct DashboardView: View {
                 VStack(spacing: 12) {
                     EmptyStateView(symbol: "building.2", title: "No sites yet", message: "Add your first monitored location to start logging fire watch patrols.")
                     Button("Add Property") { showNewProperty = true }
-                        .buttonStyle(EmberButtonStyle())
+                        .buttonStyle(OutlineButtonStyle())
                 }
                 .fwCard()
             } else {
@@ -198,7 +198,7 @@ struct DashboardView: View {
                 EmptyStateView(symbol: "figure.walk", title: "No patrols yet", message: store.properties.isEmpty ? "Add a property, then log your first patrol." : "Open a property to log your first patrol.")
                 if store.properties.isEmpty {
                     Button("Add Property") { showNewProperty = true }
-                        .buttonStyle(EmberButtonStyle())
+                        .buttonStyle(OutlineButtonStyle())
                 }
             } else {
                 ForEach(Array(store.patrols.prefix(6))) { patrol in
@@ -235,7 +235,7 @@ struct DashboardView: View {
                 Text(Fmt.time(p.dateTime)).font(FWFont.mono(.caption, weight: .semibold)).foregroundStyle(Color.fwInk)
                 if let state = p.syncState {
                     Image(systemName: state == .pending ? "icloud.and.arrow.up" : "exclamationmark.icloud")
-                        .font(.caption2).foregroundStyle(state == .pending ? Color.fwFollow : Color.fwIncident)
+                        .font(.caption2).foregroundStyle(state == .pending ? Color.fwFollow : Color.fwIncidentInk)
                 } else {
                     Text(Fmt.relative(p.dateTime)).font(.caption2).foregroundStyle(Color.fwInk3)
                 }
@@ -271,7 +271,7 @@ struct DashboardView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.fwRaised, in: .rect(cornerRadius: 10))
                     .overlay(alignment: .leading) {
-                        UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 10).fill(Color.fwEmber).frame(width: 3)
+                        UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 10).fill(Color.fwPrimary).frame(width: 3)
                     }
                 }
                 if store.notes.count > 3 {
@@ -317,7 +317,7 @@ struct SyncStatusBar: View {
     private var color: Color {
         if store.failedCount > 0 { return .fwIncident }
         if !store.isOnline { return .fwFollow }
-        return .fwEmber
+        return .fwLink
     }
 
     private var symbol: String {
@@ -358,7 +358,7 @@ struct SyncQueueSheet: View {
                         }
                         Text(Fmt.dateTime(op.createdAt)).font(.caption).foregroundStyle(Color.fwInk3)
                         if let error = op.error {
-                            Text(error).font(.caption).foregroundStyle(op.failed ? Color.fwIncident : Color.fwInk2)
+                            Text(error).font(.caption).foregroundStyle(op.failed ? Color.fwIncidentInk : Color.fwInk2)
                         }
                         if op.failed {
                             HStack {
@@ -402,7 +402,7 @@ struct AllPatrolsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        chip("All", count: store.patrols.count, color: .fwEmber, value: nil)
+                        chip("All", count: store.patrols.count, color: .fwPrimary, value: nil)
                         ForEach(PatrolStatus.allCases) { s in
                             chip(s.label, count: store.patrols.filter { $0.status == s }.count, color: s.color, value: s)
                         }

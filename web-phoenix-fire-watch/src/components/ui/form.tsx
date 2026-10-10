@@ -73,7 +73,7 @@ FormItem.displayName = "FormItem";
 const FormLabel = ({ ref, className, ...props }: React.ComponentPropsWithRef<typeof LabelPrimitive.Root>) => {
   const { error, formItemId } = useFormField();
 
-  return <Label ref={ref} className={cn(error && "text-destructive", className)} htmlFor={formItemId} {...props} />;
+  return <Label ref={ref} className={cn(error && "text-danger-ink", className)} htmlFor={formItemId} {...props} />;
 };
 FormLabel.displayName = "FormLabel";
 
@@ -108,7 +108,7 @@ const FormMessage = ({ ref, className, children, ...props }: React.ComponentProp
   }
 
   return (
-    <p ref={ref} id={formMessageId} className={cn("text-sm font-medium text-destructive", className)} {...props}>
+    <p ref={ref} id={formMessageId} className={cn("text-sm font-medium text-danger-ink", className)} {...props}>
       {body}
     </p>
   );

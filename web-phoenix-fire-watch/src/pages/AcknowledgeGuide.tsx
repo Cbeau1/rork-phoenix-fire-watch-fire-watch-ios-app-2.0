@@ -65,7 +65,7 @@ const AcknowledgeGuide = () => {
         </div>
 
         <header className="mt-8 animate-fade-up">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ember">Required before your first shift</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-link">Required before your first shift</p>
           <h1 className="mt-2 font-display text-3xl font-bold text-ink sm:text-4xl">
             {firstName ? `${firstName}, read your field guide` : "Read your field guide"}
           </h1>
@@ -90,7 +90,7 @@ const AcknowledgeGuide = () => {
               checked={checked}
               disabled={!reachedEnd}
               onCheckedChange={(v) => setChecked(v === true)}
-              className="mt-0.5 h-5 w-5 border-[#8A93A3] data-[state=checked]:border-ember data-[state=checked]:bg-ember data-[state=checked]:text-white"
+              className="mt-0.5 h-5 w-5 border-line-hover data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
             />
             <label htmlFor="ack-guide" className={reachedEnd ? "text-sm leading-relaxed text-ink" : "text-sm leading-relaxed text-ink-3"}>
               I have read and understand the {FIELD_GUIDE_TITLE} and will follow it on every shift.

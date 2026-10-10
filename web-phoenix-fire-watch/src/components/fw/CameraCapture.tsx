@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { Aperture, CameraOff, Loader2, RefreshCw, SwitchCamera, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { THEME } from "@/lib/theme";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ const drawStamp = (ctx: CanvasRenderingContext2D, w: number, h: number, lines: s
   grad.addColorStop(1, "rgba(0,0,0,0.72)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, h - boxH - pad * 2, w, boxH + pad * 2);
-  ctx.fillStyle = "#DC2626";
+  ctx.fillStyle = THEME.primary;
   ctx.fillRect(pad, h - boxH, Math.max(3, Math.round(size / 5)), boxH - pad);
   ctx.textBaseline = "top";
   text.forEach((t, i) => {
@@ -155,7 +156,7 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
 
         <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pb-10 pt-[max(1rem,var(--safe-top))]">
           <span className="inline-flex items-center gap-2 rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium text-white ring-1 ring-white/15">
-            <span className={cn("h-2 w-2 rounded-full", state === "live" ? "animate-ember-pulse bg-status-incident" : "bg-ink-3")} />
+            <span className={cn("h-2 w-2 rounded-full", state === "live" ? "animate-alert-pulse bg-status-incident" : "bg-ink-3")} />
             {state === "live" ? "LIVE · photos are time-stamped" : "Camera"}
           </span>
           <button
@@ -171,7 +172,7 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
         {state !== "live" && (
           <div className="absolute inset-0 flex items-center justify-center p-8 text-center">
             {state === "starting" ? (
-              <Loader2 className="h-8 w-8 animate-spin text-ember" />
+              <Loader2 className="h-8 w-8 animate-spin text-link" />
             ) : (
               <div className="max-w-sm">
                 <CameraOff className="mx-auto h-10 w-10 text-ink-2" strokeWidth={1.6} />
@@ -206,7 +207,7 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
           aria-label="Take photo"
           className="focus-ring group flex h-[76px] w-[76px] items-center justify-center rounded-full border-4 border-white/90 transition-transform active:scale-90 disabled:opacity-40"
         >
-          <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-ember transition-colors group-hover:bg-ember-hover">
+          <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-primary transition-colors group-hover:bg-primary-hover">
             <Aperture className="h-6 w-6 text-white" />
           </span>
         </button>

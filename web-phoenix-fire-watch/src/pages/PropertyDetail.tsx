@@ -58,7 +58,7 @@ const DetailStat = ({
   icon: typeof ShieldCheck;
   iconClass: string;
 }) => (
-  <div className="flex items-start gap-4 rounded-xl border border-line bg-surface p-5 sm:p-6">
+  <div className="flex items-start gap-4 rounded-xl border border-line bg-surface shadow-card p-5 sm:p-6">
     <Icon className={`h-9 w-9 shrink-0 ${iconClass}`} strokeWidth={1.6} />
     <div>
       <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-ink-2 sm:text-xs">{label}</div>
@@ -245,10 +245,10 @@ const PropertyDetail = () => {
       <GeofenceCard property={property} isAdmin={isAdmin} />
 
       <div className="mt-5 grid grid-cols-2 gap-4 lg:gap-5 xl:grid-cols-4">
-        <DetailStat label="Total Patrols" value={stats.total} icon={PersonStanding} iconClass="text-ember" />
+        <DetailStat label="Total Patrols" value={stats.total} icon={PersonStanding} iconClass="text-link" />
         <DetailStat label="Clear" value={stats.clear} icon={ShieldCheck} iconClass="text-status-clear" />
         <DetailStat label="Follow-up" value={stats.followUp} icon={FileText} iconClass="text-status-follow" />
-        <DetailStat label="Incidents" value={stats.incidents} icon={AlertTriangle} iconClass="text-status-incident" />
+        <DetailStat label="Incidents" value={stats.incidents} icon={AlertTriangle} iconClass="text-status-incident-ink" />
       </div>
 
       <Card className="mt-5">
@@ -257,7 +257,7 @@ const PropertyDetail = () => {
           <ContactField label="Contact Name">{property.contactName || <span className="text-ink-3">—</span>}</ContactField>
           <ContactField label="Phone">
             {property.contactPhone ? (
-              <a href={`tel:${property.contactPhone}`} className="focus-ring rounded font-mono hover:text-ember">
+              <a href={`tel:${property.contactPhone}`} className="focus-ring rounded font-mono hover:text-link">
                 {property.contactPhone}
               </a>
             ) : (
@@ -266,7 +266,7 @@ const PropertyDetail = () => {
           </ContactField>
           <ContactField label="Email">
             {property.contactEmail ? (
-              <a href={`mailto:${property.contactEmail}`} className="focus-ring rounded hover:text-ember">
+              <a href={`mailto:${property.contactEmail}`} className="focus-ring rounded hover:text-link">
                 {property.contactEmail}
               </a>
             ) : (
@@ -292,16 +292,16 @@ const PropertyDetail = () => {
             <Select value={selected} onValueChange={setSelected} disabled={sessions.length === 0}>
               <SelectTrigger
                 aria-label="Select session"
-                className="h-10 w-full min-w-[220px] border-[#7A8394] bg-raised text-ink ring-offset-canvas focus:ring-ember/50 sm:w-auto"
+                className="h-10 w-full min-w-[220px] border-line-strong bg-raised text-ink ring-offset-canvas focus:ring-link/50 sm:w-auto"
               >
                 <SelectValue placeholder="Select session" />
               </SelectTrigger>
               <SelectContent className="border-line bg-surface text-ink">
-                <SelectItem value={ALL} className="focus:bg-ember focus:text-white">
+                <SelectItem value={ALL} className="focus:bg-primary focus:text-white">
                   All Patrols
                 </SelectItem>
                 {sessions.map((s) => (
-                  <SelectItem key={s.id} value={s.id} className="focus:bg-ember focus:text-white">
+                  <SelectItem key={s.id} value={s.id} className="focus:bg-primary focus:text-white">
                     {sessionLabel(s)}
                   </SelectItem>
                 ))}
@@ -349,14 +349,14 @@ const PropertyDetail = () => {
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-raised/50 px-5 py-3.5">
                     <div className="min-w-0">
                       <div className="flex items-center gap-3">
-                        <span className="h-2 w-2 shrink-0 animate-ember-pulse rounded-full bg-ember" aria-hidden />
+                        <span className="h-2 w-2 shrink-0 animate-primary-pulse rounded-full bg-link" aria-hidden />
                         <span className="text-[15px] font-semibold text-ink">{sessionLabel(s)}</span>
                       </div>
                       <div className="mt-0.5 pl-5 text-xs text-ink-3">
                         {s.patrols.length} {s.patrols.length === 1 ? "patrol" : "patrols"}
                         {followUps > 0 && <span className="text-status-follow"> · {followUps} follow-up</span>}
                         {incidents > 0 && (
-                          <span className="text-status-incident">
+                          <span className="text-status-incident-ink">
                             {" "}
                             · {incidents} {incidents === 1 ? "incident" : "incidents"}
                           </span>
@@ -367,7 +367,7 @@ const PropertyDetail = () => {
                       <button
                         type="button"
                         onClick={() => openViewer(s.patrols, sessionLabel(s))}
-                        className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-lg border border-ember/40 bg-ember/10 px-3 text-xs font-semibold text-ember transition-colors hover:bg-ember hover:text-white"
+                        className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 text-xs font-semibold text-link transition-colors hover:bg-primary hover:text-white"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         View Report
@@ -377,7 +377,7 @@ const PropertyDetail = () => {
                         onClick={() => void downloadPdf(s.patrols, sessionLabel(s))}
                         disabled={!!busy}
                         aria-label="Download session PDF"
-                        className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-ink-2 transition-colors hover:text-ember disabled:opacity-40"
+                        className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-ink-2 transition-colors hover:text-link disabled:opacity-40"
                       >
                         <Download className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">PDF</span>
@@ -424,7 +424,7 @@ const PropertyDetail = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#7A8394] bg-transparent text-ink hover:bg-raised hover:text-ink">
+            <AlertDialogCancel className="border-line-strong bg-transparent text-ink hover:bg-raised hover:text-ink">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -463,7 +463,7 @@ const PropertyDetail = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#7A8394] bg-transparent text-ink hover:bg-raised hover:text-ink">
+            <AlertDialogCancel className="border-line-strong bg-transparent text-ink hover:bg-raised hover:text-ink">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

@@ -463,8 +463,8 @@ export const PersonnelTab = ({ worker }: { worker: Worker }) => {
   const records = q.data ?? [];
   return (
     <div className="space-y-5">
-      <div className="flex items-start gap-2 rounded-lg border border-ember/30 bg-ember/[0.06] px-4 py-3 text-sm text-ink-2">
-        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-ember" />
+      <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/[0.06] px-4 py-3 text-sm text-ink-2">
+        <Lock className="mt-0.5 h-4 w-4 shrink-0 text-link" />
         Confidential. Viewing is logged. Personnel records never appear in client reports, officer reports or the mobile apps.
       </div>
       {worker.source === "agency" && <RestrictionSection worker={worker} />}

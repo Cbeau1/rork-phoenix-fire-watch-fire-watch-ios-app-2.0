@@ -22,7 +22,7 @@ export const AuditList = ({ entries }: { entries: AuditEntry[] }) =>
                 <span
                   className={cn(
                     "font-medium",
-                    ["view", "preview", "download", "export"].includes(a.action) ? "text-sky-300" : a.action === "purge" || a.action === "delete" ? "text-status-incident" : "text-ink",
+                    ["view", "preview", "download", "export"].includes(a.action) ? "text-sky-300" : a.action === "purge" || a.action === "delete" ? "text-status-incident-ink" : "text-ink",
                   )}
                 >
                   {AUDIT_ACTION[a.action] ?? a.action}

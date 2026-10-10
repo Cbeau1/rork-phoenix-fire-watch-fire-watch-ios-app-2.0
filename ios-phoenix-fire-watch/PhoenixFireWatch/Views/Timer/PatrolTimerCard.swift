@@ -24,7 +24,7 @@ struct PatrolTimerCard: View {
         guard let s else { return .fwInk3 }
         if s.isOverdue { return .fwIncident }
         if s.isWarning { return .fwFollow }
-        return .fwEmber
+        return .fwLink
     }
 
     @ViewBuilder
@@ -46,7 +46,7 @@ struct PatrolTimerCard: View {
                         if let s = schedule {
                             if let since = s.overdueSince {
                                 Text("Was due at \(Fmt.time(since)). Log a patrol to restart.")
-                                    .foregroundStyle(Color.fwIncident)
+                                    .foregroundStyle(Color.fwIncidentInk)
                             } else {
                                 Text("Next due \(Text(Fmt.time(s.dueAt)).foregroundStyle(Color.fwInk).font(FWFont.mono(.subheadline))) · alert \(Fmt.time(s.warnAt))")
                             }
@@ -78,7 +78,7 @@ struct PatrolTimerCard: View {
                 HStack(spacing: 12) {
                     Image(systemName: isOn ? "bell.badge.fill" : "bell.slash")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(isOn ? Color.fwEmber : Color.fwInk3)
+                        .foregroundStyle(isOn ? Color.fwLink : Color.fwInk3)
                         .frame(width: 26)
                         .contentTransition(.symbolEffect(.replace))
                     VStack(alignment: .leading, spacing: 1) {
@@ -91,7 +91,7 @@ struct PatrolTimerCard: View {
                     }
                 }
             }
-            .tint(Color.fwEmber)
+            .tint(Color.fwPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(Color.fwRaised, in: .rect(cornerRadius: 12))
@@ -172,17 +172,17 @@ struct PatrolTimerCard: View {
                             .font(.system(.subheadline, weight: .semibold))
                             .foregroundStyle(Color.fwInk)
                         if savingInterval {
-                            ProgressView().controlSize(.mini).tint(Color.fwEmber)
+                            ProgressView().controlSize(.mini).tint(Color.fwLink)
                         } else {
                             Image(systemName: "chevron.up.chevron.down")
                                 .font(.caption2.weight(.bold))
-                                .foregroundStyle(Color.fwEmber)
+                                .foregroundStyle(Color.fwLink)
                         }
                     }
                     .padding(.horizontal, 12)
                     .frame(minHeight: 36)
                     .background(Color.fwRaised, in: Capsule())
-                    .overlay { Capsule().strokeBorder(Color.fwEmber.opacity(0.4), lineWidth: 1) }
+                    .overlay { Capsule().strokeBorder(Color.fwPrimary.opacity(0.4), lineWidth: 1) }
                 }
                 .disabled(savingInterval)
                 Spacer(minLength: 0)
@@ -234,7 +234,7 @@ struct PatrolTimerCard: View {
                         .font(.system(.footnote, weight: .semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
-                        .background(Color.fwEmber.opacity(0.1), in: .rect(cornerRadius: 11))
+                        .background(Color.fwPrimary.opacity(0.1), in: .rect(cornerRadius: 11))
                 }
             default:
                 Label("Alerts arrive even when the app is closed or the phone is locked.", systemImage: "lock.iphone")
@@ -246,7 +246,7 @@ struct PatrolTimerCard: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.fwInk2)
             }
-            .tint(Color.fwEmber)
+            .tint(Color.fwPrimary)
         }
     }
 
@@ -269,7 +269,7 @@ struct RunningPill: View {
     var body: some View {
         HStack(spacing: 5) {
             Circle()
-                .fill(Color.fwEmber)
+                .fill(Color.fwPrimary)
                 .frame(width: 6, height: 6)
                 .opacity(pulse ? 0.35 : 1)
                 .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
@@ -277,10 +277,10 @@ struct RunningPill: View {
                 .font(.system(size: 10, weight: .bold))
                 .tracking(1.2)
         }
-        .foregroundStyle(Color.fwEmber)
+        .foregroundStyle(Color.fwLink)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(Color.fwEmber.opacity(0.12), in: Capsule())
+        .background(Color.fwPrimary.opacity(0.12), in: Capsule())
         .onAppear { pulse = true }
     }
 }

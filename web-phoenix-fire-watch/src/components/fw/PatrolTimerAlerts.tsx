@@ -112,13 +112,13 @@ export const PatrolTimerAlerts = () => {
             <div
               className={cn(
                 "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
-                due ? "animate-ember-pulse bg-status-incident text-white" : "bg-status-follow/15 text-status-follow",
+                due ? "animate-alert-pulse bg-status-incident text-white" : "bg-status-follow/15 text-status-follow",
               )}
             >
               <AlarmClock className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className={cn("text-xs font-semibold uppercase tracking-[0.14em]", due ? "text-status-incident" : "text-status-follow")}>
+              <div className={cn("text-xs font-semibold uppercase tracking-[0.14em]", due ? "text-status-incident-ink" : "text-status-follow")}>
                 {due ? "Patrol due now" : `Patrol due in ${formatCountdown(Math.max(0, a.dueAt - now))}`}
               </div>
               <div className="truncate text-[15px] font-semibold text-ink">{a.propertyName}</div>
@@ -137,7 +137,7 @@ export const PatrolTimerAlerts = () => {
               }}
               className={cn(
                 "focus-ring inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg px-3.5 text-sm font-semibold text-white transition-colors",
-                due ? "bg-status-incident hover:bg-status-incident/90" : "bg-ember hover:bg-ember-hover",
+                due ? "bg-status-incident hover:bg-status-incident/90" : "bg-primary hover:bg-primary-hover",
               )}
             >
               <ClipboardPlus className="h-4 w-4" />

@@ -419,10 +419,10 @@ export const PaymentDialog = ({
               return (
                 <li key={v.r.id} className="rounded-lg border border-line bg-raised px-3 py-2.5">
                   <div className="flex flex-wrap items-center gap-3">
-                    <input type="checkbox" aria-label={`Select ${v.r.code}`} className="h-4 w-4 accent-[#DC2626]" checked={on} onChange={() => toggle(v)} />
+                    <input type="checkbox" aria-label={`Select ${v.r.code}`} className="h-4 w-4 accent-primary" checked={on} onChange={() => toggle(v)} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm text-ink">
-                        <span className="font-mono text-xs text-ember">{v.r.code}</span> · {v.r.party_name} · {v.exp?.vendor}
+                        <span className="font-mono text-xs text-link">{v.r.code}</span> · {v.r.party_name} · {v.exp?.vendor}
                       </div>
                       <div className="text-xs text-ink-3">
                         {v.exp?.code} · approved {fmtMoney(v.approved, v.currency)} · paid {fmtMoney(v.paid, v.currency)} ·{" "}
@@ -440,7 +440,7 @@ export const PaymentDialog = ({
             })}
           </ul>
         )}
-        {errors.rows && <p className="mt-1.5 text-xs text-status-incident">{errors.rows}</p>}
+        {errors.rows && <p className="mt-1.5 text-xs text-status-incident-ink">{errors.rows}</p>}
       </div>
       {chosen.length > 1 && (
         <div className="flex flex-wrap items-end gap-2 rounded-lg border border-line bg-raised p-3">

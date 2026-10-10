@@ -49,7 +49,7 @@ struct ShiftEditorSheet: View {
                     } label: {
                         if busy { ProgressView().tint(.white) } else { Text(saveTitle) }
                     }
-                    .buttonStyle(EmberButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(busy)
                     if isEditing {
                         Button("Delete Shift", role: .destructive) { confirmDelete = true }
@@ -92,12 +92,12 @@ struct ShiftEditorSheet: View {
                         .foregroundStyle(Color.fwInk)
                         .padding(.horizontal, 14)
                         .frame(minHeight: 50)
-                        .background(Color.fwRaised, in: .rect(cornerRadius: 11))
-                        .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(Color.fwEmber.opacity(0.5), lineWidth: 1) }
+                        .background(Color.fwField, in: .rect(cornerRadius: 11))
+                        .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(Color.fwLink, lineWidth: 1) }
                         .submitLabel(.done)
                         .onSubmit { Task { await addName() } }
                     Button("Add") { Task { await addName() } }
-                        .buttonStyle(EmberButtonStyle(fullWidth: false, compact: true))
+                        .buttonStyle(PrimaryButtonStyle(fullWidth: false, compact: true))
                         .disabled(newName.trimmed.isEmpty || busy)
                 }
                 Button("Pick an existing name instead") { addingName = false }
@@ -189,12 +189,12 @@ struct ShiftEditorSheet: View {
                     .font(.system(.headline, weight: .heavy))
                     .monospacedDigit()
             }
-            .foregroundStyle(on ? Color.white : today ? Color.fwEmber : Color.fwInk2)
+            .foregroundStyle(on ? Color.white : today ? Color.fwLink : Color.fwInk2)
             .frame(maxWidth: .infinity, minHeight: 58)
-            .background(on ? Color.fwEmber : Color.fwRaised, in: .rect(cornerRadius: 11))
+            .background(on ? Color.fwPrimary : Color.fwRaised, in: .rect(cornerRadius: 11))
             .overlay {
                 RoundedRectangle(cornerRadius: 11)
-                    .strokeBorder(on ? Color.clear : today ? Color.fwEmber.opacity(0.5) : Color.fwLineStrong, lineWidth: 1)
+                    .strokeBorder(on ? Color.clear : today ? Color.fwPrimary.opacity(0.5) : Color.fwLineStrong, lineWidth: 1)
             }
         }
         .buttonStyle(PressableStyle())
@@ -218,15 +218,15 @@ struct ShiftEditorSheet: View {
                                 Text(preset.label).font(.system(.subheadline, weight: .bold))
                                 Text(ScheduleDates.range(start: preset.start, end: preset.end))
                                     .font(FWFont.mono(.caption2))
-                                    .foregroundStyle(on ? Color.fwEmber : Color.fwInk3)
+                                    .foregroundStyle(on ? Color.fwLink : Color.fwInk3)
                             }
-                            .foregroundStyle(on ? Color.fwEmber : Color.fwInk)
+                            .foregroundStyle(on ? Color.fwLink : Color.fwInk)
                             .padding(.horizontal, 12)
                             .frame(minHeight: 50)
-                            .background(on ? Color.fwEmber.opacity(0.14) : Color.fwRaised, in: .rect(cornerRadius: 11))
+                            .background(on ? Color.fwPrimary.opacity(0.14) : Color.fwRaised, in: .rect(cornerRadius: 11))
                             .overlay {
                                 RoundedRectangle(cornerRadius: 11)
-                                    .strokeBorder(on ? Color.fwEmber.opacity(0.6) : Color.fwLineStrong, lineWidth: 1)
+                                    .strokeBorder(on ? Color.fwPrimary.opacity(0.6) : Color.fwLineStrong, lineWidth: 1)
                             }
                         }
                         .buttonStyle(PressableStyle())
@@ -255,7 +255,7 @@ struct ShiftEditorSheet: View {
                 }
             }
             .font(.caption)
-            .foregroundStyle(start == end ? Color.fwIncident : Color.fwInk3)
+            .foregroundStyle(start == end ? Color.fwIncidentInk : Color.fwInk3)
         }
     }
 
@@ -286,7 +286,7 @@ struct ShiftEditorSheet: View {
                 .lineLimit(2...5)
                 .foregroundStyle(Color.fwInk)
                 .padding(14)
-                .background(Color.fwRaised, in: .rect(cornerRadius: 11))
+                .background(Color.fwField, in: .rect(cornerRadius: 11))
                 .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(Color.fwLineStrong, lineWidth: 1) }
         }
     }
@@ -294,13 +294,13 @@ struct ShiftEditorSheet: View {
     private func fieldLabel(_ text: String, required: Bool) -> some View {
         HStack(spacing: 2) {
             Text(text).font(.system(.subheadline, weight: .medium)).foregroundStyle(Color.fwInk)
-            if required { Text("*").foregroundStyle(Color.fwEmber) }
+            if required { Text("*").foregroundStyle(Color.fwLink) }
         }
     }
 
     private func pickerLabel(_ value: String?, placeholder: String, symbol: String) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: symbol).font(.subheadline).foregroundStyle(value == nil ? Color.fwInk3 : Color.fwEmber).frame(width: 20)
+            Image(systemName: symbol).font(.subheadline).foregroundStyle(value == nil ? Color.fwInk3 : Color.fwLink).frame(width: 20)
             Text(value ?? placeholder)
                 .foregroundStyle(value == nil ? Color.fwInk3 : Color.fwInk)
                 .lineLimit(1)

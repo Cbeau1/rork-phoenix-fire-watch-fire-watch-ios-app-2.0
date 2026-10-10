@@ -6,7 +6,7 @@ import UIKit
 struct SiteThumbView: View {
     let imagePath: String?
     var size: CGFloat = 48
-    var tint: Color = .fwEmber
+    var tint: Color = .fwPrimary
 
     @State private var image: UIImage?
 
@@ -88,9 +88,9 @@ struct SiteImageSection: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12).fill(Color.fwRaised).frame(width: 52, height: 52)
                     if isBusy {
-                        ProgressView().tint(Color.fwEmber)
+                        ProgressView().tint(Color.fwLink)
                     } else {
-                        Image(systemName: "photo.badge.plus").font(.system(size: 22, weight: .semibold)).foregroundStyle(Color.fwEmber)
+                        Image(systemName: "photo.badge.plus").font(.system(size: 22, weight: .semibold)).foregroundStyle(Color.fwLink)
                     }
                 }
                 VStack(alignment: .leading, spacing: 3) {

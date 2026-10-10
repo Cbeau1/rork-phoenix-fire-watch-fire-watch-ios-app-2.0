@@ -70,10 +70,10 @@ const RolePicker = ({ value, onChange }: { value: Role; onChange: (r: Role) => v
         onClick={() => onChange(r)}
         className={cn(
           "focus-ring rounded-lg border px-3 py-2.5 text-left transition-colors",
-          value === r ? "border-ember/60 bg-ember/10" : "border-line bg-raised hover:border-[#7A8394]",
+          value === r ? "border-primary/60 bg-primary/10" : "border-line bg-raised hover:border-line-strong",
         )}
       >
-        <div className={cn("text-sm font-medium", value === r ? "text-ember" : "text-ink")}>{ROLE_LABEL[r]}</div>
+        <div className={cn("text-sm font-medium", value === r ? "text-link" : "text-ink")}>{ROLE_LABEL[r]}</div>
         <div className="mt-0.5 text-xs text-ink-3">{r === "admin" ? "Manages team + everything" : "Logs patrols & notes"}</div>
       </button>
     ))}
@@ -262,7 +262,7 @@ const Team = () => {
                   setOrgEdit(true);
                 }}
                 aria-label="Rename organization"
-                className="focus-ring rounded p-1 text-ink-3 hover:text-ember"
+                className="focus-ring rounded p-1 text-ink-3 hover:text-link"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -430,7 +430,7 @@ const Team = () => {
             </div>
             <div>
               <div className="font-sans text-xs uppercase tracking-[0.14em] text-ink-3">Password</div>
-              <div className="mt-1 select-all text-ember">{created?.password}</div>
+              <div className="mt-1 select-all text-link">{created?.password}</div>
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -492,7 +492,7 @@ const Team = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-[#7A8394] bg-transparent text-ink hover:bg-raised hover:text-ink">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-line-strong bg-transparent text-ink hover:bg-raised hover:text-ink">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-status-incident text-white hover:bg-status-incident/90"
               onClick={(e) => {
@@ -545,7 +545,7 @@ const MemberList = ({
           <div
             className={cn(
               "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1",
-              m.role === "admin" ? "bg-ember/10 text-ember ring-ember/30" : "bg-surface text-silver ring-line",
+              m.role === "admin" ? "bg-primary/10 text-link ring-link/30" : "bg-surface text-silver ring-line",
             )}
           >
             {initials(m.name)}
@@ -566,7 +566,7 @@ const MemberList = ({
               <span
                 className={cn(
                   "rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
-                  m.role === "admin" ? "bg-ember/10 text-ember ring-ember/30" : "bg-surface text-ink-2 ring-line",
+                  m.role === "admin" ? "bg-primary/10 text-link ring-link/30" : "bg-surface text-ink-2 ring-line",
                 )}
               >
                 {ROLE_LABEL[m.role]}
@@ -577,7 +577,7 @@ const MemberList = ({
                 </span>
               )}
               {!m.active && (
-                <span className="rounded-full bg-status-incident/10 px-2 py-0.5 text-[11px] font-medium text-status-incident ring-1 ring-inset ring-status-incident/30">
+                <span className="rounded-full bg-status-incident/10 px-2 py-0.5 text-[11px] font-medium text-status-incident-ink ring-1 ring-inset ring-status-incident/30">
                   Deactivated
                 </span>
               )}
@@ -587,7 +587,7 @@ const MemberList = ({
               {link ? (
                 <Link
                   to={`/workforce/workers/${link.workerId}`}
-                  className="focus-ring inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 ring-1 ring-inset ring-line hover:text-ember hover:ring-ember/40"
+                  className="focus-ring inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 ring-1 ring-inset ring-line hover:text-link hover:ring-link/40"
                 >
                   <Briefcase className="h-3 w-3" />
                   {link.code}
@@ -645,7 +645,7 @@ const MemberList = ({
                 <DropdownMenuSeparator className="bg-line" />
                 <DropdownMenuItem
                   onClick={() => onRemove(m)}
-                  className="gap-2 text-status-incident focus:bg-status-incident/10 focus:text-status-incident"
+                  className="gap-2 text-status-incident-ink focus:bg-status-incident/10 focus:text-status-incident-ink"
                 >
                   <Trash2 className="h-4 w-4" /> Remove login
                 </DropdownMenuItem>

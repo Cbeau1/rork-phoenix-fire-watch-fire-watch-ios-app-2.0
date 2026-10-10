@@ -173,7 +173,7 @@ export const UploadDialog = ({
     >
       <div>
         <label htmlFor="wf-file" className="mb-2 block text-sm font-medium text-ink">
-          File<span className="ml-0.5 text-ember">*</span>
+          File<span className="ml-0.5 text-link">*</span>
         </label>
         <input
           ref={fileRef}
@@ -183,7 +183,7 @@ export const UploadDialog = ({
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="block w-full rounded-lg border border-line bg-raised px-3 py-2.5 text-sm text-ink file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-sm file:text-ink"
         />
-        {errors.file && <p className="mt-1.5 text-xs text-status-incident">{errors.file}</p>}
+        {errors.file && <p className="mt-1.5 text-xs text-status-incident-ink">{errors.file}</p>}
       </div>
       {replace?.signed && (
         <p className="rounded-lg border border-line bg-raised px-3.5 py-2.5 text-sm text-ink-2">
@@ -211,7 +211,7 @@ export const UploadDialog = ({
         <>
           {forcedRestricted || forcedFinancial ? (
             <p className="flex items-center gap-2 rounded-lg border border-line bg-raised px-3.5 py-2.5 text-sm text-ink-2">
-              <Lock className="h-4 w-4 text-ember" />
+              <Lock className="h-4 w-4 text-link" />
               {forcedRestricted ? "Stored as Restricted — only admins with restricted-document access can open it." : "Stored as Financial — only admins with agency-financials access can open it."}
             </p>
           ) : (
@@ -224,7 +224,7 @@ export const UploadDialog = ({
           )}
           <CheckField label="Signed document" hint="Signed documents are never overwritten — new uploads become new versions." checked={signed} onChange={setSigned} />
           {!needsPerm && (
-            <p className="text-sm text-status-incident">You don't have permission to upload documents with this classification.</p>
+            <p className="text-sm text-status-incident-ink">You don't have permission to upload documents with this classification.</p>
           )}
         </>
       )}
@@ -398,7 +398,7 @@ export const DocumentsPanel = ({
       : null;
 
   return (
-    <div className={cn(!compact && "rounded-xl border border-line bg-surface")}>
+    <div className={cn(!compact && "rounded-xl border border-line bg-surface shadow-card")}>
       <div className={cn("flex flex-wrap items-center justify-between gap-3", compact ? "mb-3" : "px-5 pt-5 sm:px-6")}>
         <div>
           <h3 className={cn("font-display font-bold text-ink", compact ? "text-base" : "text-lg sm:text-xl")}>{title}</h3>
@@ -435,7 +435,7 @@ export const DocumentsPanel = ({
                 <li key={d.id} className={cn("rounded-lg border border-line bg-raised px-4 py-3.5", d.archived_at && "opacity-60")}>
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="flex min-w-0 items-start gap-3">
-                      <FileText className="mt-0.5 h-5 w-5 shrink-0 text-ember" />
+                      <FileText className="mt-0.5 h-5 w-5 shrink-0 text-link" />
                       <div className="min-w-0">
                         <div className="truncate font-medium text-ink">{d.title}</div>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-3">
@@ -499,7 +499,7 @@ export const DocumentsPanel = ({
                       </Button>
                       {d.archived_at && wf.perms.purge && (
                         <Button variant="ghost" size="icon" aria-label="Delete permanently" onClick={() => setPurgeFor(d)}>
-                          <Trash2 className="text-status-incident" />
+                          <Trash2 className="text-status-incident-ink" />
                         </Button>
                       )}
                     </div>

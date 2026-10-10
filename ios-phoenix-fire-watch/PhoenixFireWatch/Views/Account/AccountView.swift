@@ -55,8 +55,8 @@ struct AccountView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
                 ZStack {
-                    Circle().fill(Color.fwEmber.opacity(0.15)).frame(width: 58, height: 58)
-                    Text(auth.user?.initials ?? "FW").font(.system(.title3, weight: .heavy)).foregroundStyle(Color.fwEmber)
+                    Circle().fill(Color.fwPrimary.opacity(0.15)).frame(width: 58, height: 58)
+                    Text(auth.user?.initials ?? "FW").font(.system(.title3, weight: .heavy)).foregroundStyle(Color.fwLink)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(auth.user?.name ?? "").font(.system(.title3, weight: .bold)).foregroundStyle(Color.fwInk)
@@ -79,7 +79,7 @@ struct AccountView: View {
                             }
                         }
                     }
-                    .buttonStyle(EmberButtonStyle(compact: true))
+                    .buttonStyle(PrimaryButtonStyle(compact: true))
                     .disabled(name.trimmed.isEmpty || !network.isOnline)
                 }
             } else {
@@ -99,8 +99,8 @@ struct AccountView: View {
         } label: {
             HStack(spacing: 14) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 11).fill(Color.fwEmber.opacity(0.14)).frame(width: 44, height: 44)
-                    Image(systemName: "person.2.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(Color.fwEmber)
+                    RoundedRectangle(cornerRadius: 11).fill(Color.fwPrimary.opacity(0.14)).frame(width: 44, height: 44)
+                    Image(systemName: "person.2.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(Color.fwLink)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Team & Logins").font(.system(.headline, weight: .bold)).foregroundStyle(Color.fwInk)
@@ -117,7 +117,7 @@ struct AccountView: View {
 
     private var passwordCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionLabel(text: "Change password", color: .fwEmber)
+            SectionLabel(text: "Change password", color: .fwLink)
             FWField(label: "New password", text: $newPassword, placeholder: "At least 8 characters", contentType: .newPassword, secure: true)
             Button("Update Password") {
                 Task {
@@ -142,7 +142,7 @@ struct AccountView: View {
 
     private var dataCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionLabel(text: "Data & privacy", color: .fwEmber)
+            SectionLabel(text: "Data & privacy", color: .fwLink)
             Text("Automatically delete patrols, photos and resolved notes older than the retention period.")
                 .font(.footnote)
                 .foregroundStyle(Color.fwInk2)
@@ -164,7 +164,7 @@ struct AccountView: View {
                     Text("Retention").foregroundStyle(Color.fwInk)
                     Spacer()
                     Text(RetentionOption.label(for: auth.user?.retentionDays)).foregroundStyle(Color.fwInk2)
-                    Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(Color.fwEmber)
+                    Image(systemName: "chevron.up.chevron.down").font(.caption).foregroundStyle(Color.fwLink)
                 }
                 .padding(14)
                 .background(Color.fwRaised, in: .rect(cornerRadius: 11))
@@ -188,7 +188,7 @@ struct AccountView: View {
     private func linkRow(_ title: String, _ symbol: String, _ url: URL) -> some View {
         Link(destination: url) {
             HStack(spacing: 12) {
-                Image(systemName: symbol).foregroundStyle(Color.fwEmber).frame(width: 24)
+                Image(systemName: symbol).foregroundStyle(Color.fwLink).frame(width: 24)
                 Text(title).foregroundStyle(Color.fwInk)
                 Spacer()
                 Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(Color.fwInk3)
@@ -262,7 +262,7 @@ struct DeleteAccountSheet: View {
                     } label: {
                         if busy { ProgressView().tint(.white) } else { Text("Delete Permanently") }
                     }
-                    .buttonStyle(EmberButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(!canDelete || busy)
                 }
                 .padding(16)

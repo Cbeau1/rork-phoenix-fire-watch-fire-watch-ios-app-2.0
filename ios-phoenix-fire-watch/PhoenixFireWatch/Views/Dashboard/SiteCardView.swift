@@ -13,7 +13,7 @@ struct SiteCardView: View {
         guard let schedule else { return .fwLine }
         if schedule.isOverdue { return .fwIncident }
         if schedule.isWarning { return .fwFollow }
-        return .fwEmber
+        return .fwLink
     }
 
     var body: some View {
@@ -67,7 +67,7 @@ struct SiteCardView: View {
                 Button(action: onLog) {
                     Label("Log Patrol", systemImage: "plus")
                 }
-                .buttonStyle(EmberButtonStyle(fullWidth: false, compact: true))
+                .buttonStyle(PrimaryButtonStyle(fullWidth: false, compact: true))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -89,7 +89,7 @@ struct SiteCardView: View {
                 Image(systemName: "alarm.fill")
             }
             .font(.system(.subheadline, weight: .semibold))
-            .foregroundStyle(schedule.isOverdue ? Color.fwIncident : schedule.isWarning ? Color.fwFollow : Color.fwInk2)
+            .foregroundStyle(schedule.isOverdue ? Color.fwIncidentInk : schedule.isWarning ? Color.fwFollow : Color.fwInk2)
             .lineLimit(1)
         } else {
             Label("Timer off", systemImage: "alarm")

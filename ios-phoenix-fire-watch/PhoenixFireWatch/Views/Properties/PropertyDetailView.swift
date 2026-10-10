@@ -55,14 +55,14 @@ struct PropertyDetailView: View {
                 } label: {
                     Label("Log Patrol", systemImage: "plus.circle.fill")
                 }
-                .buttonStyle(EmberButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
 
                 PatrolTimerCard(property: property)
 
                 GeofenceSection(property: property, isAdmin: auth.isAdmin)
 
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                    StatTile(label: "Total", value: stats.total, color: .fwEmber, symbol: "figure.walk")
+                    StatTile(label: "Total", value: stats.total, color: .fwLink, symbol: "figure.walk")
                     StatTile(label: "Clear", value: stats.clear, color: .fwClear, symbol: "checkmark.shield.fill")
                     StatTile(label: "Follow-up", value: stats.followUp, color: .fwFollow, symbol: "exclamationmark.bubble.fill")
                     StatTile(label: "Incidents", value: stats.incidents, color: .fwIncident, symbol: "exclamationmark.triangle.fill")
@@ -141,7 +141,7 @@ struct PropertyDetailView: View {
 
     private func contactCard(_ property: Property) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            SectionLabel(text: "Property Contact", color: .fwEmber)
+            SectionLabel(text: "Property Contact", color: .fwLink)
             if property.contactName.isEmpty && property.contactPhone.isEmpty && property.contactEmail.isEmpty {
                 Text("No contact on file.").font(.subheadline).foregroundStyle(Color.fwInk3)
             }
@@ -168,7 +168,7 @@ struct PropertyDetailView: View {
             Image(systemName: symbol).font(.system(size: 13)).foregroundStyle(Color.fwInk3).frame(width: 20)
             Text(text)
                 .font(mono ? FWFont.mono(.subheadline) : .subheadline)
-                .foregroundStyle(url == nil ? Color.fwInk : Color.fwEmberHover)
+                .foregroundStyle(url == nil ? Color.fwInk : Color.fwLinkHover)
             Spacer()
         }
         if let url {
@@ -193,11 +193,11 @@ struct PropertyDetailView: View {
                 } label: {
                     Label("Report", systemImage: "doc.richtext.fill")
                         .font(.system(.footnote, weight: .semibold))
-                        .foregroundStyle(Color.fwEmberHover)
+                        .foregroundStyle(Color.fwLinkHover)
                         .padding(.horizontal, 12)
                         .frame(minHeight: 34)
-                        .background(Color.fwEmber.opacity(0.12), in: Capsule())
-                        .overlay { Capsule().strokeBorder(Color.fwEmber.opacity(0.35), lineWidth: 1) }
+                        .background(Color.fwPrimary.opacity(0.12), in: Capsule())
+                        .overlay { Capsule().strokeBorder(Color.fwPrimary.opacity(0.35), lineWidth: 1) }
                 }
                 .buttonStyle(PressableStyle())
             }

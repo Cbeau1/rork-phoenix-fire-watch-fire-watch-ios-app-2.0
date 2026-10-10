@@ -39,7 +39,7 @@ const Dashboard = () => {
         subtitle="Real-time patrol monitoring and activity overview"
         actions={
           <>
-            <Button asChild>
+            <Button asChild variant="outline">
               <Link to="/properties/new">
                 <Plus />
                 Add Property
@@ -77,7 +77,7 @@ const Dashboard = () => {
               title="No sites yet"
               description="Add your first monitored location to start logging fire watch patrols."
               action={
-                <Button asChild>
+                <Button asChild variant="outline">
                   <Link to="/properties/new">
                     <Plus />
                     Add Property
@@ -103,7 +103,7 @@ const Dashboard = () => {
             action={
               <Link
                 to="/patrols"
-                className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded pt-1 text-sm font-medium text-ember hover:text-ember-hover"
+                className="focus-ring inline-flex shrink-0 items-center gap-1.5 rounded pt-1 text-sm font-medium text-link hover:text-link-hover"
               >
                 View All
                 <ArrowRight className="h-4 w-4" />
@@ -140,7 +140,7 @@ const Dashboard = () => {
                 type="button"
                 onClick={() => setNoteOpen(true)}
                 aria-label="Add watch note"
-                className="focus-ring -mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ember transition-colors hover:bg-ember/10"
+                className="focus-ring -mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-link transition-colors hover:bg-primary/10"
               >
                 <Plus className="h-6 w-6" />
               </button>
@@ -162,7 +162,7 @@ const Dashboard = () => {
               </ul>
               <Link
                 to="/notes"
-                className="focus-ring mt-auto flex items-center justify-center gap-1.5 border-t border-line py-3.5 text-sm font-medium text-ember hover:text-ember-hover"
+                className="focus-ring mt-auto flex items-center justify-center gap-1.5 border-t border-line py-3.5 text-sm font-medium text-link hover:text-link-hover"
               >
                 All watch notes
                 <ArrowRight className="h-4 w-4" />

@@ -143,7 +143,7 @@ const LogPatrol = () => {
                 {clockIn.isPending ? <Loader2 className="animate-spin" /> : <LogIn />}
                 Clock In
               </Button>
-              <Link to="/hours" className="focus-ring rounded text-center text-sm font-medium text-ember hover:text-ember-hover sm:text-right">
+              <Link to="/hours" className="focus-ring rounded text-center text-sm font-medium text-link hover:text-link-hover sm:text-right">
                 Go to time clock
               </Link>
             </div>
@@ -207,7 +207,7 @@ const LogPatrol = () => {
 
           <fieldset>
             <legend className="mb-2 block text-sm font-medium text-ink">
-              Status<span className="ml-0.5 text-ember">*</span>
+              Status<span className="ml-0.5 text-link">*</span>
             </legend>
             <div className="grid grid-cols-3 gap-2 sm:max-w-md" role="radiogroup">
               {STATUSES.map((s) => {

@@ -23,7 +23,7 @@ struct StaffRosterSheet: View {
                     } label: {
                         Label("Add Person", systemImage: "person.badge.plus")
                     }
-                    .buttonStyle(EmberButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
                     if schedule.staff.isEmpty {
                         EmptyStateView(symbol: "person.2", title: "No staff yet", message: "Names you add here can be scheduled on any property.")
                             .fwCard()
@@ -59,10 +59,10 @@ struct StaffRosterSheet: View {
         let login = schedule.members.first { $0.id == member.profileId }
         return HStack(spacing: 12) {
             ZStack {
-                Circle().fill(login == nil ? Color.fwRaised : Color.fwEmber.opacity(0.14)).frame(width: 40, height: 40)
+                Circle().fill(login == nil ? Color.fwRaised : Color.fwPrimary.opacity(0.14)).frame(width: 40, height: 40)
                 Text(member.initials)
                     .font(.system(.subheadline, weight: .bold))
-                    .foregroundStyle(login == nil ? Color.fwSilver : Color.fwEmber)
+                    .foregroundStyle(login == nil ? Color.fwSilver : Color.fwLink)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(member.name).font(.system(.subheadline, weight: .semibold)).foregroundStyle(Color.fwInk).lineLimit(1)
@@ -125,7 +125,7 @@ struct StaffEditSheet: View {
                             }
                         } label: {
                             HStack {
-                                Image(systemName: profileId == nil ? "link.badge.plus" : "link").foregroundStyle(Color.fwEmber)
+                                Image(systemName: profileId == nil ? "link.badge.plus" : "link").foregroundStyle(Color.fwLink)
                                 Text(schedule.members.first { $0.id == profileId }?.fullName ?? "Not linked")
                                     .foregroundStyle(profileId == nil ? Color.fwInk2 : Color.fwInk)
                                 Spacer()
@@ -145,7 +145,7 @@ struct StaffEditSheet: View {
                     } label: {
                         if busy { ProgressView().tint(.white) } else { Text(member == nil ? "Add Person" : "Save Changes") }
                     }
-                    .buttonStyle(EmberButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(name.trimmed.isEmpty || busy)
                     if member != nil {
                         Button("Remove from Roster", role: .destructive) { confirmRemove = true }

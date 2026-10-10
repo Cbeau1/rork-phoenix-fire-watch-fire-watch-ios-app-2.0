@@ -155,7 +155,7 @@ const TemplatesSection = () => {
             type="button"
             onClick={() => setKind(k)}
             aria-pressed={kind === k}
-            className={cn("focus-ring rounded-lg px-3 py-1.5 text-sm", kind === k ? "bg-ember text-white" : "bg-raised text-ink-2 hover:text-ink")}
+            className={cn("focus-ring rounded-lg px-3 py-1.5 text-sm", kind === k ? "bg-primary text-white" : "bg-raised text-ink-2 hover:text-ink")}
           >
             {CHECKLIST_KIND[k]?.label}
           </button>
@@ -179,7 +179,7 @@ const TemplatesSection = () => {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-sm text-ink">
                   {t.title}
-                  {t.required ? <Pill tone="ember">Required</Pill> : <Pill tone="slate">Optional</Pill>}
+                  {t.required ? <Pill tone="primary">Required</Pill> : <Pill tone="slate">Optional</Pill>}
                   {!t.active && <Pill tone="slate">Inactive</Pill>}
                 </div>
                 {t.doc_category && <div className="text-xs text-ink-3">{DOC_CATEGORY_LABEL[t.doc_category]}</div>}
@@ -339,7 +339,7 @@ const PermissionsSection = () => {
                   <label key={p} className="flex items-start gap-2 text-xs text-ink-2" title={PERM_META[p].description}>
                     <input
                       type="checkbox"
-                      className="mt-0.5 h-4 w-4 accent-[#DC2626]"
+                      className="mt-0.5 h-4 w-4 accent-primary"
                       checked={r[p]}
                       disabled={save.isPending || (p !== "manage" && !INDEPENDENT_PERMS.has(p) && !r.manage)}
                       onChange={(e) => {

@@ -48,16 +48,16 @@ export const GeofenceStatus = memo(({ property, geo, onRetry }: GeofenceStatusPr
     title = "You're on site";
     detail = `${formatDistance(distance ?? 0)} from the center · GPS ±${formatDistance(you?.accuracyM ?? 0)}`;
   } else if (verdict === "outside") {
-    icon = <MapPinX className="h-5 w-5 text-status-incident" />;
+    icon = <MapPinX className="h-5 w-5 text-status-incident-ink" />;
     title = "Outside the geofence";
     detail = `You're about ${formatDistance(distance ?? 0)} away. Move within ${formatDistance(radius)} of ${property.name} to log this patrol.`;
     if ((you?.accuracyM ?? 0) > 100) detail += ` GPS accuracy is low (±${formatDistance(you?.accuracyM ?? 0)}) — try near a window or outside.`;
   } else if (geo.status === "denied") {
-    icon = <LocateOff className="h-5 w-5 text-status-incident" />;
+    icon = <LocateOff className="h-5 w-5 text-status-incident-ink" />;
     title = "Location access is blocked";
     detail = "This property requires you to be on site. Allow location for this site in your browser settings, then retry.";
   } else if (geo.status === "unavailable") {
-    icon = <LocateOff className="h-5 w-5 text-status-incident" />;
+    icon = <LocateOff className="h-5 w-5 text-status-incident-ink" />;
     title = "Can't get your location";
     detail = geo.message;
   }
@@ -82,7 +82,7 @@ export const GeofenceStatus = memo(({ property, geo, onRetry }: GeofenceStatusPr
           center={{ lat: g.lat, lng: g.lng }}
           radiusM={radius}
           you={you}
-          tone={verdict === "inside" ? "clear" : verdict === "checking" ? "ember" : "incident"}
+          tone={verdict === "inside" ? "clear" : verdict === "checking" ? "primary" : "incident"}
           className="h-44 rounded-none border-x-0 border-b-0 sm:h-52"
         />
       )}

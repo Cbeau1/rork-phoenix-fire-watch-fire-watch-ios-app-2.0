@@ -15,11 +15,11 @@ struct GeofenceSection: View {
                 HStack(alignment: .top, spacing: 12) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 11)
-                            .fill((g.isActive ? Color.fwEmber : Color.fwInk3).opacity(0.14))
+                            .fill((g.isActive ? Color.fwPrimary : Color.fwInk3).opacity(0.14))
                             .frame(width: 44, height: 44)
                         Image(systemName: "mappin.and.ellipse.circle.fill")
                             .font(.system(size: 22, weight: .semibold))
-                            .foregroundStyle(g.isActive ? Color.fwEmber : Color.fwInk3)
+                            .foregroundStyle(g.isActive ? Color.fwLink : Color.fwInk3)
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
@@ -73,7 +73,7 @@ struct GeofenceSection: View {
                         } label: {
                             Label("Set Up Geofence", systemImage: "plus.circle.fill")
                         }
-                        .buttonStyle(EmberButtonStyle(compact: true))
+                        .buttonStyle(PrimaryButtonStyle(compact: true))
                     }
                 }
             }

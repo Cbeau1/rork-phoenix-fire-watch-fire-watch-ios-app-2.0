@@ -19,14 +19,14 @@ struct PropertyFormView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 16) {
-                    SectionLabel(text: "Property", color: .fwEmber)
+                    SectionLabel(text: "Property", color: .fwLink)
                     FWField(label: "Property name", text: $input.name, placeholder: "e.g. Hilton Carillon Park", required: true, contentType: .organizationName, autocapitalization: .words, error: errors["name"])
                     FWField(label: "Address", text: $input.address, placeholder: "Street, city, state, ZIP", required: true, contentType: .fullStreetAddress, autocapitalization: .words, error: errors["address"])
                 }
                 .fwCard()
 
                 VStack(alignment: .leading, spacing: 16) {
-                    SectionLabel(text: "Property contact", color: .fwEmber)
+                    SectionLabel(text: "Property contact", color: .fwLink)
                     FWField(label: "Contact name", text: $input.contactName, placeholder: "Full name", contentType: .name, autocapitalization: .words)
                     FWField(label: "Phone", text: $input.contactPhone, placeholder: "727-555-0100", keyboard: .phonePad, contentType: .telephoneNumber)
                     FWField(label: "Email", text: $input.contactEmail, placeholder: "contact@property.com", keyboard: .emailAddress, contentType: .emailAddress, autocapitalization: .never, error: errors["email"])
@@ -34,12 +34,12 @@ struct PropertyFormView: View {
                 .fwCard()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionLabel(text: "Notes", color: .fwEmber)
+                    SectionLabel(text: "Notes", color: .fwLink)
                     TextField("", text: $input.notes, prompt: Text("Access codes, hazards, fire panel location…").foregroundStyle(Color.fwInk3), axis: .vertical)
                         .lineLimit(3...8)
                         .foregroundStyle(Color.fwInk)
                         .padding(14)
-                        .background(Color.fwRaised, in: .rect(cornerRadius: 11))
+                        .background(Color.fwField, in: .rect(cornerRadius: 11))
                         .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(Color.fwLineStrong, lineWidth: 1) }
                 }
                 .fwCard()
@@ -49,7 +49,7 @@ struct PropertyFormView: View {
                 } label: {
                     if saving { ProgressView().tint(.white) } else { Text(isEditing ? "Save Changes" : "Add Property") }
                 }
-                .buttonStyle(EmberButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(saving)
             }
             .padding(16)

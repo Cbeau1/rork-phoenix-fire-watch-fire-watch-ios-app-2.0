@@ -29,9 +29,9 @@ struct PropertiesView: View {
                     if store.properties.isEmpty && store.hasLoaded {
                         EmptyStateView(symbol: "building.2.fill", title: "No properties yet", message: "Add the buildings your team monitors to start logging patrols.")
                         Button("Add Property") { showNew = true }
-                            .buttonStyle(EmberButtonStyle())
+                            .buttonStyle(OutlineButtonStyle())
                     } else if store.properties.isEmpty && store.isLoading {
-                        ProgressView().tint(Color.fwEmber).padding(.top, 60)
+                        ProgressView().tint(Color.fwLink).padding(.top, 60)
                     } else if filtered.isEmpty {
                         EmptyStateView(symbol: "magnifyingglass", title: "No matches", message: "Try a different name or address.")
                     }
@@ -85,7 +85,7 @@ struct PropertyRowView: View {
             ZStack {
                 SiteThumbView(imagePath: property.imagePath, size: 48)
                 if timerOn {
-                    Circle().fill(Color.fwEmber).frame(width: 12, height: 12)
+                    Circle().fill(Color.fwPrimary).frame(width: 12, height: 12)
                         .overlay { Circle().strokeBorder(Color.fwSurface, lineWidth: 2) }
                         .offset(x: 20, y: -20)
                 }

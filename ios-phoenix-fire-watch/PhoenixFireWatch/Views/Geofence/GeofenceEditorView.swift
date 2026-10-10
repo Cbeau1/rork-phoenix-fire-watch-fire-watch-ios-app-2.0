@@ -33,7 +33,7 @@ struct GeofenceEditorView: View {
                             .font(.caption).foregroundStyle(Color.fwInk3)
                     }
                 }
-                .tint(Color.fwEmber)
+                .tint(Color.fwPrimary)
                 .fwCard(padding: 14)
 
                 Group {
@@ -83,7 +83,7 @@ struct GeofenceEditorView: View {
             }
             .padding(.horizontal, 12)
             .frame(minHeight: 44)
-            .background(Color.fwRaised, in: .rect(cornerRadius: 11))
+            .background(Color.fwField, in: .rect(cornerRadius: 11))
             .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(Color.fwLineStrong, lineWidth: 1) }
 
             Button {
@@ -105,11 +105,11 @@ struct GeofenceEditorView: View {
                 Map(position: $position) {
                     if let center {
                         MapCircle(center: center, radius: radius)
-                            .foregroundStyle(Color.fwEmber.opacity(0.16))
-                            .stroke(Color.fwEmber, lineWidth: 2)
+                            .foregroundStyle(Color.fwPrimary.opacity(0.16))
+                            .stroke(Color.fwPrimary, lineWidth: 2)
                         Annotation("Center", coordinate: center, anchor: .center) {
                             Circle()
-                                .fill(Color.fwEmber)
+                                .fill(Color.fwPrimary)
                                 .frame(width: 18, height: 18)
                                 .overlay { Circle().strokeBorder(.white, lineWidth: 3) }
                         }
@@ -158,7 +158,7 @@ struct GeofenceEditorView: View {
             Slider(value: sliderBinding, in: 0...1, onEditingChanged: { editing in
                 if !editing { refit() }
             })
-            .tint(Color.fwEmber)
+            .tint(Color.fwPrimary)
             .accessibilityLabel("Geofence radius")
             .accessibilityValue(Distance.format(radius))
             ScrollView(.horizontal, showsIndicators: false) {
@@ -171,11 +171,11 @@ struct GeofenceEditorView: View {
                         } label: {
                             Text(Distance.format(Double(m)))
                                 .font(FWFont.mono(.footnote, weight: .medium))
-                                .foregroundStyle(active ? Color.fwEmberHover : Color.fwInk2)
+                                .foregroundStyle(active ? Color.fwLinkHover : Color.fwInk2)
                                 .padding(.horizontal, 14)
                                 .frame(minHeight: 36)
-                                .background(active ? Color.fwEmber.opacity(0.15) : Color.fwRaised, in: Capsule())
-                                .overlay { Capsule().strokeBorder(active ? Color.fwEmber : Color.fwLine, lineWidth: 1) }
+                                .background(active ? Color.fwPrimary.opacity(0.15) : Color.fwRaised, in: Capsule())
+                                .overlay { Capsule().strokeBorder(active ? Color.fwPrimary : Color.fwLine, lineWidth: 1) }
                         }
                         .buttonStyle(PressableStyle())
                     }

@@ -112,15 +112,15 @@ export const StaffDialog = ({
           </Button>
           {members.length > 0 && (
             <Select value={profileId} onValueChange={setProfileId}>
-              <SelectTrigger aria-label="Link to team login" className="h-10 border-line bg-raised text-ink-2 sm:col-span-2">
+              <SelectTrigger aria-label="Link to team login" className="h-10 border-line-strong bg-field text-ink-2 sm:col-span-2">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-line bg-surface text-ink">
-                <SelectItem value={NO_LOGIN} className="focus:bg-ember focus:text-white">
+                <SelectItem value={NO_LOGIN} className="focus:bg-primary focus:text-white">
                   Not linked to a login
                 </SelectItem>
                 {loginOptions(null).map((m) => (
-                  <SelectItem key={m.id} value={m.id} className="focus:bg-ember focus:text-white">
+                  <SelectItem key={m.id} value={m.id} className="focus:bg-primary focus:text-white">
                     Link to {m.name}
                   </SelectItem>
                 ))}
@@ -154,15 +154,15 @@ export const StaffDialog = ({
                   />
                   {members.length > 0 && (
                     <Select value={editProfile} onValueChange={setEditProfile}>
-                      <SelectTrigger aria-label="Linked login" className="h-10 border-line bg-raised text-ink-2">
+                      <SelectTrigger aria-label="Linked login" className="h-10 border-line-strong bg-field text-ink-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="border-line bg-surface text-ink">
-                        <SelectItem value={NO_LOGIN} className="focus:bg-ember focus:text-white">
+                        <SelectItem value={NO_LOGIN} className="focus:bg-primary focus:text-white">
                           Not linked to a login
                         </SelectItem>
                         {loginOptions(s.profileId).map((m) => (
-                          <SelectItem key={m.id} value={m.id} className="focus:bg-ember focus:text-white">
+                          <SelectItem key={m.id} value={m.id} className="focus:bg-primary focus:text-white">
                             Link to {m.name}
                           </SelectItem>
                         ))}
@@ -215,7 +215,7 @@ export const StaffDialog = ({
                       "focus-ring flex h-9 items-center justify-center rounded-lg text-xs font-medium transition-all",
                       confirmId === s.id
                         ? "bg-status-incident px-3 text-white"
-                        : "w-9 text-ink-3 hover:bg-status-incident/10 hover:text-status-incident",
+                        : "w-9 text-ink-3 hover:bg-status-incident/10 hover:text-status-incident-ink",
                     )}
                   >
                     {deleteStaff.isPending && confirmId === s.id ? (

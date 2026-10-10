@@ -331,7 +331,7 @@ const HoursDialog = ({ open, onOpenChange, placement }: { open: boolean; onOpenC
                 <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-raised px-3.5 py-2.5 text-sm">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-[#DC2626]"
+                    className="h-4 w-4 accent-primary"
                     checked={picked.has(s.id)}
                     onChange={(e) => {
                       const n = new Set(picked);
@@ -506,7 +506,7 @@ export const PlacementCard = ({ placement, showWorker, defaultOpen }: { placemen
   });
 
   return (
-    <div className="rounded-xl border border-line bg-surface">
+    <div className="rounded-xl border border-line bg-surface shadow-card">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -675,7 +675,7 @@ export const PlacementCard = ({ placement, showWorker, defaultOpen }: { placemen
                 <DataTile label="Reason">{placement.end_reason}</DataTile>
                 <DataTile label="Replacement">
                   {placement.replacement_worker_id ? (
-                    <Link className="text-ember hover:underline" to={`/workforce/workers/${placement.replacement_worker_id}`}>
+                    <Link className="text-link hover:underline" to={`/workforce/workers/${placement.replacement_worker_id}`}>
                       {fullName(wf.workerById.get(placement.replacement_worker_id) ?? { first_name: "Worker", last_name: "" })}
                     </Link>
                   ) : null}

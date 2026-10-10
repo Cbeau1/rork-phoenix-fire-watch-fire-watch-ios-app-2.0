@@ -124,7 +124,7 @@ const ShiftPicker = ({ expenditureId, anchor, selected, onChange }: { expenditur
       <div className="mt-2 flex items-center justify-between text-xs text-ink-2">
         <span>{selected.length} selected</span>
         {selectable.length > 0 && (
-          <button type="button" className="text-ember hover:underline" onClick={() => onChange(Array.from(new Set([...selected, ...selectable.map((r) => r.id)])))}>
+          <button type="button" className="text-link hover:underline" onClick={() => onChange(Array.from(new Set([...selected, ...selectable.map((r) => r.id)])))}>
             Select all shown
           </button>
         )}
@@ -142,7 +142,7 @@ const ShiftPicker = ({ expenditureId, anchor, selected, onChange }: { expenditur
             const t = taken.get(r.id);
             return (
               <label key={r.id} className={cn("flex items-center gap-3 rounded-md border border-line bg-surface px-3 py-2 text-sm", t && "opacity-50")}>
-                <input type="checkbox" className="h-4 w-4 accent-[#DC2626]" checked={sel.has(r.id)} disabled={!!t} onChange={() => toggle(r.id)} />
+                <input type="checkbox" className="h-4 w-4 accent-primary" checked={sel.has(r.id)} disabled={!!t} onChange={() => toggle(r.id)} />
                 <span className="min-w-0 flex-1 truncate text-ink">
                   {r.staffName} · <span className="font-mono text-xs">{format(parseISO(r.date), "EEE MMM d")} {formatShiftRange({ start: r.start, end: r.end })}</span>
                 </span>
@@ -439,7 +439,7 @@ export const ExpenditureForm = ({
       wide
     >
       <fieldset className="grid gap-4">
-        <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">Purchase</legend>
+        <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-link">Purchase</legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <TextField label="Purchase / service date" type="date" required value={d.spent_on} onChange={set("spent_on")} error={errors.spent_on} />
           <TextField label="Vendor / payee" required value={d.vendor} onChange={set("vendor")} error={errors.vendor} className="sm:col-span-2" maxLength={200} />
@@ -458,7 +458,7 @@ export const ExpenditureForm = ({
       </fieldset>
 
       <fieldset className="grid gap-4 border-t border-line pt-4">
-        <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">Who paid</legend>
+        <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-link">Who paid</legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField label="Paid by" required value={d.paid_by} onChange={setPaidBy} options={(Object.keys(PAID_BY) as PaidBy[]).map((k) => ({ value: k, label: PAID_BY[k] }))} disabled={hasPersonReq && d.paid_by !== "business"} hint={hasPersonReq ? "Locked while a reimbursement request is open." : undefined} />
           <SelectField label="Payment method" required value={d.payment_method} onChange={set("payment_method")} options={methods.map((m) => ({ value: m, label: METHOD[m] }))} />
@@ -483,7 +483,7 @@ export const ExpenditureForm = ({
       </fieldset>
 
       <fieldset className="grid gap-4 border-t border-line pt-4">
-        <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">Related to (optional)</legend>
+        <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-link">Related to (optional)</legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField label="Property / client" value={d.property_id} onChange={set("property_id")} options={propertyOptions} allowNone noneLabel="None / other client" />
           {!d.property_id && <TextField label="Other client name" value={d.client_name} onChange={set("client_name")} maxLength={200} />}
@@ -516,7 +516,7 @@ export const ExpenditureForm = ({
 
       {isNew ? (
         <fieldset className="grid gap-4 border-t border-line pt-4">
-          <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">Reimbursements</legend>
+          <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-link">Reimbursements</legend>
           {personal ? (
             <div className="rounded-lg border border-line bg-raised p-3.5">
               <SelectField
@@ -576,7 +576,7 @@ export const ExpenditureForm = ({
       ) : (
         (!hasPersonReq || !hasRecoveryReq) && (
           <fieldset className="grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
-            <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">Reimbursement tracking</legend>
+            <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-link">Reimbursement tracking</legend>
             {!hasPersonReq && personal && (
               <SelectField label="Reimbursement to person" value={d.person === "not_applicable" ? "not_applicable" : "not_requested"} onChange={(v) => set("person")(v as PersonChoice)} options={[{ value: "not_requested", label: "Not requested" }, { value: "not_applicable", label: "Not applicable" }]} hint="Create a request from the record page." />
             )}
@@ -600,7 +600,7 @@ export const ExpenditureForm = ({
               <ul className="mt-1.5 space-y-1">
                 {dupes.map((x) => (
                   <li key={x.id}>
-                    <Link to={`/expenditures/records/${x.id}`} target="_blank" className="font-mono text-xs text-ember hover:underline">
+                    <Link to={`/expenditures/records/${x.id}`} target="_blank" className="font-mono text-xs text-link hover:underline">
                       {x.code}
                     </Link>{" "}
                     <span className="text-xs text-ink-2">

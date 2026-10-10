@@ -123,7 +123,7 @@ struct ScheduleView: View {
     private var content: some View {
         Group {
             if !schedule.hasLoaded && schedule.isLoading {
-                ProgressView().tint(Color.fwEmber).frame(maxWidth: .infinity).padding(.vertical, 80)
+                ProgressView().tint(Color.fwLink).frame(maxWidth: .infinity).padding(.vertical, 80)
             } else if let error = schedule.loadError, !schedule.hasLoaded {
                 VStack(spacing: 12) {
                     ErrorBanner(message: error)
@@ -134,7 +134,7 @@ struct ScheduleView: View {
                 VStack(spacing: 4) {
                     EmptyStateView(symbol: "building.2", title: "Add a property first", message: "Shifts are scheduled per property. Add your first site, then come back to build the week.")
                     Button("Go to Properties") { router.selectedTab = .properties }
-                        .buttonStyle(EmberButtonStyle(fullWidth: false, compact: true))
+                        .buttonStyle(PrimaryButtonStyle(fullWidth: false, compact: true))
                         .padding(.bottom, 20)
                 }
                 .fwCard()
@@ -274,7 +274,7 @@ private struct WeekNavigator: View {
                 if !isThisWeek {
                     Button("Back to this week", action: onToday)
                         .font(.system(.caption, weight: .bold))
-                        .foregroundStyle(Color.fwEmber)
+                        .foregroundStyle(Color.fwLink)
                         .frame(minHeight: 28)
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
@@ -321,12 +321,12 @@ private struct FilterChip: View {
                 Text(title).lineLimit(1)
             }
             .font(.system(.subheadline, weight: .medium))
-            .foregroundStyle(isOn ? (solid ? Color.white : Color.fwEmber) : Color.fwInk2)
+            .foregroundStyle(isOn ? (solid ? Color.white : Color.fwLink) : Color.fwInk2)
             .padding(.horizontal, 14)
             .frame(minHeight: 40)
             .frame(maxWidth: 200)
-            .background(isOn ? (solid ? Color.fwEmber : Color.fwEmber.opacity(0.15)) : Color.fwSurface, in: Capsule())
-            .overlay { Capsule().strokeBorder(isOn ? Color.fwEmber.opacity(0.6) : Color.fwLine, lineWidth: 1) }
+            .background(isOn ? (solid ? Color.fwPrimary : Color.fwPrimary.opacity(0.15)) : Color.fwSurface, in: Capsule())
+            .overlay { Capsule().strokeBorder(isOn ? Color.fwPrimary.opacity(0.6) : Color.fwLine, lineWidth: 1) }
         }
         .buttonStyle(PressableStyle())
         .accessibilityAddTraits(isOn ? .isSelected : [])
@@ -377,9 +377,9 @@ private struct DaySection: View {
                         Button(action: onAdd) {
                             Image(systemName: "plus")
                                 .font(.system(size: 17, weight: .bold))
-                                .foregroundStyle(Color.fwEmber)
+                                .foregroundStyle(Color.fwLink)
                                 .frame(width: 44, height: 44)
-                                .background(Color.fwEmber.opacity(0.1), in: .rect(cornerRadius: 11))
+                                .background(Color.fwPrimary.opacity(0.1), in: .rect(cornerRadius: 11))
                         }
                         .buttonStyle(PressableStyle())
                         .accessibilityLabel("Add shift on \(day.formatted(.dateTime.weekday(.wide).month().day()))")
@@ -436,7 +436,7 @@ private struct DaySection: View {
                 .clipShape(.rect(cornerRadius: 14))
             }
             .overlay {
-                RoundedRectangle(cornerRadius: 14).strokeBorder(isToday ? Color.fwEmber.opacity(0.5) : Color.fwLine, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 14).strokeBorder(isToday ? Color.fwPrimary.opacity(0.5) : Color.fwLine, lineWidth: 1)
             }
         }
     }
@@ -447,7 +447,7 @@ private struct DaySection: View {
                 Text(day.formatted(.dateTime.weekday(.abbreviated)).uppercased())
                     .foregroundStyle(muted ? dayColor.opacity(0.6) : dayColor)
                 if isToday {
-                    Text(" · TODAY").foregroundStyle(Color.fwEmber)
+                    Text(" · TODAY").foregroundStyle(Color.fwLink)
                 }
             }
             .font(FWFont.label)

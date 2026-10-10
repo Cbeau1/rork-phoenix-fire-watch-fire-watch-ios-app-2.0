@@ -54,7 +54,7 @@ export const OverviewTab = ({ worker }: { worker: Worker }) => {
               <>
                 <DataTile label="Agency">
                   {agency ? (
-                    <Link className="text-ember hover:underline" to={`/workforce/agencies/${agency.id}`}>
+                    <Link className="text-link hover:underline" to={`/workforce/agencies/${agency.id}`}>
                       {agency.name}
                     </Link>
                   ) : null}

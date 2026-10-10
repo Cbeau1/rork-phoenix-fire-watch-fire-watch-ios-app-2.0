@@ -170,7 +170,7 @@ const Directory = () => {
         }
       />
 
-      <div className="rounded-xl border border-line bg-surface p-3 sm:p-4">
+      <div className="rounded-xl border border-line bg-surface shadow-card p-3 sm:p-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
           <Input
@@ -224,7 +224,7 @@ const Directory = () => {
         </div>
       </div>
 
-      <div className="mt-4 rounded-xl border border-line bg-surface">
+      <div className="mt-4 rounded-xl border border-line bg-surface shadow-card">
         {rows.length === 0 ? (
           <div className="p-4">
             <Empty
@@ -278,7 +278,7 @@ const Directory = () => {
                       <td className="py-2.5 pl-5 pr-3">
                         <Link to={`/workforce/workers/${w.id}`} className="focus-ring flex items-center gap-3 rounded">
                           <WorkerAvatar name={fullName(w)} url={photos[w.id]} size="sm" />
-                          <span className="font-medium text-ink hover:text-ember">{fullName(w)}</span>
+                          <span className="font-medium text-ink hover:text-link">{fullName(w)}</span>
                         </Link>
                       </td>
                       <td className="px-3 py-2.5 font-mono text-xs text-ink-2">{w.worker_code}</td>

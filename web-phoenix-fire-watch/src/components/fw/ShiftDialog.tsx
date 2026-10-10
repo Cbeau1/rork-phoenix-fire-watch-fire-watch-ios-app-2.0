@@ -41,9 +41,9 @@ interface ShiftDialogProps {
   schedule: ScheduleApi;
 }
 
-const selectTrigger = "h-11 w-full border-line bg-raised text-ink";
+const selectTrigger = "h-11 w-full border-line-strong bg-field text-ink";
 const selectContent = "border-line bg-surface text-ink";
-const selectItem = "focus:bg-ember focus:text-white";
+const selectItem = "focus:bg-primary focus:text-white";
 
 /** Admin dialog to add a shift (to one or more days of the week) or edit / delete an existing one. */
 export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, schedule }: ShiftDialogProps) => {
@@ -161,14 +161,14 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
                     {s.name}
                   </SelectItem>
                 ))}
-                <SelectItem value={NEW_STAFF} className={cn(selectItem, "text-ember")}>
+                <SelectItem value={NEW_STAFF} className={cn(selectItem, "text-link")}>
                   + Add a new name…
                 </SelectItem>
               </SelectContent>
             </Select>
             {staffId === NEW_STAFF && (
               <div className="mt-2 flex items-center gap-2">
-                <UserPlus className="h-4 w-4 shrink-0 text-ember" />
+                <UserPlus className="h-4 w-4 shrink-0 text-link" />
                 <Input
                   autoFocus
                   value={newStaffName}
@@ -205,13 +205,13 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
             <div className="mb-2 flex items-baseline justify-between">
               <span className="text-sm font-medium text-ink">
                 {editing ? "Day" : "Days"}
-                <span className="ml-0.5 text-ember">*</span>
+                <span className="ml-0.5 text-link">*</span>
               </span>
               {!editing && (
                 <button
                   type="button"
                   onClick={() => setDates(dates.length === 7 ? [] : days.map(toDateKey))}
-                  className="focus-ring rounded text-xs font-medium text-ember hover:text-ember-hover"
+                  className="focus-ring rounded text-xs font-medium text-link hover:text-link-hover"
                 >
                   {dates.length === 7 ? "Clear" : "Every day"}
                 </button>
@@ -229,7 +229,7 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
                     aria-pressed={on}
                     className={cn(
                       "focus-ring flex flex-col items-center rounded-lg border py-2 transition-all duration-150 active:scale-95",
-                      on ? "border-ember bg-ember text-white" : "border-line bg-raised text-ink-2 hover:border-[#7A8394] hover:text-ink",
+                      on ? "border-primary bg-primary text-white" : "border-line bg-raised text-ink-2 hover:border-line-strong hover:text-ink",
                     )}
                   >
                     <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">{format(d, "EEE")}</span>
@@ -246,7 +246,7 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
 
           <div>
             <span className="mb-2 block text-sm font-medium text-ink">
-              Hours<span className="ml-0.5 text-ember">*</span>
+              Hours<span className="ml-0.5 text-link">*</span>
             </span>
             <div className="mb-3 flex flex-wrap gap-1.5">
               {SHIFT_PRESETS.map((p) => {
@@ -261,7 +261,7 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
                     }}
                     className={cn(
                       "focus-ring rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                      active ? "border-ember/60 bg-ember/15 text-ember" : "border-line bg-raised text-ink-2 hover:text-ink",
+                      active ? "border-primary/60 bg-primary/15 text-link" : "border-line bg-raised text-ink-2 hover:text-ink",
                     )}
                   >
                     {p.label} <span className="font-mono text-[11px] opacity-75">{p.start}–{p.end}</span>

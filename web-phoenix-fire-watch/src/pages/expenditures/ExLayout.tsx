@@ -9,7 +9,7 @@ import { ExpensesProvider, useExAccess, useExpenses } from "@/state/ExpensesProv
 
 const Denied = () => (
   <div className="mx-auto max-w-lg py-20 text-center">
-    <ShieldAlert className="mx-auto h-12 w-12 text-ember" strokeWidth={1.5} />
+    <ShieldAlert className="mx-auto h-12 w-12 text-link" strokeWidth={1.5} />
     <h1 className="mt-5 font-display text-3xl font-extrabold text-ink">Financial access required</h1>
     <p className="mt-2 text-ink-2">
       Expenditures are limited to administrators with the Expenditures permission. An admin with permission-management access can grant it

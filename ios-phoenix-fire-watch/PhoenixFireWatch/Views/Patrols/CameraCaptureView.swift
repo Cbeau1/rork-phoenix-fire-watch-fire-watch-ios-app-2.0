@@ -89,7 +89,7 @@ struct CameraCaptureView: View {
             } label: {
                 ZStack {
                     Circle().strokeBorder(.white.opacity(0.9), lineWidth: 4).frame(width: 78, height: 78)
-                    Circle().fill(Color.fwEmber).frame(width: 60, height: 60)
+                    Circle().fill(Color.fwPrimary).frame(width: 60, height: 60)
                     Image(systemName: "camera.aperture").font(.system(size: 24, weight: .semibold)).foregroundStyle(.white)
                 }
             }
@@ -127,7 +127,7 @@ struct CameraCaptureView: View {
     @ViewBuilder
     private var placeholder: some View {
         if state == .starting {
-            ProgressView().tint(Color.fwEmber).controlSize(.large)
+            ProgressView().tint(Color.fwLink).controlSize(.large)
         } else {
             VStack(spacing: 14) {
                 Image(systemName: "video.slash.fill").font(.system(size: 40)).foregroundStyle(Color.fwInk2)
@@ -144,7 +144,7 @@ struct CameraCaptureView: View {
                     Button("Open Settings") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
-                    .buttonStyle(EmberButtonStyle(fullWidth: false))
+                    .buttonStyle(PrimaryButtonStyle(fullWidth: false))
                     .padding(.top, 6)
                 }
             }

@@ -243,7 +243,7 @@ const ExReports = () => {
     <div>
       <PageHeader title="Reports & exports" subtitle="Every export is permission-checked and logged. CSV cells are protected against spreadsheet formula injection." />
 
-      <div className="mb-5 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface shadow-card p-4 sm:grid-cols-2 lg:grid-cols-4">
         <SelectField label="Period" value={preset} onChange={setPreset} options={[...PRESETS.map((p) => ({ value: p.id, label: p.label })), { value: "custom", label: "Custom range" }]} />
         {preset === "custom" ? (
           <div className="grid grid-cols-2 gap-2">
@@ -270,11 +270,11 @@ const ExReports = () => {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {reports.map((r) => (
-          <section key={r.key} className="flex flex-col rounded-xl border border-line bg-surface p-3">
+          <section key={r.key} className="flex flex-col rounded-xl border border-line bg-surface shadow-card p-3">
             <div className="flex-1 rounded-lg border border-line bg-raised p-4">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-display text-lg font-bold text-ink">{r.title}</h2>
-                <span className={cn("whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset", r.basis.startsWith("Payment") ? "bg-status-clear/12 text-status-clear ring-status-clear/35" : r.basis.startsWith("Purchase") ? "bg-ember/12 text-ember ring-ember/35" : "bg-sky-400/12 text-sky-300 ring-sky-400/35")}>
+                <span className={cn("whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ring-inset", r.basis.startsWith("Payment") ? "bg-status-clear/12 text-status-clear ring-status-clear/35" : r.basis.startsWith("Purchase") ? "bg-primary/12 text-link ring-link/35" : "bg-sky-400/12 text-sky-300 ring-sky-400/35")}>
                   {r.basis}
                 </span>
               </div>

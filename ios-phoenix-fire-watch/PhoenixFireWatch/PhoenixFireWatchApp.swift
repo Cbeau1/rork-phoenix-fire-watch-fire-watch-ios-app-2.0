@@ -29,7 +29,7 @@ struct PhoenixFireWatchApp: App {
                 .environment(network)
                 .environment(router)
                 .preferredColorScheme(.dark)
-                .tint(Color.fwEmber)
+                .tint(Color.fwLink)
         }
     }
 }

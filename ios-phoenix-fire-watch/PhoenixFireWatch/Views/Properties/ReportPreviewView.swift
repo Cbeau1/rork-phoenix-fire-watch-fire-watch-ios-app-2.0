@@ -12,14 +12,14 @@ struct ReportPreviewView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: 0x060607).ignoresSafeArea()
+                Color.fwCanvasDeep.ignoresSafeArea()
                 if let fileURL {
                     PDFKitView(url: fileURL)
                         .ignoresSafeArea(edges: .bottom)
                         .transition(.opacity)
                 } else {
                     VStack(spacing: 14) {
-                        ProgressView().tint(Color.fwEmber).controlSize(.large)
+                        ProgressView().tint(Color.fwLink).controlSize(.large)
                         Text("Preparing report with photos…").font(.subheadline).foregroundStyle(Color.fwInk2)
                     }
                 }
@@ -63,7 +63,7 @@ struct PDFKitView: UIViewRepresentable {
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
-        view.backgroundColor = UIColor(red: 6 / 255, green: 6 / 255, blue: 7 / 255, alpha: 1)
+        view.backgroundColor = UIColor(Color.fwCanvasDeep)
         view.pageShadowsEnabled = true
         view.document = PDFDocument(url: url)
         return view

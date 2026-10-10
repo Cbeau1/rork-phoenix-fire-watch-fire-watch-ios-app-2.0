@@ -16,10 +16,10 @@ struct WatchNotesView: View {
                         Text("Active Notes").font(.system(.headline, weight: .bold)).foregroundStyle(Color.fwInk)
                         Text("\(store.notes.count)")
                             .font(FWFont.mono(.caption, weight: .bold))
-                            .foregroundStyle(Color.fwEmber)
+                            .foregroundStyle(Color.fwLink)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(Color.fwEmber.opacity(0.12), in: Capsule())
+                            .background(Color.fwPrimary.opacity(0.12), in: Capsule())
                         Spacer()
                     }
                     if store.notes.isEmpty {
@@ -45,20 +45,20 @@ struct WatchNotesView: View {
 
     private var composer: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionLabel(text: "New shift note", color: .fwEmber)
+            SectionLabel(text: "New shift note", color: .fwLink)
             TextField("", text: $draft, prompt: Text("Share an update with your team…").foregroundStyle(Color.fwInk3), axis: .vertical)
                 .focused($focused)
                 .lineLimit(2...6)
                 .foregroundStyle(Color.fwInk)
                 .padding(14)
-                .background(Color.fwRaised, in: .rect(cornerRadius: 11))
-                .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(focused ? Color.fwEmber.opacity(0.6) : Color.fwLineStrong, lineWidth: 1) }
+                .background(Color.fwField, in: .rect(cornerRadius: 11))
+                .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(focused ? Color.fwLink : Color.fwLineStrong, lineWidth: 1) }
             Button {
                 Task { await post() }
             } label: {
                 if posting { ProgressView().tint(.white) } else { Label("Post Note", systemImage: "paperplane.fill") }
             }
-            .buttonStyle(EmberButtonStyle())
+            .buttonStyle(PrimaryButtonStyle())
             .disabled(draft.trimmed.isEmpty || posting)
         }
         .fwCard()
@@ -93,7 +93,7 @@ struct WatchNotesView: View {
         }
         .fwCard(padding: 14)
         .overlay(alignment: .leading) {
-            UnevenRoundedRectangle(topLeadingRadius: 14, bottomLeadingRadius: 14).fill(Color.fwEmber).frame(width: 3)
+            UnevenRoundedRectangle(topLeadingRadius: 14, bottomLeadingRadius: 14).fill(Color.fwPrimary).frame(width: 3)
         }
     }
 
@@ -137,7 +137,7 @@ struct QuickNoteSheet: View {
                     .lineLimit(4...8)
                     .foregroundStyle(Color.fwInk)
                     .padding(14)
-                    .background(Color.fwRaised, in: .rect(cornerRadius: 11))
+                    .background(Color.fwField, in: .rect(cornerRadius: 11))
                 Button {
                     Task {
                         posting = true
@@ -153,7 +153,7 @@ struct QuickNoteSheet: View {
                 } label: {
                     if posting { ProgressView().tint(.white) } else { Text("Post Note") }
                 }
-                .buttonStyle(EmberButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
                 .disabled(draft.trimmed.isEmpty || posting)
                 Spacer()
             }

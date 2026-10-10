@@ -32,7 +32,7 @@ const Properties = () => {
         title="Properties"
         subtitle="Manage all monitored locations and fire watch properties"
         actions={
-          <Button asChild size="lg">
+          <Button asChild size="lg" variant="outline">
             <Link to="/properties/new">
               <Plus />
               Add Property
@@ -49,7 +49,7 @@ const Properties = () => {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search properties by name or address..."
           aria-label="Search properties"
-          className="h-14 w-full rounded-xl border border-line bg-surface pl-14 pr-12 text-[15px] text-ink placeholder:text-ink-3 transition-colors hover:border-[#7A8394] focus-visible:border-ember/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/25 [&::-webkit-search-cancel-button]:hidden"
+          className="h-14 w-full rounded-xl border border-line bg-surface shadow-card pl-14 pr-12 text-[15px] text-ink placeholder:text-ink-3 transition-colors hover:border-line-strong focus-visible:border-link/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link/25 [&::-webkit-search-cancel-button]:hidden"
         />
         {query && (
           <button
@@ -71,7 +71,7 @@ const Properties = () => {
               title="No properties yet"
               description="Add your first monitored location to start logging fire watch patrols."
               action={
-                <Button asChild>
+                <Button asChild variant="outline">
                   <Link to="/properties/new">
                     <Plus />
                     Add Property
@@ -91,7 +91,7 @@ const Properties = () => {
               <li key={p.id} className="animate-fade-up" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
                 <Link
                   to={`/properties/${p.id}`}
-                  className="focus-ring group flex flex-col gap-4 rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#7A8394] hover:bg-[#4A5260] md:flex-row md:items-center md:gap-0 md:p-6"
+                  className="focus-ring group flex flex-col gap-4 rounded-xl border border-line bg-surface shadow-card p-5 transition-colors hover:border-line-strong hover:bg-surface-hover md:flex-row md:items-center md:gap-0 md:p-6"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-5 md:pr-6">
                     <SiteThumb property={p} className="h-16 w-16 md:h-[88px] md:w-[88px]" />
@@ -129,7 +129,7 @@ const Properties = () => {
                       <Clock className="h-4 w-4 text-ink-3" />
                       Added {timeAgo(p.createdAt)}
                     </span>
-                    <ChevronRight className="h-5 w-5 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ember" />
+                    <ChevronRight className="h-5 w-5 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-link" />
                   </div>
                 </Link>
               </li>

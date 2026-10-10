@@ -1,3 +1,5 @@
+import { THEME } from "@/lib/theme";
+
 export type PatrolStatus = "clear" | "follow-up" | "incident";
 
 /** Local-only marker for records saved on this device that haven't reached the server yet. */
@@ -108,22 +110,22 @@ export type PatrolInput = Omit<Patrol, "id" | "createdAt" | "loggedBy" | "syncSt
 export const STATUS_META: Record<PatrolStatus, { label: string; color: string; text: string; bg: string; ring: string }> = {
   clear: {
     label: "Clear",
-    color: "#22C55E",
+    color: THEME.success,
     text: "text-status-clear",
     bg: "bg-status-clear/10",
     ring: "ring-status-clear/30",
   },
   "follow-up": {
     label: "Follow-up",
-    color: "#F5A524",
+    color: THEME.warning,
     text: "text-status-follow",
     bg: "bg-status-follow/10",
     ring: "ring-status-follow/30",
   },
   incident: {
     label: "Incident",
-    color: "#EF4444",
-    text: "text-status-incident",
+    color: THEME.danger,
+    text: "text-status-incident-ink",
     bg: "bg-status-incident/10",
     ring: "ring-status-incident/30",
   },

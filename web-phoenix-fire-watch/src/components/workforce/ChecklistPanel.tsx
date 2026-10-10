@@ -192,7 +192,7 @@ export const ChecklistPanel = ({
   });
 
   return (
-    <div className={cn(!compact && "rounded-xl border border-line bg-surface")}>
+    <div className={cn(!compact && "rounded-xl border border-line bg-surface shadow-card")}>
       <div className={cn("flex flex-wrap items-start justify-between gap-3", compact ? "mb-3" : "px-5 pt-5 sm:px-6")}>
         <div className="min-w-0">
           <h3 className={cn("font-display font-bold text-ink", compact ? "text-base" : "text-lg sm:text-xl")}>
@@ -239,7 +239,7 @@ export const ChecklistPanel = ({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={cn("text-sm font-medium text-ink", i.status === "not_applicable" && "line-through opacity-70")}>{i.title}</span>
-                    {i.required ? <Pill tone="ember">Required</Pill> : <Pill tone="slate">Optional</Pill>}
+                    {i.required ? <Pill tone="primary">Required</Pill> : <Pill tone="slate">Optional</Pill>}
                     <MetaPill meta={CHECK_STATUS} value={i.status} />
                   </div>
                   <div className="mt-1 text-xs text-ink-3">

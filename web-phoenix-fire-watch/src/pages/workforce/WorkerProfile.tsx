@@ -102,7 +102,7 @@ const WorkerProfile = () => {
                 type="button"
                 onClick={() => photoRef.current?.click()}
                 aria-label="Change profile photo"
-                className="focus-ring absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-ember text-white ring-2 ring-canvas"
+                className="focus-ring absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white ring-2 ring-canvas"
               >
                 {photo.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               </button>
@@ -170,7 +170,7 @@ const WorkerProfile = () => {
               onClick={() => setParams({ tab: t.id }, { replace: true })}
               className={cn(
                 "focus-ring -mb-px whitespace-nowrap border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors",
-                tab === t.id ? "border-ember text-ember" : "border-transparent text-ink-2 hover:text-ink",
+                tab === t.id ? "border-primary text-link" : "border-transparent text-ink-2 hover:text-ink",
               )}
             >
               {t.label}

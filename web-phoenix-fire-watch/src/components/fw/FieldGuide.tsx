@@ -58,7 +58,7 @@ export const FieldGuideCard = ({ acknowledgedAt }: { acknowledgedAt: string | nu
     <>
       <section
         aria-labelledby="field-guide-heading"
-        className="mt-5 overflow-hidden rounded-xl border border-line bg-surface"
+        className="mt-5 overflow-hidden rounded-xl border border-line bg-surface shadow-card"
       >
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
           <button
@@ -75,7 +75,7 @@ export const FieldGuideCard = ({ acknowledgedAt }: { acknowledgedAt: string | nu
             />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ember">Training</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-link">Training</p>
             <h2 id="field-guide-heading" className="mt-1 font-display text-xl font-bold text-ink">
               {FIELD_GUIDE_TITLE}
             </h2>
@@ -85,7 +85,7 @@ export const FieldGuideCard = ({ acknowledgedAt }: { acknowledgedAt: string | nu
             </p>
             {acknowledgedAt && (
               <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-ink-3">
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#22C55E]" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-status-clear" />
                 You acknowledged this guide on {formatAck(acknowledgedAt)}
               </p>
             )}

@@ -71,8 +71,8 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
                 className={cn(
                   "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
                   patrol.syncState === "failed"
-                    ? "bg-status-incident/10 text-status-incident ring-status-incident/30"
-                    : "bg-ember/10 text-ember ring-ember/30",
+                    ? "bg-status-incident/10 text-status-incident-ink ring-status-incident/30"
+                    : "bg-primary/10 text-link ring-link/30",
                 )}
               >
                 {patrol.syncState === "failed" ? (
@@ -186,7 +186,7 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
           )}
           <div className="flex items-center gap-4">
             {propertyId && (
-              <Link to={`/properties/${propertyId}`} className="focus-ring rounded text-sm text-ember hover:underline">
+              <Link to={`/properties/${propertyId}`} className="focus-ring rounded text-sm text-link hover:underline">
                 Open property
               </Link>
             )}
@@ -194,7 +194,7 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
               <button
                 type="button"
                 onClick={() => onDelete(patrol)}
-                className="focus-ring inline-flex items-center gap-1.5 rounded text-sm text-ink-3 transition-colors hover:text-status-incident"
+                className="focus-ring inline-flex items-center gap-1.5 rounded text-sm text-ink-3 transition-colors hover:text-status-incident-ink"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete log

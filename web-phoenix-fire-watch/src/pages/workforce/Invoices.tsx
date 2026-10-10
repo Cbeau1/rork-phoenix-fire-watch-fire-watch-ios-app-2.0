@@ -247,7 +247,7 @@ const LineDialog = ({ open, onOpenChange, invoice, line }: { open: boolean; onOp
 };
 
 const diffCell = (n: number | null, fmt: (x: number) => string) =>
-  n === null ? <span className="text-ink-3">—</span> : Math.abs(n) < 0.01 ? <span className="text-status-clear">0</span> : <span className="font-medium text-status-incident">{n > 0 ? "+" : ""}{fmt(n)}</span>;
+  n === null ? <span className="text-ink-3">—</span> : Math.abs(n) < 0.01 ? <span className="text-status-clear">0</span> : <span className="font-medium text-status-incident-ink">{n > 0 ? "+" : ""}{fmt(n)}</span>;
 
 export const InvoiceList = () => {
   const wf = useWorkforce();
@@ -277,7 +277,7 @@ export const InvoiceList = () => {
           </Button>
         }
       />
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-3 sm:grid-cols-2 sm:p-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface shadow-card p-3 sm:grid-cols-2 sm:p-4">
         <SelectField
           label="Status"
           value={status}
@@ -289,7 +289,7 @@ export const InvoiceList = () => {
         <SelectField label="Agency" value={agency} onChange={(v) => set("agency", v)} allowNone noneLabel="All agencies" options={wf.agencies.map((a) => ({ value: a.id, label: a.name }))} />
       </div>
       {list.length === 0 ? (
-        <div className="rounded-xl border border-line bg-surface p-4">
+        <div className="rounded-xl border border-line bg-surface shadow-card p-4">
           <Empty title="No invoices" description={wf.agencies.length === 0 ? "Add an agency first." : "Record an agency invoice to start reconciling."} />
         </div>
       ) : (
@@ -300,7 +300,7 @@ export const InvoiceList = () => {
             const overdue = i.due_date && i.due_date < todayKey() && i.status !== "paid";
             return (
               <li key={i.id}>
-                <Link to={`/workforce/invoices/${i.id}`} className="focus-ring block rounded-xl border border-line bg-surface p-3 transition-colors hover:border-[#7A8394]">
+                <Link to={`/workforce/invoices/${i.id}`} className="focus-ring block rounded-xl border border-line bg-surface shadow-card p-3 transition-colors hover:border-line-strong">
                   <div className="flex flex-col gap-2 rounded-lg border border-line bg-raised px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -424,7 +424,7 @@ export const InvoiceDetail = () => {
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
             <MetaPill meta={INVOICE_STATUS} value={invoice.status} />
-            {agency && <Link to={`/workforce/agencies/${agency.id}`} className="text-ember hover:underline">{agency.name}</Link>}
+            {agency && <Link to={`/workforce/agencies/${agency.id}`} className="text-link hover:underline">{agency.name}</Link>}
             {invoice.archived_at && <Pill tone="slate">Archived</Pill>}
           </span>
         }
@@ -453,7 +453,7 @@ export const InvoiceDetail = () => {
             {dupes.map((x, i) => (
               <span key={x.id}>
                 {i > 0 && ", "}
-                <Link to={`/workforce/invoices/${x.id}`} className="text-ember hover:underline">#{x.invoice_number}</Link>
+                <Link to={`/workforce/invoices/${x.id}`} className="text-link hover:underline">#{x.invoice_number}</Link>
               </span>
             ))}
           </span>
@@ -507,7 +507,7 @@ export const InvoiceDetail = () => {
                           {c.result === "match" ? (
                             <CheckCircle2 className="h-4 w-4 text-status-clear" />
                           ) : c.result === "difference" ? (
-                            <AlertTriangle className="h-4 w-4 text-status-incident" />
+                            <AlertTriangle className="h-4 w-4 text-status-incident-ink" />
                           ) : (
                             <CircleHelp className="h-4 w-4 text-ink-3" />
                           )}

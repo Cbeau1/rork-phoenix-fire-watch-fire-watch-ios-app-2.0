@@ -17,11 +17,11 @@ export const GeofenceCard = memo(({ property, isAdmin }: { property: Property; i
   if (!active && !isAdmin) return null;
 
   return (
-    <section className="mt-5 overflow-hidden rounded-xl border border-line bg-surface">
+    <section className="mt-5 overflow-hidden rounded-xl border border-line bg-surface shadow-card">
       <div className={cn("grid", active && "md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]")}>
         <div className="flex flex-col justify-between gap-5 p-6 sm:p-7">
           <div className="flex items-start gap-4">
-            <MapPinned className={cn("mt-0.5 h-8 w-8 shrink-0", active ? "text-ember" : "text-ink-3")} strokeWidth={1.6} />
+            <MapPinned className={cn("mt-0.5 h-8 w-8 shrink-0", active ? "text-link" : "text-ink-3")} strokeWidth={1.6} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="font-display text-xl font-bold text-ink sm:text-[22px]">Geofence</h2>

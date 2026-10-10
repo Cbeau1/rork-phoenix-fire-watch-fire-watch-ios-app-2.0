@@ -42,7 +42,7 @@ export const LegalLayout = ({
                 className={({ isActive }) =>
                   cn(
                     "focus-ring rounded-md px-3 py-2 text-sm transition-colors",
-                    isActive ? "text-ember" : "text-ink-2 hover:text-ink",
+                    isActive ? "text-link" : "text-ink-2 hover:text-ink",
                   )
                 }
               >
@@ -61,14 +61,14 @@ export const LegalLayout = ({
         <h1 className="font-display text-4xl font-extrabold tracking-[-0.01em] text-ink sm:text-5xl">{title}</h1>
         <p className="mt-3 max-w-2xl text-base text-ink-2">{description}</p>
         {updated && <p className="mt-2 text-sm text-ink-3">Effective {LEGAL.effectiveDate}</p>}
-        <article className="legal-prose mt-10 rounded-xl border border-line bg-surface px-6 py-8 sm:px-10 sm:py-10">
+        <article className="legal-prose mt-10 rounded-xl border border-line bg-surface shadow-card px-6 py-8 sm:px-10 sm:py-10">
           {children}
         </article>
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 text-xs text-ink-3">
           <span>
             © {new Date().getFullYear()} {LEGAL.companyName}. All rights reserved.
           </span>
-          <a href={`mailto:${LEGAL.supportEmail}`} className="hover:text-ember">
+          <a href={`mailto:${LEGAL.supportEmail}`} className="hover:text-link">
             {LEGAL.supportEmail}
           </a>
         </footer>

@@ -1,4 +1,5 @@
 import "leaflet/dist/leaflet.css";
+import { THEME } from "@/lib/theme";
 
 import * as L from "leaflet";
 import { memo, useEffect, useRef, useState } from "react";
@@ -19,8 +20,8 @@ interface GeofenceMapProps {
   onChange?: (center: LatLng, radiusM: number) => void;
   /** Officer's live position (shown with its GPS accuracy ring). */
   you?: PatrolLocation | null;
-  /** Fit color: ember while editing, green/red when showing an inside/outside result. */
-  tone?: "ember" | "clear" | "incident" | "muted";
+  /** Fit color: primary blue while editing, green/red when showing an inside/outside result. */
+  tone?: "primary" | "clear" | "incident" | "muted";
   /** Change to re-frame the map around the area (e.g. after an address search). */
   fitKey?: number | string;
   className?: string;
@@ -28,10 +29,10 @@ interface GeofenceMapProps {
 }
 
 const TONE: Record<NonNullable<GeofenceMapProps["tone"]>, string> = {
-  ember: "#DC2626",
-  clear: "#22C55E",
-  incident: "#EF4444",
-  muted: "#9AA3B2",
+  primary: THEME.primary,
+  clear: THEME.success,
+  incident: THEME.danger,
+  muted: THEME.ink3,
 };
 
 /** Esri basemaps: free for low-volume use and need no API key. */
@@ -80,12 +81,12 @@ const youIcon = L.divIcon({
   className: "",
   iconSize: [18, 18],
   iconAnchor: [9, 9],
-  html: `<div style="width:18px;height:18px;border-radius:9999px;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 0 5px #3B82F633"></div>`,
+  html: `<div style="width:18px;height:18px;border-radius:9999px;background:#60A5FA;border:3px solid #fff;box-shadow:0 0 0 5px #60A5FA33"></div>`,
 });
 
 /** Dark map showing a property's circular geofence; optionally editable. */
 export const GeofenceMap = memo(
-  ({ center, radiusM, editable, onChange, you, tone = "ember", fitKey, className, interactive = true }: GeofenceMapProps) => {
+  ({ center, radiusM, editable, onChange, you, tone = "primary", fitKey, className, interactive = true }: GeofenceMapProps) => {
     const el = useRef<HTMLDivElement>(null);
     const map = useRef<L.Map | null>(null);
     const circle = useRef<L.Circle | null>(null);
@@ -242,9 +243,9 @@ export const GeofenceMap = memo(
       if (!youMarker.current) {
         youRing.current = L.circle(ll, {
           radius: you.accuracyM,
-          color: "#3B82F6",
+          color: THEME.link,
           weight: 1,
-          fillColor: "#3B82F6",
+          fillColor: THEME.link,
           fillOpacity: 0.12,
           interactive: false,
         }).addTo(m);
@@ -268,7 +269,7 @@ export const GeofenceMap = memo(
     }, [fitKey, hasYou, !!center]);
 
     return (
-      <div className={cn("relative z-0 overflow-hidden rounded-lg border border-line bg-[#1b1e23]", className)}>
+      <div className={cn("relative z-0 overflow-hidden rounded-lg border border-line bg-canvas-deep", className)}>
         <div
           ref={el}
           className="fw-map absolute inset-0"
@@ -287,7 +288,7 @@ export const GeofenceMap = memo(
               aria-pressed={style === s}
               className={cn(
                 "min-h-[32px] px-2.5 transition-colors",
-                style === s ? "bg-ember text-white" : "text-ink-3 hover:text-ink",
+                style === s ? "bg-primary text-white" : "text-ink-3 hover:text-ink",
               )}
             >
               {s === "satellite" ? "Satellite" : "Map"}

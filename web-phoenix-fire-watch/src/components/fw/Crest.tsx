@@ -23,7 +23,7 @@ export const Crest = ({ size = "md", className, markOnly = false }: CrestProps) 
       />
       <div className={cn("leading-none", !stacked && "text-left", markOnly && "sr-only")}>
         <div className={cn("font-crest tracking-[0.08em] text-silver", word)}>PHOENIX</div>
-        <div className={cn("mt-1.5 font-medium uppercase tracking-[0.34em] text-ember", sub)}>Fire Watch</div>
+        <div className={cn("mt-1.5 font-medium uppercase tracking-[0.34em] text-link", sub)}>Fire Watch</div>
       </div>
     </div>
   );

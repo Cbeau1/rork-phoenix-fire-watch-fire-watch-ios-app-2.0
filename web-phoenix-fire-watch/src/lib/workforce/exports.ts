@@ -57,7 +57,7 @@ export const buildPdf = (opts: {
   sections: PdfSection[];
   landscape?: boolean;
   confidential?: boolean;
-  /** Small ember label above the title (defaults to the Workforce heading). */
+  /** Small accent label above the title (defaults to the Workforce heading). */
   heading?: string;
   /** Footer disclaimer on every page. */
   footer?: string;

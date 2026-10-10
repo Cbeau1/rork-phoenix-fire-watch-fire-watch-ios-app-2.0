@@ -36,11 +36,10 @@ nonisolated enum PatrolStatus: String, Codable, CaseIterable, Identifiable, Send
         }
     }
 
-    var uiColor: UIColor {
-        switch self {
-        case .clear: UIColor(red: 0x22 / 255, green: 0xC5 / 255, blue: 0x5E / 255, alpha: 1)
-        case .followUp: UIColor(red: 0xF5 / 255, green: 0xA5 / 255, blue: 0x24 / 255, alpha: 1)
-        case .incident: UIColor(red: 0xEF / 255, green: 0x44 / 255, blue: 0x44 / 255, alpha: 1)
-        }
+    /// Readable text/icon color on the navy canvas (incident uses the lighter red).
+    var textColor: Color {
+        self == .incident ? .fwIncidentInk : color
     }
+
+    var uiColor: UIColor { UIColor(color) }
 }

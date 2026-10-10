@@ -95,12 +95,12 @@ const TabletRail = () => {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "focus-ring relative flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium transition-colors",
-                active ? "bg-ember/[0.14] text-ember" : "text-ink-3 hover:bg-white/[0.04] hover:text-ink",
+                active ? "bg-primary/[0.16] text-link" : "text-ink-2 hover:bg-white/[0.04] hover:text-ink",
               )}
             >
               <Icon className="h-[22px] w-[22px]" />
               <span className="max-w-full truncate">{short}</span>
-              {timerDot && <span className="absolute right-4 top-2.5 h-2 w-2 animate-ember-pulse rounded-full bg-ember" />}
+              {timerDot && <span className="absolute right-4 top-2.5 h-2 w-2 animate-primary-pulse rounded-full bg-link" />}
             </NavLink>
           );
         })}
@@ -158,18 +158,18 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
               className={cn(
                 "focus-ring group relative flex items-center gap-3.5 px-7 py-3.5 text-[15px] font-medium transition-colors",
                 active
-                  ? "bg-gradient-to-r from-ember/[0.14] to-transparent text-ember"
+                  ? "bg-gradient-to-r from-primary/[0.14] to-transparent text-link"
                   : "text-ink-2 hover:bg-white/[0.03] hover:text-ink",
               )}
             >
               <span
                 aria-hidden
                 className={cn(
-                  "absolute inset-y-0 left-0 w-[3px] rounded-r bg-ember transition-transform duration-200",
+                  "absolute inset-y-0 left-0 w-[3px] rounded-r bg-primary transition-transform duration-200",
                   active ? "scale-y-100" : "scale-y-0",
                 )}
               />
-              <Icon className={cn("h-5 w-5", active ? "text-ember" : "text-ink-3 group-hover:text-ink-2")} />
+              <Icon className={cn("h-5 w-5", active ? "text-link" : "text-ink-3 group-hover:text-ink-2")} />
               {label}
             </NavLink>
           );
@@ -213,8 +213,8 @@ const RunningTimers = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { activeTimers } = usePatrolTimers();
   if (activeTimers.length === 0) return null;
   return (
-    <div className="mb-3 rounded-xl border border-ember/30 bg-ember/[0.06] p-2">
-      <div className="flex items-center gap-2 px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">
+    <div className="mb-3 rounded-xl border border-primary/30 bg-primary/[0.06] p-2">
+      <div className="flex items-center gap-2 px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-link">
         <AlarmClock className="h-3.5 w-3.5" />
         Patrol timers on
       </div>
@@ -225,7 +225,7 @@ const RunningTimers = ({ onNavigate }: { onNavigate?: () => void }) => {
           onClick={onNavigate}
           className="focus-ring flex items-center gap-2 truncate rounded-lg px-2 py-1.5 text-sm text-ink-2 hover:bg-white/[0.04] hover:text-ink"
         >
-          <span className="h-1.5 w-1.5 shrink-0 animate-ember-pulse rounded-full bg-ember" />
+          <span className="h-1.5 w-1.5 shrink-0 animate-primary-pulse rounded-full bg-link" />
           <span className="truncate">{property.name}</span>
         </NavLink>
       ))}

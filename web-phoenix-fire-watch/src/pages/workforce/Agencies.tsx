@@ -148,7 +148,7 @@ export const AgencyList = () => {
         </Button>
       </div>
       {list.length === 0 ? (
-        <div className="rounded-xl border border-line bg-surface p-4">
+        <div className="rounded-xl border border-line bg-surface shadow-card p-4">
           <Empty title={wf.agencies.length === 0 ? "No agencies yet" : "No matching agencies"} description="Add the staffing agencies that supply temporary workers." />
         </div>
       ) : (
@@ -158,11 +158,11 @@ export const AgencyList = () => {
             const activePl = wf.placements.filter((p) => p.agency_id === a.id && p.status === "active").length;
             return (
               <li key={a.id}>
-                <Link to={`/workforce/agencies/${a.id}`} className="focus-ring block rounded-xl border border-line bg-surface p-3 transition-colors hover:border-[#7A8394] hover:bg-[#4A5260]">
+                <Link to={`/workforce/agencies/${a.id}`} className="focus-ring block rounded-xl border border-line bg-surface shadow-card p-3 transition-colors hover:border-line-strong hover:bg-surface-hover">
                   <div className="rounded-lg border border-line bg-raised p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-3">
-                        <Building className="h-6 w-6 shrink-0 text-ember" strokeWidth={1.7} />
+                        <Building className="h-6 w-6 shrink-0 text-link" strokeWidth={1.7} />
                         <span className="truncate font-display text-lg font-bold text-ink">{a.name}</span>
                       </div>
                       <Pill tone={a.active ? "green" : "slate"}>{a.active ? "Active" : "Inactive"}</Pill>
@@ -253,7 +253,7 @@ export const AgencyProfile = () => {
               <ul className="space-y-2">
                 {workers.map((w) => (
                   <li key={w.id}>
-                    <Link to={`/workforce/workers/${w.id}`} className={cn("focus-ring flex items-center justify-between gap-2 rounded-lg border border-line bg-raised px-4 py-3 hover:border-[#7A8394]", w.archived_at && "opacity-60")}>
+                    <Link to={`/workforce/workers/${w.id}`} className={cn("focus-ring flex items-center justify-between gap-2 rounded-lg border border-line bg-raised px-4 py-3 hover:border-line-strong", w.archived_at && "opacity-60")}>
                       <span className="min-w-0 truncate text-sm text-ink">
                         {fullName(w)} <span className="font-mono text-xs text-ink-3">{w.worker_code}</span>
                       </span>
@@ -274,7 +274,7 @@ export const AgencyProfile = () => {
                 <ul className="space-y-2">
                   {invoices.map((i) => (
                     <li key={i.id}>
-                      <Link to={`/workforce/invoices/${i.id}`} className="focus-ring flex items-center justify-between gap-2 rounded-lg border border-line bg-raised px-4 py-3 hover:border-[#7A8394]">
+                      <Link to={`/workforce/invoices/${i.id}`} className="focus-ring flex items-center justify-between gap-2 rounded-lg border border-line bg-raised px-4 py-3 hover:border-line-strong">
                         <span className="text-sm text-ink">
                           #{i.invoice_number} · {money(Number(i.total))}
                           {i.due_date && <span className="text-xs text-ink-3"> · due {fmtDate(i.due_date)}</span>}
@@ -295,7 +295,7 @@ export const AgencyProfile = () => {
                 <ul className="space-y-2">
                   {followups.map((f) => (
                     <li key={f.id}>
-                      <Link to={`/workforce/workers/${f.worker_id}?tab=personnel`} className="focus-ring flex items-center justify-between rounded-lg border border-line bg-raised px-4 py-3 text-sm text-ink hover:border-[#7A8394]">
+                      <Link to={`/workforce/workers/${f.worker_id}?tab=personnel`} className="focus-ring flex items-center justify-between rounded-lg border border-line bg-raised px-4 py-3 text-sm text-ink hover:border-line-strong">
                         {fullName(wf.workerById.get(f.worker_id) ?? { first_name: "Worker", last_name: "" })}
                         <Pill tone="amber">Due {fmtDate(f.followup_due, "MMM d")}</Pill>
                       </Link>
@@ -310,7 +310,7 @@ export const AgencyProfile = () => {
         <div>
           <h2 className="mb-3 font-display text-xl font-bold text-ink">Current placements ({current.length})</h2>
           {current.length === 0 ? (
-            <div className="rounded-xl border border-line bg-surface p-4">
+            <div className="rounded-xl border border-line bg-surface shadow-card p-4">
               <Empty title="No pending or active placements" />
             </div>
           ) : (

@@ -2,48 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ember Command design system. All shadcn tokens are HSL. */
+/* Navy Command design system. Hex tokens live in tailwind.config.ts; shadcn tokens below are HSL
+   mirrors of the same values: canvas #0F172A, surface #1E293B, line #334155, ink #F8FAFC / #CBD5E1,
+   primary #2563EB (hover #1D4ED8), link/focus #60A5FA, success #22C55E, warning #F59E0B, danger #DC2626. */
 
 @layer base {
   :root {
-    --background: 216 13% 16%;
-    --foreground: 220 18% 97%;
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
 
-    --card: 218 12% 30%;
-    --card-foreground: 220 18% 97%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 218 12% 30%;
-    --popover-foreground: 220 18% 97%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 0 72% 51%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 218 13% 24%;
-    --secondary-foreground: 220 18% 97%;
+    --secondary: 217 30% 22%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 218 13% 24%;
-    --muted-foreground: 219 13% 74%;
+    --muted: 217 30% 22%;
+    --muted-foreground: 213 27% 84%;
 
-    --accent: 218 13% 24%;
-    --accent-foreground: 220 18% 97%;
+    --accent: 217 30% 22%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 11% 44%;
-    --input: 220 11% 44%;
-    --ring: 0 72% 51%;
+    --border: 215 25% 27%;
+    --input: 215 19% 35%;
+    --ring: 213 94% 68%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 213 13% 13%;
-    --sidebar-foreground: 216 15% 86%;
-    --sidebar-primary: 0 72% 51%;
+    --sidebar-background: 217 33% 17%;
+    --sidebar-foreground: 213 27% 84%;
+    --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 218 13% 24%;
-    --sidebar-accent-foreground: 220 18% 97%;
-    --sidebar-border: 220 11% 44%;
-    --sidebar-ring: 0 72% 51%;
+    --sidebar-accent: 217 30% 22%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 25% 27%;
+    --sidebar-ring: 213 94% 68%;
 
     color-scheme: dark;
   }
@@ -83,7 +85,7 @@
   }
 
   ::selection {
-    background: rgba(220, 38, 38, 0.35);
+    background: rgba(37, 99, 235, 0.45);
     color: #fff;
   }
 
@@ -95,30 +97,41 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #636b7b;
+    background: #334155;
     border-radius: 999px;
-    border: 2px solid #23272d;
+    border: 2px solid #0f172a;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #7a8394;
+    background: #475569;
   }
 
-  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.75);
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
     cursor: pointer;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: #2563eb;
   }
 }
 
 @layer utilities {
   .canvas-glow {
     background:
-      radial-gradient(900px 480px at 100% -10%, rgba(220, 38, 38, 0.07), transparent 60%),
-      radial-gradient(700px 420px at 0% 110%, rgba(212, 215, 221, 0.04), transparent 60%),
-      #23272d;
+      radial-gradient(900px 480px at 100% -10%, rgba(37, 99, 235, 0.08), transparent 60%),
+      radial-gradient(700px 420px at 0% 110%, rgba(96, 165, 250, 0.04), transparent 60%),
+      #0f172a;
   }
 
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ember/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+  }
+
+  .text-link-style {
+    @apply font-medium text-link underline-offset-2 hover:text-link-hover hover:underline;
   }
 }
 
@@ -136,10 +149,10 @@
     @apply my-3;
   }
   .legal-prose ul {
-    @apply my-3 list-disc space-y-1.5 pl-6 marker:text-ember;
+    @apply my-3 list-disc space-y-1.5 pl-6 marker:text-link;
   }
   .legal-prose a {
-    @apply text-ember underline-offset-2 hover:underline;
+    @apply text-link underline-offset-2 hover:text-link-hover hover:underline;
   }
   .legal-prose strong {
     @apply font-semibold text-ink;
@@ -155,28 +168,28 @@
   }
 }
 
-/* Leaflet maps (geofence) — match the Ember Command palette. */
+/* Leaflet maps (geofence) — match the Navy Command palette. */
 .fw-map.leaflet-container {
-  background: #1b1e23;
+  background: #0b1220;
   font-family: inherit;
 }
 .fw-map .leaflet-control-attribution {
-  background: rgba(35, 39, 45, 0.82);
-  color: #9aa3b2;
+  background: rgba(15, 23, 42, 0.85);
+  color: #94a3b8;
   font-size: 10px;
 }
 .fw-map .leaflet-control-attribution a {
-  color: #c8ced8;
+  color: #60a5fa;
 }
 .fw-map .leaflet-bar a {
-  background: #353b45;
-  color: #f1f3f6;
-  border-bottom-color: #636b7b;
+  background: #1e293b;
+  color: #f8fafc;
+  border-bottom-color: #334155;
 }
 .fw-map .leaflet-bar a:hover {
-  background: #444b57;
+  background: #273449;
 }
 .fw-map .leaflet-bar {
-  border: 1px solid #636b7b;
+  border: 1px solid #334155;
   box-shadow: none;
 }

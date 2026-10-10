@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { THEME } from "@/lib/theme";
 
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { Card, EmptyState, PageHeader } from "@/components/fw/primitives";
@@ -35,7 +36,7 @@ const AllPatrols = () => {
       <div className="mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Filter by status">
         {FILTERS.map((f) => {
           const active = filter === f;
-          const color = f === "all" ? "#DC2626" : STATUS_META[f].color;
+          const color = f === "all" ? THEME.primary : STATUS_META[f].color;
           return (
             <button
               key={f}
@@ -45,7 +46,7 @@ const AllPatrols = () => {
               onClick={() => setFilter(f)}
               className={cn(
                 "focus-ring inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors",
-                active ? "border-ember/60 bg-ember/10 text-ink" : "border-line text-ink-2 hover:text-ink",
+                active ? "border-primary/60 bg-primary/10 text-ink" : "border-line text-ink-2 hover:text-ink",
               )}
             >
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />

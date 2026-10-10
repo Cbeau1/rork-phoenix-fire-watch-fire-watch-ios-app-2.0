@@ -29,7 +29,7 @@ export const ShiftCard = memo(
           paid
             ? "border-status-clear/55 bg-status-clear/[0.12]"
             : mine
-              ? "border-ember/45 bg-ember/[0.07]"
+              ? "border-primary/45 bg-primary/[0.07]"
               : "border-line bg-raised",
         )}
       >
@@ -37,7 +37,7 @@ export const ShiftCard = memo(
           aria-hidden
           className={cn(
             "absolute inset-y-0 left-0 w-[3px] transition-colors duration-300",
-            paid ? "bg-status-clear" : mine ? "bg-ember" : "bg-[#7A8394]",
+            paid ? "bg-status-clear" : mine ? "bg-primary" : "bg-line-strong",
           )}
         />
         {isAdmin && onEdit ? (
@@ -82,7 +82,7 @@ export const ShiftCard = memo(
                 "focus-ring flex h-9 w-full items-center justify-center gap-1.5 rounded-md text-xs font-semibold transition-all duration-200 active:scale-[0.97]",
                 paid
                   ? "bg-status-clear text-[#04240f] hover:bg-status-clear/90"
-                  : "border border-[#7A8394] text-ink-2 hover:border-status-clear/60 hover:bg-status-clear/10 hover:text-status-clear",
+                  : "border border-line-strong text-ink-2 hover:border-status-clear/60 hover:bg-status-clear/10 hover:text-status-clear",
               )}
             >
               {paid ? (
@@ -128,7 +128,7 @@ const ShiftBody = ({
     <div className="flex items-start justify-between gap-2">
       <span className={cn("line-clamp-2 text-sm font-semibold leading-snug", paid ? "text-status-clear" : "text-ink")}>
         {staffName}
-        {mine && <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ember">You</span>}
+        {mine && <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-link">You</span>}
       </span>
       {editable && (
         <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />

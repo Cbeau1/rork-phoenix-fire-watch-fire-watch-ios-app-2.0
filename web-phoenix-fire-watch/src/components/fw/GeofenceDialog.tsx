@@ -135,7 +135,7 @@ export const GeofenceDialog = ({ property, open, onOpenChange }: GeofenceDialogP
       <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto border-line bg-surface p-0 text-ink sm:max-w-3xl sm:rounded-xl">
         <DialogHeader className="px-6 pt-6 text-left">
           <DialogTitle className="flex items-center gap-2.5 font-display text-xl">
-            <MapPinned className="h-5 w-5 text-ember" />
+            <MapPinned className="h-5 w-5 text-link" />
             Patrol geofence
           </DialogTitle>
           <DialogDescription className="text-ink-2">
@@ -151,7 +151,7 @@ export const GeofenceDialog = ({ property, open, onOpenChange }: GeofenceDialogP
                 {enabled ? "Patrols outside the area are blocked." : "Off — patrols can be logged from anywhere."}
               </span>
             </span>
-            <Switch checked={enabled} onCheckedChange={setEnabled} className="data-[state=checked]:bg-ember" />
+            <Switch checked={enabled} onCheckedChange={setEnabled} className="data-[state=checked]:bg-primary" />
           </label>
 
           <div className={cn("space-y-4 transition-opacity", !enabled && "pointer-events-none opacity-45")} aria-disabled={!enabled}>
@@ -187,7 +187,7 @@ export const GeofenceDialog = ({ property, open, onOpenChange }: GeofenceDialogP
               {!center && (
                 <div className="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center">
                   <span className="flex items-center gap-2 rounded-full bg-canvas/90 px-4 py-2 text-sm text-ink ring-1 ring-line">
-                    <Crosshair className="h-4 w-4 text-ember" />
+                    <Crosshair className="h-4 w-4 text-link" />
                     {searching ? "Finding the address…" : "Tap the map to place the area"}
                   </span>
                 </div>
@@ -204,7 +204,7 @@ export const GeofenceDialog = ({ property, open, onOpenChange }: GeofenceDialogP
                 <span className="font-mono text-lg font-semibold tabular-nums text-ink">{formatDistance(radius, true)}</span>
               </div>
               <Slider
-                className="mt-4 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-ember [&>span:first-child>span]:bg-ember"
+                className="mt-4 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-primary [&>span:first-child>span]:bg-primary"
                 min={0}
                 max={SLIDER_MAX}
                 step={1}
@@ -220,7 +220,7 @@ export const GeofenceDialog = ({ property, open, onOpenChange }: GeofenceDialogP
                     onClick={() => setRadius(m)}
                     className={cn(
                       "focus-ring h-9 rounded-full border px-3.5 font-mono text-xs font-medium transition-colors",
-                      radius === m ? "border-ember bg-ember/15 text-ember" : "border-line bg-surface text-ink-2 hover:text-ink",
+                      radius === m ? "border-primary bg-primary/15 text-link" : "border-line bg-surface text-ink-2 hover:text-ink",
                     )}
                   >
                     {formatDistance(m)}

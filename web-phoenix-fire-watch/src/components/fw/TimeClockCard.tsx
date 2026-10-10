@@ -98,7 +98,7 @@ export const TimeClockCard = ({ compact, showLink = true }: { compact?: boolean;
             </p>
           )}
           {showLink && (
-            <Link to="/hours" className="focus-ring rounded text-sm font-medium text-ember hover:text-ember-hover">
+            <Link to="/hours" className="focus-ring rounded text-sm font-medium text-link hover:text-link-hover">
               View my hours
             </Link>
           )}

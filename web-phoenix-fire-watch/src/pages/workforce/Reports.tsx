@@ -44,7 +44,7 @@ const ReportCard = ({
   onRun: (f: Fmt) => void;
   children?: React.ReactNode;
 }) => (
-  <section className="flex flex-col rounded-xl border border-line bg-surface p-3">
+  <section className="flex flex-col rounded-xl border border-line bg-surface shadow-card p-3">
     <div className="flex-1 rounded-lg border border-line bg-raised p-4">
       <h2 className="font-display text-lg font-bold text-ink">{title}</h2>
       <p className="mt-1 text-sm text-ink-2">{description}</p>
@@ -215,7 +215,7 @@ const Reports = () => {
   return (
     <div>
       <PageHeader title="Exports & reports" subtitle="Sensitive sections are excluded unless you have permission. Every export is recorded in the audit log." />
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-3 sm:grid-cols-3 sm:p-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface shadow-card p-3 sm:grid-cols-3 sm:p-4">
         <SelectField label="Agency" value={agency} onChange={setAgency} allowNone noneLabel="All agencies" options={wf.agencies.map((a) => ({ value: a.id, label: a.name }))} />
         <TextField label="From" type="date" value={from} onChange={setFrom} />
         <TextField label="To" type="date" value={to} onChange={setTo} />

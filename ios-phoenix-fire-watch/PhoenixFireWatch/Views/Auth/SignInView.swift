@@ -78,7 +78,7 @@ struct SignInView: View {
                 .frame(maxWidth: .infinity, minHeight: 40)
                 .background {
                     if mode == value {
-                        RoundedRectangle(cornerRadius: 9).fill(Color.fwEmber)
+                        RoundedRectangle(cornerRadius: 9).fill(Color.fwPrimary)
                     }
                 }
         }
@@ -155,7 +155,7 @@ struct SignInView: View {
                 Spacer()
                 Button("Forgot password?") { switchTo(.forgotEmail) }
                     .font(.system(.footnote, weight: .semibold))
-                    .foregroundStyle(Color.fwEmber)
+                    .foregroundStyle(Color.fwLink)
             }
             submitButton("Sign In") { try await submitSignIn() }
         }
@@ -229,7 +229,7 @@ struct SignInView: View {
                 if busy { ProgressView().tint(.white) }
             }
         }
-        .buttonStyle(EmberButtonStyle())
+        .buttonStyle(PrimaryButtonStyle())
         .disabled(busy)
         .padding(.top, 4)
     }
@@ -286,7 +286,7 @@ struct CheckboxToggleStyle: ToggleStyle {
             } label: {
                 Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
                     .font(.system(size: 22))
-                    .foregroundStyle(configuration.isOn ? Color.fwEmber : Color.fwInk3)
+                    .foregroundStyle(configuration.isOn ? Color.fwLink : Color.fwInk3)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }

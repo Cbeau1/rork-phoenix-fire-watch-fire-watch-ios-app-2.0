@@ -54,7 +54,7 @@ export const SyncStatus = ({ compact = false, iconOnly = false }: { compact?: bo
   let label = "Synced";
   let Icon = CheckCircle2;
   if (failedCount > 0) {
-    tone = "text-status-incident";
+    tone = "text-status-incident-ink";
     label = `${failedCount} need attention`;
     Icon = AlertTriangle;
   } else if (!online) {
@@ -62,7 +62,7 @@ export const SyncStatus = ({ compact = false, iconOnly = false }: { compact?: bo
     label = pendingCount ? `Offline · ${pendingCount} waiting` : "Offline";
     Icon = CloudOff;
   } else if (syncing || pendingCount > 0) {
-    tone = "text-ember";
+    tone = "text-link";
     label = pendingCount ? `Uploading ${pendingCount}…` : "Syncing…";
     Icon = syncing ? Loader2 : CloudUpload;
   }
@@ -74,7 +74,7 @@ export const SyncStatus = ({ compact = false, iconOnly = false }: { compact?: bo
           type="button"
           aria-label={`Sync status: ${label}`}
           className={cn(
-            "focus-ring inline-flex items-center gap-2 rounded-lg border border-line bg-surface text-xs font-medium transition-colors hover:border-[#7A8394]",
+            "focus-ring inline-flex items-center gap-2 rounded-lg border border-line bg-surface text-xs font-medium transition-colors hover:border-line-strong",
             iconOnly ? "h-11 w-11 justify-center" : compact ? "h-10 px-3" : "w-full px-3 py-2",
           )}
         >
@@ -109,11 +109,11 @@ export const SyncStatus = ({ compact = false, iconOnly = false }: { compact?: bo
                 <li key={op.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className={cn("text-sm font-medium", op.failed ? "text-status-incident" : "text-ink")}>
+                      <div className={cn("text-sm font-medium", op.failed ? "text-status-incident-ink" : "text-ink")}>
                         {d.title}
                       </div>
                       <div className="truncate text-xs text-ink-3">{d.detail}</div>
-                      {op.error && <div className="mt-1 text-xs text-status-incident/90">{op.error}</div>}
+                      {op.error && <div className="mt-1 text-xs text-status-incident-ink/90">{op.error}</div>}
                     </div>
                     {op.failed && (
                       <div className="flex shrink-0 gap-1">
@@ -129,7 +129,7 @@ export const SyncStatus = ({ compact = false, iconOnly = false }: { compact?: bo
                           type="button"
                           aria-label="Discard change"
                           onClick={() => void sync.discardOp(op.id)}
-                          className="focus-ring flex h-8 w-8 items-center justify-center rounded-md text-ink-2 hover:bg-status-incident/10 hover:text-status-incident"
+                          className="focus-ring flex h-8 w-8 items-center justify-center rounded-md text-ink-2 hover:bg-status-incident/10 hover:text-status-incident-ink"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -147,7 +147,7 @@ export const SyncStatus = ({ compact = false, iconOnly = false }: { compact?: bo
               type="button"
               onClick={() => void sync.syncNow()}
               disabled={syncing}
-              className="focus-ring flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-ember text-sm font-medium text-white hover:bg-ember-hover disabled:opacity-60"
+              className="focus-ring flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
             >
               {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CloudUpload className="h-4 w-4" />}
               Upload now

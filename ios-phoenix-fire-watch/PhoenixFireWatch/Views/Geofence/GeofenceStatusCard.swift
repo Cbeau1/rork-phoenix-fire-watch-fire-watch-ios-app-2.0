@@ -81,7 +81,7 @@ struct GeofenceStatusCard: View {
                 } label: {
                     Label("Open Settings", systemImage: "gearshape.fill")
                 }
-                .buttonStyle(EmberButtonStyle(compact: true))
+                .buttonStyle(PrimaryButtonStyle(compact: true))
             }
             Button {
                 location.restart()
@@ -106,8 +106,8 @@ struct GeofenceStatusCard: View {
         switch v {
         case .checking: ProgressView().tint(Color.fwFollow)
         case .inside: Image(systemName: "checkmark.seal.fill").foregroundStyle(Color.fwClear)
-        case .outside: Image(systemName: "location.slash.fill").foregroundStyle(Color.fwIncident)
-        case .blocked: Image(systemName: "location.slash.circle.fill").foregroundStyle(Color.fwIncident)
+        case .outside: Image(systemName: "location.slash.fill").foregroundStyle(Color.fwIncidentInk)
+        case .blocked: Image(systemName: "location.slash.circle.fill").foregroundStyle(Color.fwIncidentInk)
         }
     }
 

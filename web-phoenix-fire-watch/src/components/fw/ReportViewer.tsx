@@ -79,7 +79,7 @@ const PdfPage = memo(({ doc, pageNumber, width }: { doc: PDFDocumentProxy; pageN
       <canvas ref={canvasRef} className="block" aria-label={`Report page ${pageNumber}`} />
       {!rendered && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-[#B9BBC0]" />
+          <Loader2 className="h-6 w-6 animate-spin text-ink-3" />
         </div>
       )}
     </div>
@@ -175,13 +175,13 @@ export const ReportViewer = ({ open, title, subtitle, onClose, build, onDownload
 
   // Portaled to <body>: animated (transformed) page ancestors would otherwise trap this fixed overlay.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex h-[100dvh] animate-fade-up flex-col bg-[#060607]/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-50 flex h-[100dvh] animate-fade-up flex-col bg-canvas-deep/95 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={title}>
       <header className="flex items-center gap-3 border-b border-line bg-canvas px-3 py-2.5 pt-[max(0.625rem,var(--safe-top))] sm:px-5">
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close report" className="shrink-0 text-ink-2 hover:text-ink">
           <X />
         </Button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <FileText className="hidden h-5 w-5 shrink-0 text-ember sm:block" />
+          <FileText className="hidden h-5 w-5 shrink-0 text-link sm:block" />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-ink sm:text-[15px]">{title}</div>
             <div className="truncate text-xs text-ink-3">
@@ -220,7 +220,7 @@ export const ReportViewer = ({ open, title, subtitle, onClose, build, onDownload
           </div>
         ) : !doc ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-ink-2">
-            <Loader2 className="h-7 w-7 animate-spin text-ember" />
+            <Loader2 className="h-7 w-7 animate-spin text-link" />
             <p className="text-sm">Preparing report with photos…</p>
           </div>
         ) : (

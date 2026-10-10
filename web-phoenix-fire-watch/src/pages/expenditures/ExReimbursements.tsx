@@ -146,16 +146,16 @@ const ExReimbursements = () => {
             onClick={() => set("dir", d)}
             className={cn(
               "focus-ring rounded-xl border px-4 py-3 text-left transition-colors",
-              dir === d ? "border-ember bg-ember/[0.08]" : "border-line bg-surface hover:border-[#7A8394]",
+              dir === d ? "border-primary bg-primary/[0.08]" : "border-line bg-surface hover:border-line-strong",
             )}
           >
-            <div className={cn("font-medium", dir === d ? "text-ember" : "text-ink")}>{DIRECTION[d].label}</div>
+            <div className={cn("font-medium", dir === d ? "text-link" : "text-ink")}>{DIRECTION[d].label}</div>
             <div className="text-xs text-ink-3">{DIRECTION[d].long}</div>
           </button>
         ))}
       </div>
 
-      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-line bg-surface p-3 lg:flex-row lg:items-end">
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-line bg-surface shadow-card p-3 lg:flex-row lg:items-end">
         <div className="flex gap-1 rounded-lg border border-line bg-rail/60 p-1">
           {(["requests", "payments"] as const).map((t) => (
             <button
@@ -163,7 +163,7 @@ const ExReimbursements = () => {
               type="button"
               onClick={() => set("tab", t === "payments" ? "payments" : "")}
               aria-pressed={tab === t}
-              className={cn("focus-ring rounded-md px-3.5 py-1.5 text-sm font-medium", tab === t ? "bg-ember text-white" : "text-ink-2 hover:text-ink")}
+              className={cn("focus-ring rounded-md px-3.5 py-1.5 text-sm font-medium", tab === t ? "bg-primary text-white" : "text-ink-2 hover:text-ink")}
             >
               {t === "requests" ? "Requests" : "Payment history"}
             </button>
@@ -220,7 +220,7 @@ const ExReimbursements = () => {
               {payments.map((p) => (
                 <li key={p.payment.id} className={cn("rounded-lg border border-line bg-raised px-4 py-3", p.reversed && "opacity-70")}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs text-ember">{p.payment.code}</span>
+                    <span className="font-mono text-xs text-link">{p.payment.code}</span>
                     <span className={cn("font-mono font-semibold tabular-nums text-ink", p.reversed && "line-through")}>{fmtMoney(toCents(p.payment.amount), p.payment.currency)}</span>
                     <span className="text-sm text-ink-2">
                       {toPerson ? "to" : "from"} {p.payment.party_name}
@@ -248,7 +248,7 @@ const ExReimbursements = () => {
                       </li>
                     ))}
                   </ul>
-                  {p.reversed && <p className="mt-1.5 text-xs text-status-incident">Reversed {fmtDate(p.reversed.reversed_at)} by {ex.memberName(p.reversed.reversed_by)}: {p.reversed.reason}</p>}
+                  {p.reversed && <p className="mt-1.5 text-xs text-status-incident-ink">Reversed {fmtDate(p.reversed.reversed_at)} by {ex.memberName(p.reversed.reversed_by)}: {p.reversed.reason}</p>}
                   {p.payment.notes && <p className="mt-1 whitespace-pre-line text-xs text-ink-2">{p.payment.notes}</p>}
                 </li>
               ))}
@@ -268,10 +268,10 @@ const RequestRow = ({ v, checked, onToggle }: { v: ReimbView; checked: boolean; 
   const canPay = v.payable && v.remaining > 0;
   return (
     <li className="flex items-start gap-3 rounded-lg border border-line bg-raised px-4 py-3">
-      <input type="checkbox" className="mt-1 h-4 w-4 accent-[#DC2626] disabled:opacity-30" aria-label={`Select ${v.r.code} for payment`} checked={checked} disabled={!canPay} onChange={onToggle} />
+      <input type="checkbox" className="mt-1 h-4 w-4 accent-primary disabled:opacity-30" aria-label={`Select ${v.r.code} for payment`} checked={checked} disabled={!canPay} onChange={onToggle} />
       <Link to={`/expenditures/records/${v.r.expenditure_id}`} className="focus-ring min-w-0 flex-1 rounded">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-xs text-ember">{v.r.code}</span>
+          <span className="font-mono text-xs text-link">{v.r.code}</span>
           <span className="font-medium text-ink">{v.r.party_name}</span>
           <Pill tone={meta.tone}>{meta.label}</Pill>
         </div>

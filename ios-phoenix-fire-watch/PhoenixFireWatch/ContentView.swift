@@ -103,7 +103,7 @@ struct NoAccessView: View {
                 } label: {
                     if busy { ProgressView().tint(.white) } else { Text("Try Again") }
                 }
-                .buttonStyle(EmberButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
                 Button("Sign Out") { Task { await auth.signOut() } }
                     .buttonStyle(OutlineButtonStyle())
             }

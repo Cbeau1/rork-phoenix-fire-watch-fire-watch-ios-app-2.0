@@ -87,7 +87,7 @@ export const HistoryList = ({ entries }: { entries: HistoryEntry[] }) =>
         return (
           <li key={h.id} className="rounded-lg border border-line bg-raised px-4 py-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className={cn("text-sm font-medium", passive ? "text-sky-300" : h.action.includes("reversed") || h.action === "archive" ? "text-status-incident" : "text-ink")}>
+              <span className={cn("text-sm font-medium", passive ? "text-sky-300" : h.action.includes("reversed") || h.action === "archive" ? "text-status-incident-ink" : "text-ink")}>
                 {HISTORY_ACTION[h.action] ?? h.action.replace(/_/g, " ")}
               </span>
               <span className="text-xs text-ink-3">{fmtDateTime(h.created_at)}</span>
@@ -167,7 +167,7 @@ const DirectionPanel = ({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs text-ember">{v.r.code}</span>
+                      <span className="font-mono text-xs text-link">{v.r.code}</span>
                       <Pill tone={m.tone}>{m.label}</Pill>
                     </div>
                     <div className="mt-1 text-sm font-medium text-ink">
@@ -177,7 +177,7 @@ const DirectionPanel = ({
                         {v.r.party_worker_id && ex.workerById.get(v.r.party_worker_id) && (
                           <>
                             {" · "}
-                            <Link to={`/workforce/workers/${v.r.party_worker_id}`} className="text-ember hover:underline">
+                            <Link to={`/workforce/workers/${v.r.party_worker_id}`} className="text-link hover:underline">
                               {ex.workerById.get(v.r.party_worker_id)?.code}
                             </Link>
                           </>
@@ -267,7 +267,7 @@ const DirectionPanel = ({
                         const pv = ex.index.paymentById.get(p.payment.id);
                         return (
                           <li key={p.payment.id} className={cn("flex flex-wrap items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm", p.reversed && "opacity-60")}>
-                            <span className="font-mono text-xs text-ember">{p.payment.code}</span>
+                            <span className="font-mono text-xs text-link">{p.payment.code}</span>
                             <span className={cn("font-mono tabular-nums text-ink", p.reversed && "line-through")}>{fmtMoney(p.amount, v.currency)}</span>
                             <span className="text-xs text-ink-2">
                               {fmtDate(p.payment.paid_on)} · {PAY_METHOD[p.payment.method] ?? p.payment.method}
@@ -363,7 +363,7 @@ const ExDetail = () => {
         title={e.vendor}
         subtitle={
           <span className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-sm text-ember">{e.code}</span>
+            <span className="font-mono text-sm text-link">{e.code}</span>
             <span>{fmtDate(e.spent_on)}</span>
             <span>· {row.category?.name}</span>
             {archived && <Pill tone="slate">Archived</Pill>}
@@ -399,7 +399,7 @@ const ExDetail = () => {
             {row.duplicates.map((d, i) => (
               <span key={d.id}>
                 {i > 0 && ", "}
-                <Link to={`/expenditures/records/${d.id}`} className="font-mono text-ember hover:underline">
+                <Link to={`/expenditures/records/${d.id}`} className="font-mono text-link hover:underline">
                   {d.code}
                 </Link>
               </span>
@@ -433,7 +433,7 @@ const ExDetail = () => {
               <DataTile label="Payer">
                 {e.paid_by === "business" ? "Business" : e.payer_name}
                 {worker && (
-                  <Link to={`/workforce/workers/${worker.id}`} className="ml-1.5 inline-flex items-center gap-1 text-xs text-ember hover:underline">
+                  <Link to={`/workforce/workers/${worker.id}`} className="ml-1.5 inline-flex items-center gap-1 text-xs text-link hover:underline">
                     <Briefcase className="h-3 w-3" />
                     {worker.code}
                   </Link>
@@ -446,7 +446,7 @@ const ExDetail = () => {
               <DataTile label="Receipt / invoice #">{e.invoice_ref}</DataTile>
               <DataTile label="Property / client">
                 {e.property_id ? (
-                  <Link to={`/properties/${e.property_id}`} className="text-ember hover:underline">
+                  <Link to={`/properties/${e.property_id}`} className="text-link hover:underline">
                     {ex.propertyName(e.property_id)}
                   </Link>
                 ) : (
@@ -463,7 +463,7 @@ const ExDetail = () => {
                 <DataTile label="Linked agency invoice" className="col-span-2 lg:col-span-3">
                   {inv ? (
                     <span>
-                      <Link to={`/workforce/invoices/${inv.id}`} className="text-ember hover:underline">
+                      <Link to={`/workforce/invoices/${inv.id}`} className="text-link hover:underline">
                         #{inv.number}
                       </Link>{" "}
                       · {fmtMoney(toCents(inv.total))} · {inv.status.replace(/_/g, " ")}

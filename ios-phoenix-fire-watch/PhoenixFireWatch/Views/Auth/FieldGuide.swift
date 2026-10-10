@@ -26,7 +26,7 @@ private struct FieldGuidePDFView: UIViewRepresentable {
         view.autoScales = true
         view.displayMode = .singlePageContinuous
         view.displayDirection = .vertical
-        view.backgroundColor = UIColor(red: 0x23 / 255, green: 0x27 / 255, blue: 0x2D / 255, alpha: 1)
+        view.backgroundColor = UIColor(Color.fwCanvas)
         view.pageShadowsEnabled = true
         view.document = PDFDocument(url: url)
         return view
@@ -75,7 +75,7 @@ struct FieldGuideGateView: View {
             Text("REQUIRED BEFORE YOUR FIRST SHIFT")
                 .font(.system(size: 11, weight: .semibold))
                 .kerning(1.6)
-                .foregroundStyle(Color.fwEmber)
+                .foregroundStyle(Color.fwLink)
             Text(auth.user.map { "\($0.name.split(separator: " ").first.map(String.init) ?? $0.name), read your field guide" } ?? "Read your field guide")
                 .font(FWFont.display(.title2))
                 .foregroundStyle(Color.fwInk)
@@ -108,7 +108,7 @@ struct FieldGuideGateView: View {
                     Label("Acknowledge & Continue", systemImage: "checkmark.seal.fill")
                 }
             }
-            .buttonStyle(EmberButtonStyle())
+            .buttonStyle(PrimaryButtonStyle())
             .disabled(!agreed || isBusy)
         }
         .padding(.horizontal, 20)
@@ -161,7 +161,7 @@ struct FieldGuideCardView: View {
                     Text("TRAINING")
                         .font(.system(size: 11, weight: .semibold))
                         .kerning(1.6)
-                        .foregroundStyle(Color.fwEmber)
+                        .foregroundStyle(Color.fwLink)
                     Text(FieldGuide.title)
                         .font(.system(.headline, weight: .bold))
                         .foregroundStyle(Color.fwInk)

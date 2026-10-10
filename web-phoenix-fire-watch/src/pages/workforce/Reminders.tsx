@@ -61,14 +61,14 @@ const Reminders = () => {
   return (
     <div>
       <PageHeader title="Reminders & follow-ups" subtitle="In-app only. Reminders refresh automatically, and duplicates are prevented." />
-      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-3 sm:grid-cols-2 sm:p-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface shadow-card p-3 sm:grid-cols-2 sm:p-4">
         <SelectField label="Show" value={view} onChange={(v) => set("view", v === "open" ? "" : v)} options={[{ value: "open", label: "Open" }, { value: "closed", label: "Resolved & dismissed" }]} />
         <SelectField label="Type" value={kind} onChange={(v) => set("kind", v)} allowNone noneLabel="All types" options={Object.entries(REMINDER_KIND).map(([value, label]) => ({ value, label }))} />
       </div>
       {wf.remindersLoading ? (
         <Loading />
       ) : list.length === 0 ? (
-        <div className="rounded-xl border border-line bg-surface p-4">
+        <div className="rounded-xl border border-line bg-surface shadow-card p-4">
           <Empty title={view === "open" ? "No open reminders" : "Nothing resolved yet"} />
         </div>
       ) : (
@@ -77,11 +77,11 @@ const Reminders = () => {
             const w = r.worker_id ? wf.workerById.get(r.worker_id) : undefined;
             const overdue = r.due_date && r.due_date < todayKey();
             return (
-              <li key={r.id} className="rounded-xl border border-line bg-surface p-3">
+              <li key={r.id} className="rounded-xl border border-line bg-surface shadow-card p-3">
                 <div className="flex flex-col gap-3 rounded-lg border border-line bg-raised px-4 py-3 md:flex-row md:items-center md:justify-between">
                   <Link to={linkFor(r)} className="focus-ring min-w-0 rounded">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-ink hover:text-ember">{r.title}</span>
+                      <span className="font-medium text-ink hover:text-link">{r.title}</span>
                       <Pill tone="slate">{REMINDER_KIND[r.kind] ?? r.kind}</Pill>
                       {r.due_date && <Pill tone={overdue ? "red" : "amber"}>{overdue ? "Overdue" : "Due"} {fmtDate(r.due_date, "MMM d")}</Pill>}
                     </div>

@@ -34,7 +34,7 @@ struct AcceptTermsView: View {
                     } label: {
                         if busy { ProgressView().tint(.white) } else { Text("Accept & Continue") }
                     }
-                    .buttonStyle(EmberButtonStyle())
+                    .buttonStyle(PrimaryButtonStyle())
                     .disabled(!agreed || busy)
                     Button("Sign Out") { Task { await auth.signOut() } }
                         .buttonStyle(OutlineButtonStyle())
@@ -50,7 +50,7 @@ struct AcceptTermsView: View {
     private func linkRow(_ title: String, url: URL) -> some View {
         Link(destination: url) {
             HStack {
-                Image(systemName: "doc.text").foregroundStyle(Color.fwEmber)
+                Image(systemName: "doc.text").foregroundStyle(Color.fwLink)
                 Text(title).foregroundStyle(Color.fwInk)
                 Spacer()
                 Image(systemName: "arrow.up.right").font(.caption).foregroundStyle(Color.fwInk3)

@@ -29,8 +29,8 @@ export const SiteCard = memo(
             : warning
               ? "border-status-follow/50"
               : on
-                ? "border-ember/35"
-                : "border-line hover:border-[#7A8394]",
+                ? "border-primary/35"
+                : "border-line hover:border-line-strong",
         )}
         style={{ animationDelay: `${delay}ms` }}
       >
@@ -66,7 +66,7 @@ export const SiteCard = memo(
               )}
             </p>
           </div>
-          <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ember" />
+          <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-link" />
         </Link>
 
         <div className="flex items-center gap-3 px-5 py-3 sm:px-6">
@@ -74,7 +74,7 @@ export const SiteCard = memo(
             <span
               className={cn(
                 "inline-flex min-w-0 items-center gap-1.5 text-sm font-medium tabular-nums",
-                overdue ? "text-status-incident" : warning ? "text-status-follow" : "text-ink-2",
+                overdue ? "text-status-incident-ink" : warning ? "text-status-follow" : "text-ink-2",
               )}
             >
               <AlarmClock className="h-4 w-4 shrink-0" />
@@ -88,7 +88,7 @@ export const SiteCard = memo(
           )}
           <Link
             to={`/properties/${property.id}/log`}
-            className="focus-ring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-ember px-4 text-sm font-semibold text-white transition-colors hover:bg-ember-hover active:scale-[0.97]"
+            className="focus-ring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover active:scale-[0.97]"
           >
             <Plus className="h-4 w-4" />
             Log Patrol

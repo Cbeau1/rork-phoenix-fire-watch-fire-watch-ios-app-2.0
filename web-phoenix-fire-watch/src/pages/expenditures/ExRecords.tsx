@@ -129,7 +129,7 @@ const ExRecords = () => {
       </div>
 
       {showFilters && (
-        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface shadow-card p-4 sm:grid-cols-2 lg:grid-cols-4">
           <TextField label="From (purchase date)" type="date" value={f.from} onChange={(v) => setF("from", v)} />
           <TextField label="To" type="date" value={f.to} onChange={(v) => setF("to", v)} />
           <SelectField label="Category" value={f.category} onChange={(v) => setF("category", v)} options={ex.categories.map((c) => ({ value: c.id, label: c.name }))} allowNone noneLabel="All categories" />
@@ -182,7 +182,7 @@ const ExRecords = () => {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden overflow-hidden rounded-xl border border-line bg-surface lg:block">
+          <div className="hidden overflow-hidden rounded-xl border border-line bg-surface shadow-card lg:block">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px] text-sm">
                 <caption className="sr-only">Expenditures, page {cur} of {pages}</caption>
@@ -213,7 +213,7 @@ const ExRecords = () => {
           <ul className="space-y-2.5 lg:hidden">
             {shown.map((r) => (
               <li key={r.e.id}>
-                <Link to={`/expenditures/records/${r.e.id}`} className="focus-ring block rounded-xl border border-line bg-surface p-3">
+                <Link to={`/expenditures/records/${r.e.id}`} className="focus-ring block rounded-xl border border-line bg-surface shadow-card p-3">
                   <div className="rounded-lg border border-line bg-raised px-3.5 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -266,10 +266,10 @@ const TableRow = ({ row: r, onOpen }: { row: ExpRow; onOpen: () => void }) => {
   const ex = useExpenses();
   const client = r.e.property_id ? ex.propertyName(r.e.property_id) : r.e.property_name;
   return (
-    <tr className="cursor-pointer border-b border-line/60 transition-colors last:border-0 hover:bg-[#4A5260]" onClick={onOpen}>
+    <tr className="cursor-pointer border-b border-line/60 transition-colors last:border-0 hover:bg-surface-hover" onClick={onOpen}>
       <td className="whitespace-nowrap px-3 py-3 font-mono text-xs text-ink-2">{fmtDate(r.e.spent_on, "MM/dd/yyyy")}</td>
       <td className="max-w-[180px] px-3 py-3">
-        <Link to={`/expenditures/records/${r.e.id}`} className="focus-ring block truncate font-medium text-ink hover:text-ember" onClick={(e) => e.stopPropagation()}>
+        <Link to={`/expenditures/records/${r.e.id}`} className="focus-ring block truncate font-medium text-ink hover:text-link" onClick={(e) => e.stopPropagation()}>
           {r.e.vendor}
         </Link>
         <span className="flex items-center gap-1.5 font-mono text-[11px] text-ink-3">
