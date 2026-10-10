@@ -1,7 +1,7 @@
 import "leaflet/dist/leaflet.css";
 
 import * as L from "leaflet";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import { GEOFENCE_MAX_M, GEOFENCE_MIN_M, type PatrolLocation } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -34,9 +34,23 @@ const TONE: Record<NonNullable<GeofenceMapProps["tone"]>, string> = {
   muted: "#9AA3B2",
 };
 
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+/** Esri basemaps: free for low-volume use and need no API key. */
+const esri = (service: string) => `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/tile/{z}/{y}/{x}`;
+const TILE_ATTRIBUTION = "Tiles &copy; Esri, Maxar, Earthstar Geographics, HERE, Garmin, OpenStreetMap contributors";
+
+type BaseStyle = "satellite" | "map";
+
+const buildLayers = (style: BaseStyle): L.TileLayer[] =>
+  style === "satellite"
+    ? [
+        L.tileLayer(esri("World_Imagery"), { attribution: TILE_ATTRIBUTION, maxZoom: 20, maxNativeZoom: 19 }),
+        L.tileLayer(esri("Reference/World_Transportation"), { maxZoom: 20, maxNativeZoom: 19, opacity: 0.7 }),
+        L.tileLayer(esri("Reference/World_Boundaries_and_Places"), { maxZoom: 20, maxNativeZoom: 19 }),
+      ]
+    : [
+        L.tileLayer(esri("Canvas/World_Dark_Gray_Base"), { attribution: TILE_ATTRIBUTION, maxZoom: 20, maxNativeZoom: 16 }),
+        L.tileLayer(esri("Canvas/World_Dark_Gray_Reference"), { maxZoom: 20, maxNativeZoom: 16 }),
+      ];
 
 const clampRadius = (m: number) => Math.round(Math.min(GEOFENCE_MAX_M, Math.max(GEOFENCE_MIN_M, m)));
 
@@ -80,6 +94,8 @@ export const GeofenceMap = memo(
     const youMarker = useRef<L.Marker | null>(null);
     const youRing = useRef<L.Circle | null>(null);
     const resizing = useRef<boolean>(false);
+    const baseLayers = useRef<L.TileLayer[]>([]);
+    const [style, setStyle] = useState<BaseStyle>("satellite");
     const state = useRef<{ center: LatLng | null; radius: number }>({ center, radius: radiusM });
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
@@ -96,7 +112,6 @@ export const GeofenceMap = memo(
         boxZoom: interactive,
         keyboard: interactive,
       }).setView(center ? [center.lat, center.lng] : [39.5, -98.35], center ? 16 : 4);
-      L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION, maxZoom: 20, subdomains: "abcd" }).addTo(m);
       map.current = m;
       const ro = new ResizeObserver(() => m.invalidateSize());
       ro.observe(el.current);
@@ -109,9 +124,18 @@ export const GeofenceMap = memo(
         handle.current = null;
         youMarker.current = null;
         youRing.current = null;
+        baseLayers.current = [];
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Base map (satellite or dark street map).
+    useEffect(() => {
+      const m = map.current;
+      if (!m) return;
+      baseLayers.current.forEach((l) => l.remove());
+      baseLayers.current = buildLayers(style).map((l) => l.addTo(m));
+    }, [style]);
 
     // Circle, center and resize handle.
     useEffect(() => {
@@ -244,12 +268,33 @@ export const GeofenceMap = memo(
     }, [fitKey, hasYou, !!center]);
 
     return (
-      <div
-        ref={el}
-        className={cn("fw-map relative z-0 overflow-hidden rounded-lg border border-line bg-[#1b1e23]", className)}
-        role="application"
-        aria-label={editable ? "Geofence map. Tap to move the area; drag the edge handle to resize." : "Geofence map"}
-      />
+      <div className={cn("relative z-0 overflow-hidden rounded-lg border border-line bg-[#1b1e23]", className)}>
+        <div
+          ref={el}
+          className="fw-map absolute inset-0"
+          role="application"
+          aria-label={editable ? "Geofence map. Tap to move the area; drag the edge handle to resize." : "Geofence map"}
+        />
+        <div className="absolute right-2 top-2 z-[500] flex overflow-hidden rounded-md border border-line bg-canvas/90 text-[11px] font-bold uppercase tracking-wider">
+          {(["satellite", "map"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setStyle(s);
+              }}
+              aria-pressed={style === s}
+              className={cn(
+                "min-h-[32px] px-2.5 transition-colors",
+                style === s ? "bg-ember text-white" : "text-ink-3 hover:text-ink",
+              )}
+            >
+              {s === "satellite" ? "Satellite" : "Map"}
+            </button>
+          ))}
+        </div>
+      </div>
     );
   },
 );
