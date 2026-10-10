@@ -1,6 +1,6 @@
-import { Camera, Loader2, MapPinX, Save, Shield, X } from "lucide-react";
+import { Camera, Clock, Loader2, LogIn, MapPinX, Save, Shield, X } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { CameraCapture } from "@/components/fw/CameraCapture";
@@ -17,6 +17,7 @@ import { friendlyError } from "@/lib/supabase";
 import { STATUS_META, type PatrolStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useFireWatch } from "@/state/FireWatchProvider";
+import { useMyClock } from "@/state/useTimeClock";
 
 import NotFound from "./NotFound";
 
@@ -34,7 +35,9 @@ const LogPatrol = () => {
   const navigate = useNavigate();
   useDocumentTitle("Log Patrol");
   const { propertyById, addPatrol, user, patrols } = useFireWatch();
+  const { open: openEntry, loading: clockLoading, clockIn } = useMyClock();
   const property = propertyById.get(id);
+  const needsClockIn = !clockLoading && !openEntry;
 
   const lastOfficer = patrols.find((p) => p.propertyId === id)?.officerName;
   const [dateTime, setDateTime] = useState<string>(() => toLocalInputValue(new Date()));
@@ -72,6 +75,10 @@ const LogPatrol = () => {
     if (areaList.length === 0) next.areas = "List at least one area patrolled";
     setErrors(next);
     if (Object.keys(next).length > 0 || saving) return;
+    if (!openEntry) {
+      toast.error("Clock in first", { description: "Clock in before logging a patrol." });
+      return;
+    }
     if (blockedByFence) {
       toast.error(verdict === "checking" ? "Still checking your location" : "You're outside the geofence", {
         description: `Patrols for ${property.name} can only be logged on site.`,
@@ -108,6 +115,41 @@ const LogPatrol = () => {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader backTo={backTo} backLabel="Back to Property" title="Log Fire Watch Patrol" subtitle={property.name} />
+
+      {needsClockIn && (
+        <Card className="mb-5 border-status-follow/40">
+          <div className="flex flex-col gap-4 px-6 py-7 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-raised ring-1 ring-line">
+                <Clock className="h-6 w-6 text-ink-2" strokeWidth={1.8} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-ink">Clock in to log patrols</div>
+                <p className="mt-0.5 text-sm text-ink-2">Start your shift on the time clock before logging a patrol.</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+              <Button
+                size="lg"
+                disabled={clockIn.isPending}
+                onClick={() =>
+                  clockIn.mutate("", {
+                    onSuccess: () => toast.success("Clocked in"),
+                    onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't clock in."),
+                  })
+                }
+                className="transition-transform active:scale-[0.97]"
+              >
+                {clockIn.isPending ? <Loader2 className="animate-spin" /> : <LogIn />}
+                Clock In
+              </Button>
+              <Link to="/hours" className="focus-ring rounded text-center text-sm font-medium text-ember hover:text-ember-hover sm:text-right">
+                Go to time clock
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card>
         <CardHeader
@@ -243,8 +285,8 @@ const LogPatrol = () => {
             <Button type="button" variant="outline" onClick={() => navigate(backTo)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={saving || blockedByFence}>
-              {saving ? <Loader2 className="animate-spin" /> : blockedByFence ? <MapPinX /> : <Save />}
+            <Button type="submit" disabled={saving || blockedByFence || needsClockIn}>
+              {saving ? <Loader2 className="animate-spin" /> : blockedByFence ? <MapPinX /> : needsClockIn ? <Clock /> : <Save />}
               {saving
                 ? photos.length
                   ? "Uploading…"
@@ -253,7 +295,9 @@ const LogPatrol = () => {
                   ? verdict === "checking"
                     ? "Checking location…"
                     : "Must be on site"
-                  : "Log Patrol"}
+                  : needsClockIn
+                    ? "Clock In First"
+                    : "Log Patrol"}
             </Button>
           </div>
         </form>

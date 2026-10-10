@@ -8,6 +8,7 @@ struct LogPatrolView: View {
     @Environment(AuthStore.self) private var auth
     @Environment(FireWatchStore.self) private var store
     @Environment(PatrolTimerStore.self) private var timers
+    @Environment(TimeClockStore.self) private var clock
     @Environment(AppRouter.self) private var router
 
     @State private var dateTime: Date = Date()
@@ -32,10 +33,17 @@ struct LogPatrolView: View {
 
     private var property: Property? { store.property(id: propertyId) }
 
+    /// A patrol can only be started or submitted while on the clock.
+    private var needsClockIn: Bool { clock.hasLoaded && clock.open == nil }
+
     var body: some View {
         Group {
             if let property {
-                form(property)
+                if needsClockIn {
+                    clockInRequired(property)
+                } else {
+                    form(property)
+                }
             } else {
                 EmptyStateView(symbol: "building.2", title: "Property not found", message: "It may have been deleted.")
             }
@@ -64,6 +72,57 @@ struct LogPatrolView: View {
         guard !didPrefill else { return }
         didPrefill = true
         officerName = store.patrols(for: propertyId).first?.officerName ?? auth.user?.name ?? ""
+    }
+
+    /// Shown instead of the form until the officer clocks in on the time clock.
+    private func clockInRequired(_ property: Property) -> some View {
+        VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(Color.fwEmber.opacity(0.12)).frame(width: 64, height: 64)
+                    Image(systemName: "clock.badge.exclamationmark")
+                        .font(.system(size: 28, weight: .medium))
+                        .foregroundStyle(Color.fwEmber)
+                }
+                VStack(spacing: 6) {
+                    Text("Clock in to log patrols")
+                        .font(.system(.headline, weight: .bold))
+                        .foregroundStyle(Color.fwInk)
+                    Text("Start your shift on the time clock before logging a patrol at \(property.name).")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.fwInk2)
+                        .multilineTextAlignment(.center)
+                }
+                Button {
+                    Task {
+                        do {
+                            try await clock.clockIn()
+                            router.show("Clocked in", detail: "Started at \(Fmt.time(clock.open?.clockIn ?? Date()))")
+                        } catch {
+                            router.show(ErrorText.from(error, fallback: "Couldn't clock in. Try again."), style: .error)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if clock.isPunching {
+                            ProgressView().tint(.white)
+                        } else {
+                            Image(systemName: "arrow.right.to.line")
+                        }
+                        Text(clock.isPunching ? "Clocking in…" : "Clock In")
+                    }
+                }
+                .buttonStyle(EmberButtonStyle())
+                .disabled(clock.isPunching)
+            }
+            .padding(24)
+            .fwCard()
+            .padding(16)
+            .fwReadable(420)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func form(_ property: Property) -> some View {
@@ -246,6 +305,10 @@ struct LogPatrolView: View {
         if areaList.isEmpty { next["areas"] = "List at least one area patrolled" }
         withAnimation { errors = next }
         guard next.isEmpty, !saving else { return }
+        guard clock.open != nil else {
+            router.show("Clock in first", detail: "Clock in before logging a patrol.", style: .error)
+            return
+        }
         let fenced = property.geofence.isActive
         guard fenceVerdict(property).allowsLogging else {
             router.show("You're outside the geofence", detail: "Patrols for \(property.name) can only be logged on site.", style: .error)
