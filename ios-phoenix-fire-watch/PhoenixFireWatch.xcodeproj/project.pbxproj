@@ -413,7 +413,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Phoenix Fire Watch uses the camera to take live, time-stamped photos that are attached to the patrols you log.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Phoenix Fire Watch checks your location when you log a patrol to confirm you are on site at properties that require it.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Phoenix Fire Watch uses your location to confirm you are on site when you log a patrol, to record where each patrol was logged, and to help admins center a property's on-site area on the map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -451,7 +451,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Phoenix Fire Watch uses the camera to take live, time-stamped photos that are attached to the patrols you log.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Phoenix Fire Watch checks your location when you log a patrol to confirm you are on site at properties that require it.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Phoenix Fire Watch uses your location to confirm you are on site when you log a patrol, to record where each patrol was logged, and to help admins center a property's on-site area on the map.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
