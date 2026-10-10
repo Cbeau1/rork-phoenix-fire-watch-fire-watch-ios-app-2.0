@@ -20,7 +20,7 @@ struct SiteCardView: View {
         VStack(spacing: 0) {
             Button(action: onOpen) {
                 HStack(alignment: .top, spacing: 14) {
-                    SiteThumbView(imagePath: property.imagePath, size: 46, tint: .fwSilver)
+                    SiteThumbView(imagePath: property.imagePath, size: 60, tint: .fwSilver)
                         .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Color.fwLine, lineWidth: 1) }
                     VStack(alignment: .leading, spacing: 5) {
                         Text(property.name)

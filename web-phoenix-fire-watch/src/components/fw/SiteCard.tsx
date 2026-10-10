@@ -1,7 +1,8 @@
-import { AlarmClock, Building2, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
+import { AlarmClock, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
 import { memo } from "react";
 import { Link } from "react-router-dom";
 
+import { SiteThumb } from "@/components/fw/SiteImage";
 import { useNow } from "@/hooks/use-now";
 import { timeAgo } from "@/lib/format";
 import { formatCountdown } from "@/lib/patrol-timer";
@@ -38,9 +39,7 @@ export const SiteCard = memo(
           className="focus-ring m-3 mb-0 flex flex-1 items-start gap-4 rounded-lg border border-line bg-raised p-4 sm:m-4 sm:mb-0 sm:p-5"
           aria-label={`Open ${property.name}`}
         >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface ring-1 ring-line transition-colors group-hover:ring-ember/30">
-            <Building2 className="h-6 w-6 text-silver" strokeWidth={1.5} />
-          </div>
+          <SiteThumb property={property} className="h-16 w-16 bg-surface sm:h-[76px] sm:w-[76px]" />
           <div className="min-w-0 flex-1">
             <h3 className="line-clamp-2 font-display text-lg font-bold leading-snug text-ink">{property.name}</h3>
             {property.address && (
