@@ -20,6 +20,7 @@ import { GeofenceCard } from "@/components/fw/GeofenceCard";
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { PatrolTimerCard } from "@/components/fw/PatrolTimerCard";
 import { ReportViewer, type GeneratedReport } from "@/components/fw/ReportViewer";
+import { SiteImageCard } from "@/components/fw/SiteImage";
 import { Card, CardHeader, EmptyState, PageHeader } from "@/components/fw/primitives";
 import {
   AlertDialog,
@@ -230,7 +231,9 @@ const PropertyDetail = () => {
         }
       />
 
-      <Button asChild size="lg" className="-mt-2 h-14 w-full text-base sm:w-auto sm:min-w-[260px]">
+      <SiteImageCard property={property} />
+
+      <Button asChild size="lg" className="mt-5 h-14 w-full text-base sm:w-auto sm:min-w-[260px]">
         <Link to={logPath}>
           <Plus className="!h-5 !w-5" />
           Log Patrol

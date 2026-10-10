@@ -13,6 +13,8 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
     var patrolIntervalMinutes: Int
     /// Circular area officers must be inside to log a patrol; admin-only.
     var geofence: Geofence = .off
+    /// Storage path of the site photo in the `patrol-photos` bucket.
+    var imagePath: String?
     let createdAt: Date
 
     static let defaultInterval = 60
@@ -28,6 +30,7 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         case geofenceLat = "geofence_lat"
         case geofenceLng = "geofence_lng"
         case geofenceRadiusM = "geofence_radius_m"
+        case imagePath = "image_path"
     }
 
     init(
@@ -40,6 +43,7 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         notes: String,
         patrolIntervalMinutes: Int,
         geofence: Geofence = .off,
+        imagePath: String? = nil,
         createdAt: Date
     ) {
         self.id = id
@@ -51,6 +55,7 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         self.notes = notes
         self.patrolIntervalMinutes = patrolIntervalMinutes
         self.geofence = geofence
+        self.imagePath = imagePath
         self.createdAt = createdAt
     }
 
@@ -65,6 +70,7 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         notes = (try? c.decode(String.self, forKey: .notes)) ?? ""
         patrolIntervalMinutes = (try? c.decode(Int.self, forKey: .patrolIntervalMinutes)) ?? Property.defaultInterval
         createdAt = (try? c.decodeDate(forKey: .createdAt)) ?? Date()
+        imagePath = (try? c.decodeIfPresent(String.self, forKey: .imagePath)) ?? nil
         geofence = Geofence(
             enabled: (try? c.decodeIfPresent(Bool.self, forKey: .geofenceEnabled)) ?? false,
             lat: try? c.decodeIfPresent(Double.self, forKey: .geofenceLat),
@@ -88,7 +94,20 @@ nonisolated struct Property: Codable, Identifiable, Hashable, Sendable {
         try c.encodeIfPresent(geofence.lat, forKey: .geofenceLat)
         try c.encodeIfPresent(geofence.lng, forKey: .geofenceLng)
         try c.encodeIfPresent(geofence.radiusM, forKey: .geofenceRadiusM)
+        try c.encodeIfPresent(imagePath, forKey: .imagePath)
     }
+}
+
+/// Row update that sets or clears a property's site photo.
+nonisolated struct PropertyImageUpdate: Encodable, Sendable {
+    let path: String?
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: Key.self)
+        if let path { try c.encode(path, forKey: .imagePath) } else { try c.encodeNil(forKey: .imagePath) }
+    }
+
+    private enum Key: String, CodingKey { case imagePath = "image_path" }
 }
 
 /// Editable property fields (the interval is excluded on purpose — admin-only, set separately).

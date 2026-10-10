@@ -34,6 +34,8 @@ struct PropertyDetailView: View {
         let stats = PatrolStats(patrols)
         return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                SiteImageSection(property: property)
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text(property.name)
                         .font(FWFont.display(.title))

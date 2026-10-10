@@ -15,6 +15,8 @@ export interface Property {
   patrolIntervalMinutes: number;
   /** Area officers must be inside to log a patrol; set by an org admin only. */
   geofence: Geofence;
+  /** Storage path of the site photo in the patrol-photos bucket, if one was added. */
+  imagePath: string | null;
   createdAt: string;
   syncState?: SyncState;
 }
@@ -97,7 +99,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   officer: "Fire Watch Officer",
 };
 
-export type PropertyInput = Omit<Property, "id" | "createdAt" | "syncState" | "patrolIntervalMinutes" | "geofence">;
+export type PropertyInput = Omit<Property, "id" | "createdAt" | "syncState" | "patrolIntervalMinutes" | "geofence" | "imagePath">;
 /** Patrol payload from the form; `photos` are compressed JPEG data URLs to upload. */
 export type PatrolInput = Omit<Patrol, "id" | "createdAt" | "loggedBy" | "syncState" | "geofenceDistanceM">;
 

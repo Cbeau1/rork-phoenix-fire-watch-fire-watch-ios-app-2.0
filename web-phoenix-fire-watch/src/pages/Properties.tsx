@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Card, EmptyState, PageHeader } from "@/components/fw/primitives";
+import { SiteThumb } from "@/components/fw/SiteImage";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { timeAgo } from "@/lib/format";
@@ -93,9 +94,7 @@ const Properties = () => {
                   className="focus-ring group flex flex-col gap-4 rounded-xl border border-line bg-surface p-5 transition-colors hover:border-[#7A8394] hover:bg-[#4A5260] md:flex-row md:items-center md:gap-0 md:p-6"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-5 md:pr-6">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-raised ring-1 ring-line transition-colors group-hover:ring-ember/30 md:h-[88px] md:w-[88px]">
-                      <Building2 className="h-8 w-8 text-silver md:h-10 md:w-10" strokeWidth={1.5} />
-                    </div>
+                    <SiteThumb property={p} className="h-16 w-16 md:h-[88px] md:w-[88px]" />
                     <div className="min-w-0">
                       <h2 className="truncate font-display text-lg font-bold text-ink sm:text-xl">{p.name}</h2>
                       <p className="mt-1.5 flex items-start gap-2 text-sm text-ink-2 sm:text-[15px]">

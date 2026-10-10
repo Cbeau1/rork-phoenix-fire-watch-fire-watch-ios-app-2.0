@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOnlineStatus } from "@/hooks/use-online";
 import type { Database } from "@/integrations/supabase/types";
 import { uid } from "@/lib/format";
+import { compressImage } from "@/lib/image";
 import {
   deleteOp,
   loadOps,
@@ -50,6 +51,7 @@ const toProperty = (r: PropertyDbRow): Property => ({
     lng: r.geofence_lng,
     radiusM: r.geofence_radius_m,
   },
+  imagePath: r.image_path,
   createdAt: r.created_at,
 });
 
@@ -324,7 +326,14 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         case "property.create": {
           const { id, ...input } = op.property;
           setProperties((list) => [
-            { id, ...input, patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL, geofence: NO_GEOFENCE, createdAt: op.createdAt },
+            {
+              id,
+              ...input,
+              patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL,
+              geofence: NO_GEOFENCE,
+              imagePath: null,
+              createdAt: op.createdAt,
+            },
             ...list.filter((x) => x.id !== id),
           ]);
           break;
@@ -511,6 +520,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         ...rest,
         patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL,
         geofence: NO_GEOFENCE,
+        imagePath: null,
         createdAt: new Date().toISOString(),
         syncState: result === "queued" ? "pending" : undefined,
       };
@@ -528,6 +538,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         ...cleaned,
         patrolIntervalMinutes: existing?.patrolIntervalMinutes ?? DEFAULT_PATROL_INTERVAL,
         geofence: existing?.geofence ?? NO_GEOFENCE,
+        imagePath: existing?.imagePath ?? null,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
         syncState: result === "queued" ? "pending" : undefined,
       };
@@ -574,6 +585,37 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
     [setProperties],
   );
 
+  /** Uploads (or with `null`, removes) the photo shown for a site. Needs a connection. */
+  const setPropertyImage = useCallback(
+    async (id: string, file: File | null): Promise<void> => {
+      if (opsRef.current.some((o) => o.kind === "property.create" && o.property.id === id)) {
+        throw new Error("This property hasn't uploaded yet. Try again once it's synced.");
+      }
+      if (!navigator.onLine) throw new Error(OFFLINE_ACTION);
+      if (!orgId) throw new Error("You're signed out. Sign in and try again.");
+      const previous = queryClient.getQueryData<Property[]>(propertiesKey)?.find((p) => p.id === id)?.imagePath ?? null;
+
+      let path: string | null = null;
+      if (file) {
+        const dataUrl = await compressImage(file, 1600, 0.82);
+        const blob = await (await fetch(dataUrl)).blob();
+        path = `${orgId}/sites/${id}-${uid()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from(PHOTO_BUCKET)
+          .upload(path, blob, { contentType: "image/jpeg", upsert: false });
+        if (upErr) throw upErr;
+      }
+      const { error } = await supabase.from("properties").update({ image_path: path }).eq("id", id);
+      if (error) {
+        if (path) void removePhotos([path]);
+        throw error;
+      }
+      setProperties((list) => list.map((p) => (p.id === id ? { ...p, imagePath: path } : p)));
+      if (previous && previous !== path) void removePhotos([previous]);
+    },
+    [orgId, queryClient, propertiesKey, setProperties],
+  );
+
   const deletePropertyMutation = useMutation({
     mutationFn: async (id: string) => {
       const pending = opsRef.current.find((o) => o.kind === "property.create" && o.property.id === id);
@@ -591,6 +633,8 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
       const photos = (queryClient.getQueryData<Patrol[]>(patrolsKey) ?? [])
         .filter((p) => p.propertyId === id)
         .flatMap((p) => p.photos);
+      const siteImage = queryClient.getQueryData<Property[]>(propertiesKey)?.find((p) => p.id === id)?.imagePath;
+      if (siteImage) photos.push(siteImage);
       const { error } = await supabase.from("properties").delete().eq("id", id);
       if (error) throw error;
       void removePhotos(photos);
@@ -698,6 +742,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
           ...rest,
           patrolIntervalMinutes: DEFAULT_PATROL_INTERVAL,
           geofence: NO_GEOFENCE,
+          imagePath: null,
           createdAt: op.createdAt,
           syncState: syncStateOf(op),
         });
@@ -812,6 +857,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
     updateProperty,
     setPatrolInterval,
     setGeofence,
+    setPropertyImage,
     deleteProperty: deletePropertyMutation.mutateAsync,
     addPatrol,
     deletePatrol: deletePatrolMutation.mutateAsync,

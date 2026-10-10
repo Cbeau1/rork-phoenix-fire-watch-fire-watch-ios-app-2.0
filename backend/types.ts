@@ -932,6 +932,7 @@ export type Database = {
           geofence_lng: number | null
           geofence_radius_m: number | null
           id: string
+          image_path: string | null
           name: string
           notes: string
           org_id: string
@@ -949,6 +950,7 @@ export type Database = {
           geofence_lng?: number | null
           geofence_radius_m?: number | null
           id?: string
+          image_path?: string | null
           name: string
           notes?: string
           org_id?: string
@@ -966,6 +968,7 @@ export type Database = {
           geofence_lng?: number | null
           geofence_radius_m?: number | null
           id?: string
+          image_path?: string | null
           name?: string
           notes?: string
           org_id?: string

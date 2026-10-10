@@ -476,6 +476,40 @@ final class FireWatchStore {
         }
     }
 
+    /// Uploads (or with `nil`, removes) the site photo. `jpeg` should already be downscaled. Needs a connection.
+    func setPropertyImage(propertyId: String, jpeg: Data?) async throws {
+        if ops.contains(where: { $0.kind == .propertyCreate && $0.propertyId == propertyId }) {
+            throw AppError("This property hasn't uploaded yet. Try again once it's synced.")
+        }
+        guard isOnline else { throw AppError(ErrorText.offlineAction) }
+        guard let user else { throw AppError("Please sign in again.") }
+        let previous = serverProperties.first(where: { $0.id == propertyId })?.imagePath
+        var path: String?
+        do {
+            if let jpeg {
+                let newPath = "\(user.orgId)/sites/\(propertyId)-\(UUID().uuidString.lowercased()).jpg"
+                _ = try await Backend.client.storage.from(Backend.photoBucket).upload(
+                    newPath,
+                    data: jpeg,
+                    options: FileOptions(contentType: "image/jpeg", upsert: false)
+                )
+                path = newPath
+            }
+            try await Backend.client.from("properties")
+                .update(PropertyImageUpdate(path: path))
+                .eq("id", value: propertyId)
+                .execute()
+        } catch {
+            if let path { removePhotos([path]) }
+            throw AppError(ErrorText.from(error))
+        }
+        if let i = serverProperties.firstIndex(where: { $0.id == propertyId }) {
+            serverProperties[i].imagePath = path
+            LocalStore.save(serverProperties, as: cacheName("properties"))
+        }
+        if let previous, previous != path { removePhotos([previous]) }
+    }
+
     func deleteProperty(id: String) async throws {
         if let pending = ops.first(where: { $0.kind == .propertyCreate && $0.propertyId == id }) {
             let related = ops.filter {
@@ -485,7 +519,8 @@ final class FireWatchStore {
             return
         }
         guard isOnline else { throw AppError(ErrorText.offlineAction) }
-        let photoPaths = serverPatrols.filter { $0.propertyId == id }.flatMap(\.photos)
+        var photoPaths = serverPatrols.filter { $0.propertyId == id }.flatMap(\.photos)
+        if let siteImage = serverProperties.first(where: { $0.id == id })?.imagePath { photoPaths.append(siteImage) }
         do {
             try await Backend.client.from("properties").delete().eq("id", value: id).execute()
         } catch {

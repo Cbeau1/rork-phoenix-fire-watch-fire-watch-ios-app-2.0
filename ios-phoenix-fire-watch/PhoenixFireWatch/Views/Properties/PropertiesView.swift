@@ -83,8 +83,7 @@ struct PropertyRowView: View {
     var body: some View {
         HStack(spacing: 14) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12).fill(Color.fwEmber.opacity(0.12)).frame(width: 48, height: 48)
-                Image(systemName: "building.2.fill").font(.system(size: 20, weight: .semibold)).foregroundStyle(Color.fwEmber)
+                SiteThumbView(imagePath: property.imagePath, size: 48)
                 if timerOn {
                     Circle().fill(Color.fwEmber).frame(width: 12, height: 12)
                         .overlay { Circle().strokeBorder(Color.fwSurface, lineWidth: 2) }
