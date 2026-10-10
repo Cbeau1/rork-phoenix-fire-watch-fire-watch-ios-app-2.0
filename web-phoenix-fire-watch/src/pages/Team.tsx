@@ -3,6 +3,7 @@ import {
   Briefcase,
   Check,
   KeyRound,
+  Star,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -108,7 +109,7 @@ const Team = () => {
     queryFn: async (): Promise<Member[]> => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, role, active, created_at")
+        .select("id, full_name, email, role, active, created_at, field_guide_acknowledged_at")
         .eq("org_id", orgId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -119,6 +120,7 @@ const Team = () => {
         role: r.role === "admin" ? "admin" : "officer",
         active: r.active,
         createdAt: r.created_at,
+        guideAcknowledgedAt: r.field_guide_acknowledged_at,
       }));
     },
   });
@@ -552,6 +554,15 @@ const MemberList = ({
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="truncate text-[15px] font-medium text-ink">{m.name}</span>
               {isMe && <span className="text-xs text-ink-3">(you)</span>}
+              {m.guideAcknowledgedAt && (
+                <span
+                  title={`Field guide acknowledged ${new Date(m.guideAcknowledgedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`}
+                  className="focus-ring inline-flex cursor-help items-center"
+                  aria-label="Field guide acknowledged"
+                >
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                </span>
+              )}
               <span
                 className={cn(
                   "rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",

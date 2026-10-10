@@ -92,6 +92,8 @@ export interface Member {
   role: Role;
   active: boolean;
   createdAt: string;
+  /** When the New Employee Field Guide was acknowledged (ISO string); null/undefined = not yet. */
+  guideAcknowledgedAt?: string | null;
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
