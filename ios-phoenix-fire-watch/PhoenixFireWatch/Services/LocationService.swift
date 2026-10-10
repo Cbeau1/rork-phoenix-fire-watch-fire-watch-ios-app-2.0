@@ -18,6 +18,10 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var wantsUpdates: Bool = false
     @ObservationIgnored private var oneShot: [CheckedContinuation<PatrolLocation, Error>] = []
+    @ObservationIgnored private var timeoutTask: Task<Void, Never>?
+
+    /// How long to wait for a first fix before telling the user we can't find them.
+    private let fixTimeout: Duration = .seconds(15)
 
     override init() {
         super.init()
@@ -38,12 +42,27 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         default:
             if fix == nil { status = .locating }
             manager.startUpdatingLocation()
+            armTimeout()
         }
     }
 
     func stop() {
         wantsUpdates = false
+        timeoutTask?.cancel()
+        timeoutTask = nil
         manager.stopUpdatingLocation()
+    }
+
+    /// Fails the "checking" state if no fix arrives in time; updates keep running so a late fix still lands.
+    private func armTimeout() {
+        timeoutTask?.cancel()
+        guard fix == nil else { return }
+        timeoutTask = Task { [weak self, fixTimeout] in
+            try? await Task.sleep(for: fixTimeout)
+            guard !Task.isCancelled, let self, self.fix == nil, self.status == .locating else { return }
+            self.status = .unavailable("We couldn't find your location. Check that Location Services is on, move near a window or outside, then tap Retry.")
+            self.finishOneShot(.failure(AppError("Couldn't get your location. Try again in a moment.")))
+        }
     }
 
     func restart() {
@@ -95,6 +114,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
             if wantsUpdates {
                 if fix == nil { status = .locating }
                 manager.startUpdatingLocation()
+                armTimeout()
             }
         default:
             break
@@ -102,6 +122,8 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     private func handleFix(_ next: PatrolLocation) {
+        timeoutTask?.cancel()
+        timeoutTask = nil
         fix = next
         status = .ready
         finishOneShot(.success(next))
