@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cn } from "@/lib/utils";
 
 /** Versioned file names: when the guide changes, add a new file instead of overwriting. */
-export const FIELD_GUIDE_PDF = "/docs/phoenix-field-guide-v1.pdf";
-export const FIELD_GUIDE_IMAGE = "/docs/phoenix-field-guide-v1.png";
+export const FIELD_GUIDE_PDF = "/docs/phoenix-field-guide-v2.pdf";
+export const FIELD_GUIDE_IMAGE = "/docs/phoenix-field-guide-v2.png";
 export const FIELD_GUIDE_TITLE = "New Employee Field Guide";
 
 /** The guide page as a sharp image on white paper (reliable on every browser, incl. iOS Safari). */
