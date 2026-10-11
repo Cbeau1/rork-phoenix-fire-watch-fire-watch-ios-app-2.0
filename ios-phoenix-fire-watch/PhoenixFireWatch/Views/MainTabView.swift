@@ -9,6 +9,9 @@ struct MainTabView: View {
     @Environment(TimeClockStore.self) private var clock
     @Environment(AppRouter.self) private var router
     @Environment(\.scenePhase) private var scenePhase
+    @State private var clockInPrompt: PropertyRef?
+    /// Set when the officer clocked in from the prompt; the form opens once the prompt has dismissed.
+    @State private var continueToLog: String?
 
     var body: some View {
         @Bindable var router = router
@@ -52,6 +55,27 @@ struct MainTabView: View {
         .sheet(item: logPatrolBinding) { ref in
             NavigationStack {
                 LogPatrolView(propertyId: ref.id)
+            }
+        }
+        .sheet(item: $clockInPrompt, onDismiss: {
+            if let id = continueToLog {
+                continueToLog = nil
+                router.logPatrolPropertyId = id
+            }
+        }) { ref in
+            ClockInPromptSheet(propertyId: ref.id) {
+                continueToLog = ref.id
+                clockInPrompt = nil
+            }
+        }
+        .onChange(of: router.logPatrolRequest) { _, request in
+            guard let request else { return }
+            router.logPatrolRequest = nil
+            // Clocked out → ask to clock in first. Unknown clock state → open the form, which gates itself.
+            if clock.hasLoaded && clock.open == nil {
+                clockInPrompt = request
+            } else {
+                router.logPatrolPropertyId = request.id
             }
         }
         .onChange(of: planKey, initial: true) { _, _ in

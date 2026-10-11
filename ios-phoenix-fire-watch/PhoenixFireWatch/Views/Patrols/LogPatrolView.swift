@@ -19,7 +19,10 @@ struct LogPatrolView: View {
     @State private var photos: [CapturedPhoto] = []
     @State private var cameraOpen: Bool = false
     @State private var saving: Bool = false
-    @State private var errors: [String: String] = [:]
+    /// Set on the first Log Patrol tap; from then on field errors update live as they're completed.
+    @State private var attempted: Bool = false
+    /// Bumped on each blocked submit to scroll to the first incomplete field (and play a haptic).
+    @State private var scrollRequest: Int = 0
     @State private var didPrefill: Bool = false
     @State private var location: LocationService = LocationService()
 
@@ -32,6 +35,25 @@ struct LogPatrolView: View {
     }
 
     private var property: Property? { store.property(id: propertyId) }
+
+    /// Required fields in on-screen order: scroll id + label.
+    private static let requiredFields: [(id: String, label: String)] = [("officer", "Officer Name"), ("areas", "Areas Patrolled")]
+
+    private var areaList: [String] {
+        areas.split(separator: ",").map { String($0).trimmed }.filter { !$0.isEmpty }
+    }
+
+    private var errors: [String: String] {
+        guard attempted else { return [:] }
+        var found: [String: String] = [:]
+        if officerName.trimmed.isEmpty { found["officer"] = "Officer name is required" }
+        if areaList.isEmpty { found["areas"] = "List at least one area patrolled" }
+        return found
+    }
+
+    private var missingFields: [(id: String, label: String)] {
+        Self.requiredFields.filter { errors[$0.id] != nil }
+    }
 
     /// A patrol can only be started or submitted while on the clock.
     private var needsClockIn: Bool { clock.hasLoaded && clock.open == nil }
@@ -126,6 +148,7 @@ struct LogPatrolView: View {
     }
 
     private func form(_ property: Property) -> some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 12) {
@@ -152,12 +175,14 @@ struct LogPatrolView: View {
                             .tint(Color.fwPrimary)
                     }
                     FWField(label: "Officer Name", text: $officerName, placeholder: "Full name", required: true, contentType: .name, autocapitalization: .words, error: errors["officer"])
+                        .id("officer")
                     VStack(alignment: .leading, spacing: 5) {
                         FWField(label: "Areas Patrolled", text: $areas, placeholder: "e.g. Main lobby, Basement, Garage", required: true, error: errors["areas"])
                         if errors["areas"] == nil {
                             Text("Separate multiple areas with commas").font(.caption).foregroundStyle(Color.fwInk3)
                         }
                     }
+                    .id("areas")
                     statusPicker
                     VStack(alignment: .leading, spacing: 7) {
                         Text("Additional Notes").font(.system(.subheadline, weight: .medium)).foregroundStyle(Color.fwInk)
@@ -172,6 +197,15 @@ struct LogPatrolView: View {
                 .fwCard()
 
                 photoSection(property)
+
+                if !missingFields.isEmpty {
+                    incompleteBanner {
+                        if let first = missingFields.first {
+                            withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(first.id, anchor: .center) }
+                        }
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
 
                 let verdict = fenceVerdict(property)
                 Button {
@@ -194,6 +228,13 @@ struct LogPatrolView: View {
             .fwReadable(680)
         }
         .scrollDismissesKeyboard(.interactively)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: missingFields.count)
+        .sensoryFeedback(.error, trigger: scrollRequest)
+        .onChange(of: scrollRequest) { _, _ in
+            guard let first = missingFields.first else { return }
+            withAnimation(.easeInOut(duration: 0.4)) { proxy.scrollTo(first.id, anchor: .center) }
+        }
+        }
         .fullScreenCover(isPresented: $cameraOpen) {
             CameraCaptureView(
                 remaining: maxPhotos - photos.count,
@@ -203,6 +244,36 @@ struct LogPatrolView: View {
                 photos.append(CapturedPhoto(data: data, image: image))
             }
         }
+    }
+
+    /// Above the submit button: says which required fields are missing, with a jump back up to the first one.
+    private func incompleteBanner(goToFirst: @escaping () -> Void) -> some View {
+        let count = missingFields.count
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.fwIncidentInk)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(count == 1 ? "Complete 1 required field" : "Complete \(count) required fields")
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(Color.fwInk)
+                    Text("Scroll up to fill in: \(missingFields.map(\.label).joined(separator: ", "))")
+                        .font(.footnote)
+                        .foregroundStyle(Color.fwInk2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Button(action: goToFirst) {
+                Label("Go to \(missingFields.first?.label ?? "field")", systemImage: "arrow.up")
+            }
+            .buttonStyle(OutlineButtonStyle(compact: true))
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.fwIncident.opacity(0.08), in: .rect(cornerRadius: 12))
+        .overlay { RoundedRectangle(cornerRadius: 12).strokeBorder(Color.fwIncident.opacity(0.4), lineWidth: 1) }
+        .accessibilityElement(children: .combine)
     }
 
     private var statusPicker: some View {
@@ -299,12 +370,18 @@ struct LogPatrolView: View {
     }
 
     private func save(_ property: Property) async {
-        let areaList = areas.split(separator: ",").map { String($0).trimmed }.filter { !$0.isEmpty }
-        var next: [String: String] = [:]
-        if officerName.trimmed.isEmpty { next["officer"] = "Officer name is required" }
-        if areaList.isEmpty { next["areas"] = "List at least one area patrolled" }
-        withAnimation { errors = next }
-        guard next.isEmpty, !saving else { return }
+        guard !saving else { return }
+        attempted = true
+        let missing = missingFields
+        if let first = missing.first {
+            router.show(
+                missing.count == 1 ? "1 required field is incomplete" : "\(missing.count) required fields are incomplete",
+                detail: "Scroll up to complete \(first.label)\(missing.count > 1 ? " and the other highlighted fields" : "").",
+                style: .error
+            )
+            scrollRequest += 1
+            return
+        }
         guard clock.open != nil else {
             router.show("Clock in first", detail: "Clock in before logging a patrol.", style: .error)
             return

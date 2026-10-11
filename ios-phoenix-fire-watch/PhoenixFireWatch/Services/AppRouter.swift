@@ -29,13 +29,16 @@ final class AppRouter {
     static let shared = AppRouter()
 
     var selectedTab: AppTab = .dashboard
-    /// When set, the Log Patrol screen opens for this property.
+    /// When set, the Log Patrol screen is presented for this property.
     var logPatrolPropertyId: String?
+    /// A "Log Patrol" tap waiting to be checked against the time clock (handled by MainTabView,
+    /// which either opens the form or asks the officer to clock in first).
+    var logPatrolRequest: PropertyRef?
     var toast: Toast?
 
     func openLogPatrol(propertyId: String?) {
         guard let propertyId else { return }
-        logPatrolPropertyId = propertyId
+        logPatrolRequest = PropertyRef(id: propertyId)
     }
 
     func show(_ message: String, detail: String? = nil, style: Toast.Style = .success) {

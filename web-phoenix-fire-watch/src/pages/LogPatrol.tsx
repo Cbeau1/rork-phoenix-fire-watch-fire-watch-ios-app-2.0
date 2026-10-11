@@ -1,4 +1,4 @@
-import { Camera, Clock, Loader2, LogIn, MapPinX, Save, Shield, X } from "lucide-react";
+import { AlertCircle, ArrowUp, Camera, Clock, Loader2, LogIn, MapPinX, Save, Shield, X } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -30,6 +30,35 @@ interface Errors {
   areas?: string;
 }
 
+/** Required fields in on-screen order: error key → input id + label (used to scroll to the first missing one). */
+const REQUIRED: { key: keyof Errors; id: string; label: string }[] = [
+  { key: "dateTime", id: "dateTime", label: "Date & Time" },
+  { key: "officerName", id: "officer", label: "Officer Name" },
+  { key: "areas", id: "areas", label: "Areas Patrolled" },
+];
+
+const splitAreas = (value: string): string[] =>
+  value
+    .split(",")
+    .map((a) => a.trim())
+    .filter(Boolean);
+
+const validate = (dateTime: string, officerName: string, areas: string): Errors => {
+  const next: Errors = {};
+  if (!dateTime || Number.isNaN(new Date(dateTime).getTime())) next.dateTime = "Choose the patrol date and time";
+  if (!officerName.trim()) next.officerName = "Officer name is required";
+  if (splitAreas(areas).length === 0) next.areas = "List at least one area patrolled";
+  return next;
+};
+
+/** Smoothly brings a field to the middle of the screen and puts the cursor in it. */
+const focusField = (id: string): void => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.setTimeout(() => (el as HTMLInputElement).focus({ preventScroll: true }), 350);
+};
+
 const LogPatrol = () => {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -48,7 +77,10 @@ const LogPatrol = () => {
   const [photos, setPhotos] = useState<string[]>([]);
   const [cameraOpen, setCameraOpen] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
-  const [errors, setErrors] = useState<Errors>({});
+  const [attempted, setAttempted] = useState<boolean>(false);
+  // After the first submit attempt, errors update live as fields are completed.
+  const errors: Errors = attempted ? validate(dateTime, officerName, areas) : {};
+  const missing = REQUIRED.filter((f) => errors[f.key]);
 
   const onCapture = useCallback((dataUrl: string) => {
     setPhotos((p) => (p.length >= MAX_PHOTOS ? p : [...p, dataUrl]));
@@ -65,16 +97,20 @@ const LogPatrol = () => {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const areaList = areas
-      .split(",")
-      .map((a) => a.trim())
-      .filter(Boolean);
-    const next: Errors = {};
-    if (!dateTime || Number.isNaN(new Date(dateTime).getTime())) next.dateTime = "Choose the patrol date and time";
-    if (!officerName.trim()) next.officerName = "Officer name is required";
-    if (areaList.length === 0) next.areas = "List at least one area patrolled";
-    setErrors(next);
-    if (Object.keys(next).length > 0 || saving) return;
+    if (saving) return;
+    const areaList = splitAreas(areas);
+    setAttempted(true);
+    const found = validate(dateTime, officerName, areas);
+    const incomplete = REQUIRED.filter((f) => found[f.key]);
+    const firstMissing = incomplete[0];
+    if (firstMissing) {
+      const count = incomplete.length;
+      toast.error(count === 1 ? "1 required field is incomplete" : `${count} required fields are incomplete`, {
+        description: `Scroll up to complete ${firstMissing.label}${count > 1 ? " and the other highlighted fields" : ""}.`,
+      });
+      focusField(firstMissing.id);
+      return;
+    }
     if (!openEntry) {
       toast.error("Clock in first", { description: "Clock in before logging a patrol." });
       return;
@@ -280,6 +316,29 @@ const LogPatrol = () => {
               </div>
             )}
           </div>
+
+          {missing.length > 0 && (
+            <div
+              role="alert"
+              className="flex animate-fade-up flex-col gap-3 rounded-lg border border-status-incident/40 bg-status-incident/[0.07] p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-status-incident-ink" />
+                <div className="text-sm">
+                  <div className="font-semibold text-ink">
+                    {missing.length === 1 ? "Complete 1 required field" : `Complete ${missing.length} required fields`} to log this patrol
+                  </div>
+                  <p className="mt-0.5 text-ink-2">
+                    Scroll up to fill in: <span className="font-medium text-ink">{missing.map((f) => f.label).join(", ")}</span>
+                  </p>
+                </div>
+              </div>
+              <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => focusField(missing[0].id)}>
+                <ArrowUp />
+                Go to {missing[0].label}
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => navigate(backTo)}>

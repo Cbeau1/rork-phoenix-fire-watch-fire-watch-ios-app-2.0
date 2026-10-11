@@ -1,6 +1,5 @@
 import { AlarmClock, ClipboardPlus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { useNow } from "@/hooks/use-now";
 import { useWakeLock } from "@/hooks/use-wake-lock";
@@ -8,6 +7,8 @@ import { playAlertSound, showSystemNotification, vibrate } from "@/lib/alerts";
 import { formatCountdown, formatInterval, WARNING_MINUTES } from "@/lib/patrol-timer";
 import { cn } from "@/lib/utils";
 import { usePatrolTimers } from "@/state/PatrolTimerProvider";
+
+import { useLogPatrolGate } from "./ClockInGate";
 
 interface PatrolAlert {
   key: string;
@@ -26,7 +27,6 @@ const DUE_GRACE_MS = 90_000;
  * the app is in the background.
  */
 export const PatrolTimerAlerts = () => {
-  const navigate = useNavigate();
   const { activeTimers, scheduleFor, keepAwake } = usePatrolTimers();
   const running = activeTimers.length > 0;
   const now = useNow(1000, running);
@@ -35,7 +35,7 @@ export const PatrolTimerAlerts = () => {
 
   useWakeLock(running && keepAwake);
 
-  const openLog = useCallback((propertyId: string) => navigate(`/properties/${propertyId}/log`), [navigate]);
+  const { openLogPatrol: openLog } = useLogPatrolGate();
 
   const fire = useCallback(
     (alert: PatrolAlert) => {

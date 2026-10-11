@@ -2,6 +2,7 @@ import { AlarmClock, ChevronRight, Clock, MapPin, Plus } from "lucide-react";
 import { memo } from "react";
 import { Link } from "react-router-dom";
 
+import { useLogPatrolGate } from "@/components/fw/ClockInGate";
 import { SiteThumb } from "@/components/fw/SiteImage";
 import { useNow } from "@/hooks/use-now";
 import { timeAgo } from "@/lib/format";
@@ -14,6 +15,7 @@ import { usePatrolTimers } from "@/state/PatrolTimerProvider";
 export const SiteCard = memo(
   ({ property, lastPatrol, delay = 0 }: { property: Property; lastPatrol?: Patrol; delay?: number }) => {
     const { isOn, scheduleFor } = usePatrolTimers();
+    const { linkGuard } = useLogPatrolGate();
     const on = isOn(property.id);
     const now = useNow(1000, on);
     const schedule = on ? scheduleFor(property.id, now) : null;
@@ -88,6 +90,7 @@ export const SiteCard = memo(
           )}
           <Link
             to={`/properties/${property.id}/log`}
+            onClick={linkGuard(property.id)}
             className="focus-ring ml-auto inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-hover active:scale-[0.97]"
           >
             <Plus className="h-4 w-4" />

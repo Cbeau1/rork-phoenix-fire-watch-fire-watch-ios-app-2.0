@@ -26,6 +26,7 @@ import { useExAccess } from "@/state/ExpensesProvider";
 import { usePatrolTimers } from "@/state/PatrolTimerProvider";
 import { useTimeClockRealtime } from "@/state/useTimeClock";
 
+import { LogPatrolGate } from "./ClockInGate";
 import { Crest } from "./Crest";
 import { PatrolTimerAlerts } from "./PatrolTimerAlerts";
 import { SyncStatus } from "./SyncStatus";
@@ -250,6 +251,7 @@ export const AppShell = () => {
   }, [pathname]);
 
   return (
+    <LogPatrolGate>
     <div className="canvas-glow min-h-screen">
       <PatrolTimerAlerts />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[268px] overflow-y-auto border-r border-line bg-rail lg:block">
@@ -291,5 +293,6 @@ export const AppShell = () => {
         </div>
       </main>
     </div>
+    </LogPatrolGate>
   );
 };

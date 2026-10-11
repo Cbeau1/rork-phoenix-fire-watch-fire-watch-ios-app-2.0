@@ -40,6 +40,7 @@ import { buildShiftReport, downloadBlob } from "@/lib/report";
 import { groupSessions, sessionLabel, sessionRange, type FireWatchSession } from "@/lib/sessions";
 import { friendlyError } from "@/lib/supabase";
 import { STATUS_META, type Patrol } from "@/lib/types";
+import { useLogPatrolGate } from "@/components/fw/ClockInGate";
 import { useAuth } from "@/state/AuthProvider";
 import { usePatrolStats, useFireWatch } from "@/state/FireWatchProvider";
 
@@ -94,6 +95,7 @@ const emailBody = (propertyName: string, periodLabel: string, patrols: Patrol[],
 const PropertyDetail = () => {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { linkGuard } = useLogPatrolGate();
   const { propertyById, patrols, deleteProperty, deletePatrol } = useFireWatch();
   const { user, isAdmin } = useAuth();
   const property = propertyById.get(id);
@@ -234,7 +236,7 @@ const PropertyDetail = () => {
       <SiteImageCard property={property} />
 
       <Button asChild size="lg" className="mt-5 h-14 w-full text-base sm:w-auto sm:min-w-[260px]">
-        <Link to={logPath}>
+        <Link to={logPath} onClick={linkGuard(property.id)}>
           <Plus className="!h-5 !w-5" />
           Log Patrol
         </Link>
@@ -320,7 +322,7 @@ const PropertyDetail = () => {
               Send Report
             </Button>
             <Button asChild>
-              <Link to={logPath}>
+              <Link to={logPath} onClick={linkGuard(property.id)}>
                 <Plus />
                 Log Patrol
               </Link>
@@ -335,7 +337,7 @@ const PropertyDetail = () => {
             description="Start logging patrols for this property"
             action={
               <Button asChild size="lg">
-                <Link to={logPath}>Log First Patrol</Link>
+                <Link to={logPath} onClick={linkGuard(property.id)}>Log First Patrol</Link>
               </Button>
             }
           />
