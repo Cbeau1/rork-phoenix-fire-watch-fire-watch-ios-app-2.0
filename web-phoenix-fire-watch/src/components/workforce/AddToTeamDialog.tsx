@@ -6,11 +6,11 @@ import { FieldError, FieldHint, FieldLabel } from "@/components/fw/primitives";
 import { createTeamLogin, generatePassword, nextGenericLoginEmail, RolePicker, type LoginCredentials } from "@/components/fw/TeamLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { refreshPeople } from "@/lib/people";
 import { friendlyError } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
 import * as api from "@/lib/workforce/api";
 import { fullName, type Worker } from "@/lib/workforce/constants";
-import { useWorkforce } from "@/state/WorkforceProvider";
 
 import { FormDialog } from "./kit";
 
@@ -22,13 +22,15 @@ export const AddToTeamDialog = ({
   open,
   onOpenChange,
   onCreated,
+  takenEmails,
 }: {
   worker: Worker;
+  /** Emails already used by Team logins. */
+  takenEmails: string[];
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated: (c: LoginCredentials) => void;
 }) => {
-  const wf = useWorkforce();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>(generatePassword);
@@ -37,7 +39,7 @@ export const AddToTeamDialog = ({
 
   useEffect(() => {
     if (!open) return;
-    setEmail(worker.email || nextGenericLoginEmail(worker.first_name, worker.last_name, wf.members.map((m) => m.email)).email);
+    setEmail(worker.email || nextGenericLoginEmail(worker.first_name, worker.last_name, takenEmails).email);
     setPassword(generatePassword());
     setRole("officer");
     setErrors({});
@@ -56,8 +58,7 @@ export const AddToTeamDialog = ({
       return { name, email: e, password };
     },
     onSuccess: (c) => {
-      wf.invalidate("workers", "checklist", "members");
-      void queryClient.invalidateQueries({ queryKey: ["members"] });
+      refreshPeople(queryClient);
       onOpenChange(false);
       onCreated(c);
     },
@@ -68,7 +69,7 @@ export const AddToTeamDialog = ({
     const next: Record<string, string> = {};
     const e = email.trim().toLowerCase();
     if (!EMAIL_RE.test(e)) next.email = "Enter a valid email address — it's their username.";
-    else if (wf.members.some((m) => m.email.toLowerCase() === e)) next.email = "Someone on your Team already uses this email.";
+    else if (takenEmails.some((t) => t.toLowerCase() === e)) next.email = "Someone on your Team already uses this email.";
     if (password.length < 8) next.password = "Use at least 8 characters.";
     setErrors(next);
     if (Object.keys(next).length === 0) create.mutate();

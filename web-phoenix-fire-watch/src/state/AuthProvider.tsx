@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useOnlineStatus } from "@/hooks/use-online";
 import { clearOfflineCache, clearOpsForUser } from "@/lib/offline-store";
+import { refreshPeople } from "@/lib/people";
 import { AUTH_STORAGE_KEY, callFunction, supabase } from "@/lib/supabase";
 import type { Role, SessionUser } from "@/lib/types";
 
@@ -181,6 +182,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       const { error } = await supabase.from("profiles").update({ full_name: fullName.trim() }).eq("id", user.id);
       if (error) throw error;
       await queryClient.invalidateQueries({ queryKey: ["profile", user.id] });
+      refreshPeople(queryClient);
     },
     [queryClient, user],
   );

@@ -224,6 +224,7 @@ const WorkerProfile = () => {
       <WorkerFormDialog open={editOpen} onOpenChange={setEditOpen} worker={worker} />
       <AddToTeamDialog
         worker={worker}
+        takenEmails={wf.members.map((m) => m.email)}
         open={teamOpen}
         onOpenChange={setTeamOpen}
         onCreated={(c) => {

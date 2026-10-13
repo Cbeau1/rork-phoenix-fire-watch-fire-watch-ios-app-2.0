@@ -21,6 +21,7 @@ import { toast } from "sonner";
 
 import { EditMemberDialog } from "@/components/fw/EditMemberDialog";
 import { createTeamLogin, generatePassword, LoginReadyDialog, RolePicker } from "@/components/fw/TeamLogin";
+import { AddToTeamDialog } from "@/components/workforce/AddToTeamDialog";
 import { Card, CardHeader, EmptyState, FieldError, FieldHint, FieldLabel, PageHeader } from "@/components/fw/primitives";
 import {
   AlertDialog,
@@ -45,6 +46,7 @@ import { Input } from "@/components/ui/input";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { initials, timeAgo } from "@/lib/format";
 import { linkTeamMember, loadTeamLinks, type TeamLink } from "@/lib/workforce/api";
+import { fullName as workerName, WORKER_STATUS, type Worker } from "@/lib/workforce/constants";
 import { callFunction, friendlyError, supabase } from "@/lib/supabase";
 import { loadPayRates, rateOn, type RateRow } from "@/lib/timeclock";
 import { ROLE_LABEL, type Member, type Role } from "@/lib/types";
@@ -72,6 +74,7 @@ const Team = () => {
   const [resetPassword, setResetPassword] = useState<string>("");
   const [removeFor, setRemoveFor] = useState<Member | null>(null);
   const [editFor, setEditFor] = useState<Member | null>(null);
+  const [loginFor, setLoginFor] = useState<Worker | null>(null);
 
   const [orgEdit, setOrgEdit] = useState<boolean>(false);
   const [orgDraft, setOrgDraft] = useState<string>(user?.orgName ?? "");
@@ -109,6 +112,25 @@ const Team = () => {
     return map;
   }, [linksQuery.data]);
   const canLink = !!linksQuery.data;
+
+  // Workforce employees who don't have an app login yet still belong on the Team page.
+  const noLoginQuery = useQuery({
+    queryKey: ["wf", "no-login", orgId],
+    enabled: !!orgId && isAdmin,
+    queryFn: async (): Promise<Worker[]> => {
+      const { data, error } = await supabase
+        .from("wf_workers")
+        .select("*")
+        .eq("org_id", orgId)
+        .is("profile_id", null)
+        .is("archived_at", null)
+        .order("first_name")
+        .order("last_name");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const noLogin = noLoginQuery.data ?? [];
 
   const ratesQuery = useQuery({
     queryKey: ["tc", "rates", orgId],
@@ -188,6 +210,7 @@ const Team = () => {
 
   const members = membersQuery.data ?? [];
   const activeCount = members.filter((m) => m.active).length;
+  const totalPeople = members.length + noLogin.length;
 
   const openAdd = () => {
     setFullName("");
@@ -262,7 +285,7 @@ const Team = () => {
         <CardHeader
           icon={Users}
           title="Employee Logins"
-          subtitle={`${activeCount} active ${activeCount === 1 ? "member" : "members"} · everyone here shares your properties, patrols and notes`}
+          subtitle={`${totalPeople} ${totalPeople === 1 ? "employee" : "employees"} · ${activeCount} with an active app login`}
         />
         {membersQuery.isPending ? (
           <div className="flex justify-center py-16">
@@ -322,7 +345,36 @@ const Team = () => {
             onRemove={setRemoveFor}
           />
         )}
+        {noLogin.length > 0 && (
+          <div className="border-t border-line p-3 sm:p-4">
+            <div className="mb-3 px-1">
+              <h3 className="text-sm font-semibold text-ink">No app login yet</h3>
+              <p className="text-xs text-ink-3">
+                On your Workforce roster and Schedule. Create a login so they can clock in from the app.
+              </p>
+            </div>
+            <ul className="space-y-2.5">
+              {noLogin.map((w) => (
+                <NoLoginRow key={w.id} worker={w} onCreate={() => setLoginFor(w)} />
+              ))}
+            </ul>
+          </div>
+        )}
       </Card>
+
+      {loginFor && (
+        <AddToTeamDialog
+          worker={loginFor}
+          takenEmails={members.map((m) => m.email)}
+          open={!!loginFor}
+          onOpenChange={(o) => !o && setLoginFor(null)}
+          onCreated={(c) => {
+            setLoginFor(null);
+            setCreated(c);
+            void refresh();
+          }}
+        />
+      )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="border-line bg-surface text-ink sm:max-w-lg sm:rounded-xl">
@@ -443,6 +495,43 @@ const Team = () => {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+};
+
+const NoLoginRow = ({ worker, onCreate }: { worker: Worker; onCreate: () => void }) => {
+  const name = workerName(worker);
+  const status = WORKER_STATUS[worker.status]?.label ?? worker.status;
+  return (
+    <li className="flex items-center gap-4 rounded-lg border border-dashed border-line-strong bg-raised/50 px-4 py-3.5 sm:px-5">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-semibold text-ink-3 ring-1 ring-line">
+        {initials(name)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="truncate text-[15px] font-medium text-ink">{name}</span>
+          <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 ring-1 ring-inset ring-line">
+            {worker.position || "Fire Watch Officer"}
+          </span>
+          <span className="rounded-full bg-status-follow/10 px-2 py-0.5 text-[11px] font-medium text-status-follow ring-1 ring-inset ring-status-follow/30">
+            No login
+          </span>
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
+          <span className="truncate">{worker.email || `${worker.source === "agency" ? "Agency" : "Direct"} · ${status}`}</span>
+          <Link
+            to={`/workforce/workers/${worker.id}`}
+            className="focus-ring inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 ring-1 ring-inset ring-line hover:text-link hover:ring-link/40"
+          >
+            <Briefcase className="h-3 w-3" />
+            {worker.worker_code}
+          </Link>
+        </div>
+      </div>
+      <Button size="sm" onClick={onCreate} aria-label={`Create login for ${name}`} className="shrink-0">
+        <KeyRound />
+        <span className="hidden sm:inline">Create login</span>
+      </Button>
+    </li>
   );
 };
 

@@ -12,6 +12,7 @@ import {
   type ShiftWorkStatus,
   type Staff,
 } from "@/lib/schedule";
+import { refreshPeople } from "@/lib/people";
 import { supabase } from "@/lib/supabase";
 import type { Member } from "@/lib/types";
 
@@ -205,7 +206,7 @@ export const useSchedule = (weekStart: Date) => {
       queryClient.setQueryData<Staff[]>(staffKey, (old) =>
         [...(old ?? []).filter((x) => x.id !== s.id), s].sort((a, b) => a.name.localeCompare(b.name)),
       );
-      void invalidateStaff();
+      refreshPeople(queryClient);
     },
   });
 
@@ -218,7 +219,7 @@ export const useSchedule = (weekStart: Date) => {
         .eq("id", input.id);
       if (error) throw error;
     },
-    onSuccess: () => void invalidateStaff(),
+    onSuccess: () => refreshPeople(queryClient),
   });
 
   const deleteStaff = useMutation({

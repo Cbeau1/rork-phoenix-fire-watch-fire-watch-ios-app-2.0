@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { fmtDate, FormDialog, isDate, Pill, Restricted, SelectField, TextField, toNum } from "@/components/workforce/kit";
+import { refreshPeople } from "@/lib/people";
 import { callFunction } from "@/lib/supabase";
 import { ROLE_LABEL, type Member, type Role } from "@/lib/types";
 import * as api from "@/lib/workforce/api";
@@ -87,9 +88,7 @@ export const EditMemberDialog = ({
       }
     },
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["members"] });
-      void qc.invalidateQueries({ queryKey: ["wf"] });
-      void qc.invalidateQueries({ queryKey: ["tc"] });
+      refreshPeople(qc);
       toast.success(payDirty && profileDirty ? "Profile and pay rate saved" : payDirty ? "Pay rate saved — history kept" : "Profile saved");
       onClose();
     },

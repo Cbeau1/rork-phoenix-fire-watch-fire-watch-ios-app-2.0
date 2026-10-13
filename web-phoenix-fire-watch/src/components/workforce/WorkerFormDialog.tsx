@@ -15,6 +15,7 @@ import {
 } from "@/components/fw/TeamLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { refreshPeople } from "@/lib/people";
 import { friendlyError } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
 import * as api from "@/lib/workforce/api";
@@ -208,7 +209,7 @@ export const WorkerFormDialog = ({
     },
     onSuccess: ({ w, state }) => {
       wf.invalidate("workers", "checklist", "members");
-      void queryClient.invalidateQueries({ queryKey: ["members"] });
+      refreshPeople(queryClient);
       if (worker) toast.success("Profile saved");
       else if (state.newLogin) toast.success(`Profile created — ${w.worker_code}`, { description: "Also added to Team with an app login." });
       else if (state.loginError) toast.error(`Profile created — ${w.worker_code}, but the Team login failed`, { description: state.loginError });

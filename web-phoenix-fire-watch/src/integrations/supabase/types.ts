@@ -3272,6 +3272,12 @@ export type Database = {
       }
       is_org_admin: { Args: never; Returns: boolean }
       my_org_id: { Args: never; Returns: string }
+      name__busy: { Args: never; Returns: boolean }
+      name__rename_entries: {
+        Args: { p_new: string; p_old: string; p_org: string }
+        Returns: undefined
+      }
+      name__set_busy: { Args: { p_on: boolean }; Returns: undefined }
       org__tz: { Args: { p_org: string }; Returns: string }
       org_set_timezone: {
         Args: { p_force?: boolean; p_tz: string }
@@ -3495,6 +3501,10 @@ export type Database = {
       wf__personnel_clean: {
         Args: { is_agency: boolean; p: Json }
         Returns: Json
+      }
+      wf__push_worker_name: {
+        Args: { p_link: boolean; p_worker: string }
+        Returns: undefined
       }
       wf__reminder_candidates: {
         Args: { o: string }
