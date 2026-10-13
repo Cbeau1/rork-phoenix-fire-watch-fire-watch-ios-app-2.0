@@ -30,6 +30,8 @@ struct ShiftEditorSheet: View {
     @State private var error: String?
     @State private var confirmDelete: Bool = false
     @State private var didLoad: Bool = false
+    @State private var payrollProfileId: String = ""
+    @State private var completedTick: Int = 0
 
     private var isEditing: Bool { draft.shift != nil }
     private var dayKeys: [String] { days.map(ScheduleDates.key) }
@@ -39,6 +41,7 @@ struct ShiftEditorSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     if let error { ErrorBanner(message: error) }
+                    if let shift = draft.shift { payrollSection(shift) }
                     staffSection
                     propertySection
                     daysSection
@@ -71,6 +74,101 @@ struct ShiftEditorSheet: View {
                 Text("It's removed from everyone's schedule, along with its pay status.")
             }
             .onAppear(perform: load)
+            .sensoryFeedback(.success, trigger: completedTick)
+        }
+    }
+
+    // MARK: - Payroll (complete shift)
+
+    @ViewBuilder
+    private func payrollSection(_ shift: Shift) -> some View {
+        let work = schedule.work[shift.id]
+        let started = (shift.startDate ?? .distantFuture) <= Date()
+        let linked = schedule.staff(id: shift.staffId)?.profileId != nil
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.seal.fill").foregroundStyle(Color.fwLink)
+                Text("Payroll").font(.system(.headline, weight: .bold)).foregroundStyle(Color.fwInk)
+                Spacer()
+                if let work { ShiftWorkBadge(work: work) }
+            }
+            if let work, work.status == "pending" {
+                Text(work.isFromClock ? "Sent to Payroll with the real clock times. Approve it on the web." : "Sent to Payroll with the scheduled times. Approve it on the web.")
+                    .font(.footnote).foregroundStyle(Color.fwInk2)
+                Button("Undo Completion") { Task { await undoComplete(shift) } }
+                    .buttonStyle(OutlineButtonStyle())
+                    .disabled(busy)
+            } else if let work, work.status == "approved" {
+                Text("Hours approved. To change them, move them back to review in Payroll on the web.")
+                    .font(.footnote).foregroundStyle(Color.fwInk2)
+            } else if !started {
+                Text("You can mark this shift completed once it starts. Clock-ins during the shift link to it automatically.")
+                    .font(.footnote).foregroundStyle(Color.fwInk3)
+            } else {
+                Text(work?.isOpen == true
+                     ? "Still clocked in. Completing clocks them out (at the scheduled end at the latest) and sends the hours for approval."
+                     : "Sends this shift's hours to Payroll for approval. Real clock times are used if they clocked in.")
+                    .font(.footnote).foregroundStyle(Color.fwInk2)
+                if !linked {
+                    Menu {
+                        Button {
+                            payrollProfileId = ""
+                        } label: {
+                            if payrollProfileId.isEmpty { Label("No app login", systemImage: "checkmark") } else { Text("No app login") }
+                        }
+                        Divider()
+                        ForEach(schedule.members.filter(\.active)) { m in
+                            Button {
+                                payrollProfileId = m.id
+                            } label: {
+                                if m.id == payrollProfileId { Label(m.fullName, systemImage: "checkmark") } else { Text(m.fullName) }
+                            }
+                        }
+                    } label: {
+                        pickerLabel(schedule.members.first { $0.id == payrollProfileId }?.fullName ?? "No app login", placeholder: "App login", symbol: "person.badge.key.fill")
+                    }
+                    Text(payrollProfileId.isEmpty
+                         ? "For agency or off-app staff. Hours go to Payroll under their name."
+                         : "Remembered for future shifts, so their clock-ins sync automatically.")
+                        .font(.caption).foregroundStyle(Color.fwInk3)
+                }
+                Button {
+                    Task { await complete(shift, linked: linked) }
+                } label: {
+                    Label(work?.isOpen == true ? "Complete & Clock Out" : "Mark Completed", systemImage: "checkmark.circle.fill")
+                }
+                .buttonStyle(OutlineButtonStyle(tint: .fwClear))
+                .disabled(busy)
+            }
+        }
+        .padding(14)
+        .background(Color.fwSurface, in: .rect(cornerRadius: 14))
+        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(Color.fwLine, lineWidth: 1) }
+    }
+
+    private func complete(_ shift: Shift, linked: Bool) async {
+        let noLogin = !linked && payrollProfileId.isEmpty
+        busy = true
+        defer { busy = false }
+        do {
+            try await schedule.completeShift(id: shift.id, profileId: linked || noLogin ? nil : payrollProfileId, noLogin: noLogin)
+            error = nil
+            completedTick += 1
+            router.show("Shift completed", detail: "Sent to Payroll for approval")
+        } catch {
+            self.error = ErrorText.from(error)
+        }
+    }
+
+    private func undoComplete(_ shift: Shift) async {
+        busy = true
+        defer { busy = false }
+        do {
+            try await schedule.reopenShift(id: shift.id)
+            error = nil
+            router.show("Completion undone")
+        } catch {
+            self.error = ErrorText.from(error)
         }
     }
 
@@ -325,6 +423,8 @@ struct ShiftEditorSheet: View {
             start = s.start
             end = s.end
             notes = s.notes
+            let name = schedule.staff(id: s.staffId)?.name.lowercased() ?? ""
+            payrollProfileId = schedule.members.first { $0.active && $0.fullName.lowercased() == name }?.id ?? ""
         } else {
             propertyId = draft.propertyId ?? (store.properties.count == 1 ? store.properties[0].id : "")
             if let date = draft.date { selectedDays = [date] }

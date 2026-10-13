@@ -769,18 +769,21 @@ export type Database = {
           id: string
           name: string
           retention_days: number | null
+          timezone: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           retention_days?: number | null
+          timezone?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           retention_days?: number | null
+          timezone?: string | null
         }
         Relationships: []
       }
@@ -1158,6 +1161,7 @@ export type Database = {
           org_id: string
           profile_id: string | null
           property_id: string | null
+          shift_id: string | null
           source: string
           status: string
           updated_at: string
@@ -1176,6 +1180,7 @@ export type Database = {
           org_id: string
           profile_id?: string | null
           property_id?: string | null
+          shift_id?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -1194,6 +1199,7 @@ export type Database = {
           org_id?: string
           profile_id?: string | null
           property_id?: string | null
+          shift_id?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -1226,6 +1232,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -3259,6 +3272,52 @@ export type Database = {
       }
       is_org_admin: { Args: never; Returns: boolean }
       my_org_id: { Args: never; Returns: string }
+      org__tz: { Args: { p_org: string }; Returns: string }
+      org_set_timezone: {
+        Args: { p_force?: boolean; p_tz: string }
+        Returns: string
+      }
+      shift__window: {
+        Args: { p_tz: string; s: Database["public"]["Tables"]["shifts"]["Row"] }
+        Returns: unknown
+      }
+      shift_complete: {
+        Args: {
+          p_clock_in?: string
+          p_clock_out?: string
+          p_no_login?: boolean
+          p_note?: string
+          p_profile_id?: string
+          p_shift_id: string
+          p_tz?: string
+        }
+        Returns: {
+          admin_note: string
+          approved_at: string | null
+          approved_by: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          edited: boolean
+          employee_note: string
+          id: string
+          org_id: string
+          profile_id: string | null
+          property_id: string | null
+          shift_id: string | null
+          source: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "time_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      shift_reopen: { Args: { p_shift_id: string }; Returns: number }
       tc__admin: {
         Args: never
         Returns: {
@@ -3339,6 +3398,7 @@ export type Database = {
           org_id: string
           profile_id: string | null
           property_id: string | null
+          shift_id: string | null
           source: string
           status: string
           updated_at: string
@@ -3366,6 +3426,7 @@ export type Database = {
           org_id: string
           profile_id: string | null
           property_id: string | null
+          shift_id: string | null
           source: string
           status: string
           updated_at: string
@@ -3393,6 +3454,7 @@ export type Database = {
           org_id: string
           profile_id: string | null
           property_id: string | null
+          shift_id: string | null
           source: string
           status: string
           updated_at: string

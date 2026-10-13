@@ -1,7 +1,7 @@
 import { addDays, format, parseISO } from "date-fns";
 
 import type { Tables } from "@/integrations/supabase/types";
-import { toDateKey, weekStartOf } from "@/lib/schedule";
+import { formatShiftRange, fromDbTime, toDateKey, weekStartOf } from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import { wfError } from "@/lib/workforce/api";
 import type { Tone } from "@/lib/workforce/constants";
@@ -23,6 +23,10 @@ export interface TimeEntry {
   edited: boolean;
   approvedBy: string | null;
   approvedAt: string | null;
+  /** The scheduled shift these hours belong to (set by clock-in matching or "Mark completed"). */
+  shiftId: string | null;
+  /** Scheduled times of that shift, e.g. "7 PM – 7 AM", when visible. */
+  scheduledLabel: string | null;
 }
 
 export interface EntryLog {
@@ -48,9 +52,15 @@ export const LOG_LABEL: Record<string, string> = {
   reopen: "Moved back to review",
   edit: "Times edited",
   manual_add: "Entry added by admin",
+  shift_complete: "Shift completed on the schedule",
+  shift_reopen: "Unlinked from the schedule",
 };
 
-const toEntry = (r: Tables<"time_entries">): TimeEntry => ({
+type EntryRow = Tables<"time_entries"> & {
+  shift?: { shift_date: string; start_time: string; end_time: string } | null;
+};
+
+const toEntry = (r: EntryRow): TimeEntry => ({
   id: r.id,
   profileId: r.profile_id,
   workerName: r.worker_name,
@@ -64,6 +74,8 @@ const toEntry = (r: Tables<"time_entries">): TimeEntry => ({
   edited: r.edited,
   approvedBy: r.approved_by,
   approvedAt: r.approved_at,
+  shiftId: r.shift_id,
+  scheduledLabel: r.shift ? formatShiftRange({ start: fromDbTime(r.shift.start_time), end: fromDbTime(r.shift.end_time) }) : null,
 });
 
 // ─── Hours math ─────────────────────────────────────────────────────────────
@@ -180,7 +192,7 @@ export const summarize = (entries: TimeEntry[], period: PayPeriod, nameFor: (id:
 
 // ─── API ────────────────────────────────────────────────────────────────────
 
-const COLS = "*";
+const COLS = "*, shift:shifts(shift_date, start_time, end_time)";
 
 /** Entries that started inside the period (RLS: officers only ever receive their own rows). */
 export async function loadEntries(period: PayPeriod, profileId?: string): Promise<TimeEntry[]> {
@@ -190,7 +202,7 @@ export async function loadEntries(period: PayPeriod, profileId?: string): Promis
   if (profileId) q = q.eq("profile_id", profileId);
   const { data, error } = await q.order("clock_in", { ascending: true }).limit(5000);
   if (error) throw wfError(error);
-  return (data ?? []).map(toEntry);
+  return ((data ?? []) as EntryRow[]).map(toEntry);
 }
 
 /** Everyone currently clocked in (admin) or just the caller (officer). */
@@ -199,7 +211,7 @@ export async function loadOpenEntries(profileId?: string): Promise<TimeEntry[]> 
   if (profileId) q = q.eq("profile_id", profileId);
   const { data, error } = await q.order("clock_in").limit(500);
   if (error) throw wfError(error);
-  return (data ?? []).map(toEntry);
+  return ((data ?? []) as EntryRow[]).map(toEntry);
 }
 
 export async function clockIn(note = ""): Promise<TimeEntry> {

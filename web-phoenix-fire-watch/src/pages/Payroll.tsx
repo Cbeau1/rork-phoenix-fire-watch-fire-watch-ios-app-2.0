@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, format } from "date-fns";
 import {
   AlertTriangle,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -530,7 +531,17 @@ const EntryRow = ({
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <MetaPill meta={ENTRY_STATUS} value={e.status} />
-            {e.edited && <Pill tone="blue">{e.source === "manual" ? "Added by admin" : "Edited"}</Pill>}
+            {e.shiftId && e.source === "manual" ? (
+              <Pill tone="blue">From schedule</Pill>
+            ) : (
+              e.edited && <Pill tone="blue">{e.source === "manual" ? "Added by admin" : "Edited"}</Pill>
+            )}
+            {e.scheduledLabel && (
+              <span className="inline-flex items-center gap-1 text-xs text-ink-3">
+                <CalendarDays className="h-3 w-3" />
+                Scheduled {e.scheduledLabel}
+              </span>
+            )}
             {site !== "—" && <span className="text-xs text-ink-3">{site}</span>}
           </div>
           {(e.adminNote || e.employeeNote) && (

@@ -22,6 +22,25 @@ export interface Shift {
   paidAt: string | null;
 }
 
+export type ShiftWorkStatus = "open" | "pending" | "approved" | "rejected";
+
+/** The payroll hours attached to a shift: a real clock punch, or an entry made by "Mark completed". */
+export interface ShiftWork {
+  entryId: string;
+  shiftId: string;
+  status: ShiftWorkStatus;
+  clockIn: string;
+  clockOut: string | null;
+  source: "clock" | "manual";
+}
+
+export const SHIFT_WORK_LABEL: Record<ShiftWorkStatus, string> = {
+  open: "On shift",
+  pending: "Needs approval",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
 export interface ShiftInput {
   staffId: string;
   propertyId: string;
@@ -86,6 +105,13 @@ export const formatShiftRange = (s: { start: string; end: string }): string =>
 export const formatHours = (minutes: number): string => {
   const h = minutes / 60;
   return `${Number.isInteger(h) ? h : h.toFixed(1)}h`;
+};
+
+/** Scheduled start/end as real dates in the browser's time zone (overnight shifts end the next day). */
+export const scheduledWindow = (s: Pick<Shift, "date" | "start" | "end">): { start: Date; end: Date } => {
+  const start = parseISO(`${s.date}T${s.start}`);
+  const end = parseISO(`${s.date}T${s.end}`);
+  return { start, end: isOvernight(s) ? addDays(end, 1) : end };
 };
 
 export const byShiftStart = (a: Shift, b: Shift): number =>

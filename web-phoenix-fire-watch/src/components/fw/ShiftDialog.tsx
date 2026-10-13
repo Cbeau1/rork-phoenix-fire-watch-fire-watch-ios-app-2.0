@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Loader2, Moon, Plus, Save, Trash2, UserPlus } from "lucide-react";
+import { CheckCircle2, Loader2, Moon, Plus, RotateCcw, Save, Trash2, UserPlus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -134,6 +134,16 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
     }
   };
 
+  const work = editing ? schedule.workByShift.get(editing.id) : undefined;
+
+  const undoComplete = () => {
+    if (!editing) return;
+    schedule.reopenShift.mutate(editing.id, {
+      onSuccess: () => toast.success("Completion undone — hours removed from Payroll review"),
+      onError: (err) => toast.error(friendlyError(err, "Couldn't undo the completion")),
+    });
+  };
+
   const editingDateOutsideWeek = editing && !days.some((d) => toDateKey(d) === editing.date);
 
   return (
@@ -145,6 +155,31 @@ export const ShiftDialog = ({ open, onOpenChange, draft, days, properties, sched
             {editing ? "Change who's working, where, or when." : "Schedule a staff member at a property. Pick several days to repeat it."}
           </DialogDescription>
         </DialogHeader>
+
+        {work && work.status !== "open" && work.status !== "rejected" && (
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-status-clear/40 bg-status-clear/10 px-4 py-3 text-sm">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-status-clear" />
+            <p className="min-w-0 flex-1 text-ink-2">
+              {work.status === "approved" ? (
+                <>
+                  <span className="font-medium text-ink">Completed · hours approved.</span>
+                  {" "}Move them back to review in Payroll to make changes.
+                </>
+              ) : (
+                <>
+                  <span className="font-medium text-ink">Completed · awaiting approval in Payroll.</span>
+                  {work.source === "manual" ? " Time changes here update those hours." : " Real clock times are kept."}
+                </>
+              )}
+            </p>
+            {work.status === "pending" && (
+              <Button type="button" size="sm" variant="outline" onClick={undoComplete} disabled={schedule.reopenShift.isPending}>
+                {schedule.reopenShift.isPending ? <Loader2 className="animate-spin" /> : <RotateCcw />}
+                Undo completion
+              </Button>
+            )}
+          </div>
+        )}
 
         <form onSubmit={(e) => void submit(e)} className="grid gap-5" noValidate>
           <div>

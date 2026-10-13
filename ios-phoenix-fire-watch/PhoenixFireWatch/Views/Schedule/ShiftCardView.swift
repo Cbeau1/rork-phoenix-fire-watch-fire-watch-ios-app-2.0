@@ -11,7 +11,10 @@ struct ShiftCardView: View {
     var onEdit: (() -> Void)?
     var onTogglePaid: (() -> Void)?
 
+    @Environment(ScheduleStore.self) private var schedule
+
     private var paid: Bool { isAdmin && shift.isPaid }
+    private var work: ShiftWork? { schedule.work[shift.id] }
 
     private var accent: Color {
         if paid { return .fwClear }
@@ -99,9 +102,40 @@ struct ShiftCardView: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
             }
+            if let work {
+                ShiftWorkBadge(work: work)
+                    .padding(.top, 2)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.rect)
+    }
+}
+
+/// Clock / payroll state for a shift plus the actual clocked times.
+struct ShiftWorkBadge: View {
+    let work: ShiftWork
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 4) {
+                Image(systemName: work.symbol)
+                    .font(.system(size: 9, weight: .bold))
+                    .symbolEffect(.pulse, isActive: work.isOpen)
+                Text(work.label.uppercased())
+                    .font(.system(size: 9.5, weight: .heavy))
+                    .tracking(0.6)
+            }
+            .foregroundStyle(work.tint)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(work.tint.opacity(0.13), in: Capsule())
+            .overlay { Capsule().strokeBorder(work.tint.opacity(0.4), lineWidth: 1) }
+            Text(work.timesLabel)
+                .font(FWFont.mono(.caption2))
+                .foregroundStyle(Color.fwInk3)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

@@ -11,6 +11,8 @@ final class ScheduleStore {
     private(set) var staff: [StaffMember] = []
     private(set) var shifts: [Shift] = []
     private(set) var members: [Member] = []
+    /// Clock / payroll hours per shift id for the loaded week.
+    private(set) var work: [String: ShiftWork] = [:]
     private(set) var weekStart: Date = ScheduleDates.weekStart(of: Date())
     private(set) var isLoading: Bool = false
     private(set) var hasLoaded: Bool = false
@@ -34,6 +36,7 @@ final class ScheduleStore {
         staff = []
         shifts = []
         members = []
+        work = [:]
         hasLoaded = false
         loadError = nil
         weekStart = ScheduleDates.weekStart(of: Date())
@@ -89,6 +92,7 @@ final class ScheduleStore {
             LocalStore.save(shifts, as: cacheFile)
             hasLoaded = true
             loadError = nil
+            await loadWork(generation: generation)
             if isAdmin { await loadMembers() }
         } catch {
             print("[Schedule] refresh failed: \(error.localizedDescription)")
@@ -98,6 +102,26 @@ final class ScheduleStore {
                     ? "You're offline and this week isn't saved on this device yet."
                     : ErrorText.from(error, fallback: "Couldn't load the schedule.")
             }
+        }
+    }
+
+    private func loadWork(generation: Int) async {
+        let ids = shifts.map(\.id)
+        guard !ids.isEmpty else { work = [:]; return }
+        do {
+            let rows: [ShiftWork] = try await Backend.client.from("time_entries")
+                .select("id, shift_id, status, clock_in, clock_out, source")
+                .in("shift_id", values: ids)
+                .execute().value
+            guard generation == loadGeneration else { return }
+            var next: [String: ShiftWork] = [:]
+            for row in rows {
+                if let cur = next[row.shiftId], cur.rank > row.rank || (cur.rank == row.rank && cur.clockIn > row.clockIn) { continue }
+                next[row.shiftId] = row
+            }
+            work = next
+        } catch {
+            print("[Schedule] shift hours load failed: \(error.localizedDescription)")
         }
     }
 
@@ -132,6 +156,7 @@ final class ScheduleStore {
             channel.postgresChange(AnyAction.self, schema: "public", table: "staff"),
             channel.postgresChange(AnyAction.self, schema: "public", table: "shifts"),
             channel.postgresChange(AnyAction.self, schema: "public", table: "shift_payments"),
+            channel.postgresChange(AnyAction.self, schema: "public", table: "time_entries"),
         ]
         realtimeTasks = streams.map { stream in
             Task { [weak self] in
@@ -239,6 +264,38 @@ final class ScheduleStore {
             try await Backend.client.from("shifts").delete().eq("id", value: id).execute()
         }
         shifts.removeAll { $0.id == id }
+    }
+
+    private nonisolated struct CompleteParams: Encodable, Sendable {
+        let p_shift_id: String
+        let p_profile_id: String?
+        let p_tz: String
+        let p_no_login: Bool
+    }
+
+    private nonisolated struct ReopenParams: Encodable, Sendable {
+        let p_shift_id: String
+    }
+
+    /// Marks a shift completed and sends its hours to web Payroll for approval. Uses the officer's
+    /// real clock punch when there is one; otherwise the scheduled times. `profileId` links the
+    /// staff member to a Team login (remembered for future shifts). `noLogin` records the hours
+    /// under the staff member's name for agency or off-app staff.
+    func completeShift(id: String, profileId: String?, noLogin: Bool = false) async throws {
+        try await perform {
+            try await Backend.client
+                .rpc("shift_complete", params: CompleteParams(p_shift_id: id, p_profile_id: profileId, p_tz: TimeZone.current.identifier, p_no_login: noLogin))
+                .execute()
+        }
+        await refresh()
+    }
+
+    /// Undoes "Mark completed" while the hours are still awaiting approval.
+    func reopenShift(id: String) async throws {
+        try await perform {
+            try await Backend.client.rpc("shift_reopen", params: ReopenParams(p_shift_id: id)).execute()
+        }
+        await refresh()
     }
 
     /// Marks shifts paid / unpaid. Updates instantly and rolls back if the server refuses.

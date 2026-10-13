@@ -3,7 +3,15 @@ import { addDays } from "date-fns";
 import { useEffect, useMemo } from "react";
 
 import type { Database } from "@/integrations/supabase/types";
-import { fromDbTime, toDateKey, type Shift, type ShiftInput, type Staff } from "@/lib/schedule";
+import {
+  fromDbTime,
+  toDateKey,
+  type Shift,
+  type ShiftInput,
+  type ShiftWork,
+  type ShiftWorkStatus,
+  type Staff,
+} from "@/lib/schedule";
 import { supabase } from "@/lib/supabase";
 import type { Member } from "@/lib/types";
 
@@ -34,6 +42,28 @@ const toShift = (r: ShiftRow & { shift_payments?: unknown }): Shift => {
     paidAt: pay?.paid_at ?? null,
   };
 };
+
+const browserTimeZone = (): string | undefined => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const WORK_RANK: Record<ShiftWorkStatus, number> = { open: 3, pending: 2, approved: 2, rejected: 0 };
+
+export interface CompleteShiftInput {
+  shiftId: string;
+  /** Links the staff member to this Team login (remembered for future shifts). */
+  profileId?: string;
+  /** Record under the staff member's name for agency/off-app staff without a Team login. */
+  noLogin?: boolean;
+  /** Only sent when the admin changes the scheduled times. */
+  clockIn?: Date;
+  clockOut?: Date;
+  note?: string;
+}
 
 const shiftPayload = (input: ShiftInput) => ({
   staff_id: input.staffId,
@@ -83,6 +113,40 @@ export const useSchedule = (weekStart: Date) => {
       return data.map(toShift);
     },
   });
+
+  const shiftIds = useMemo<string[]>(() => (shiftsQuery.data ?? []).map((s) => s.id), [shiftsQuery.data]);
+
+  /** Hours attached to this week's shifts (RLS: officers only see their own). Lives under ["tc"] so clock changes refresh it. */
+  const workQuery = useQuery({
+    queryKey: ["tc", "shift-work", orgId, from, shiftIds.join(",")] as const,
+    enabled: !!orgId && shiftIds.length > 0,
+    queryFn: async (): Promise<ShiftWork[]> => {
+      const { data, error } = await supabase
+        .from("time_entries")
+        .select("id, shift_id, status, clock_in, clock_out, source")
+        .in("shift_id", shiftIds);
+      if (error) throw error;
+      return data
+        .filter((r): r is typeof r & { shift_id: string } => !!r.shift_id)
+        .map((r) => ({
+          entryId: r.id,
+          shiftId: r.shift_id,
+          status: (["open", "pending", "approved", "rejected"].includes(r.status) ? r.status : "pending") as ShiftWorkStatus,
+          clockIn: r.clock_in,
+          clockOut: r.clock_out,
+          source: r.source === "manual" ? ("manual" as const) : ("clock" as const),
+        }));
+    },
+  });
+
+  /** Remember the org's time zone so clock-ins can be matched to scheduled shifts (only set once). */
+  useEffect(() => {
+    const tz = browserTimeZone();
+    if (!orgId || !isAdmin || !tz) return;
+    void supabase.rpc("org_set_timezone", { p_tz: tz }).then(({ error }) => {
+      if (error) console.warn("[schedule] couldn't save time zone", error.message);
+    });
+  }, [orgId, isAdmin]);
 
   /** Team logins (admin only) so staff can be linked to an account. Same cache as the Team page. */
   const membersQuery = useQuery({
@@ -241,6 +305,51 @@ export const useSchedule = (weekStart: Date) => {
     onSettled: () => void invalidateShifts(),
   });
 
+  const invalidateWork = () => {
+    void queryClient.invalidateQueries({ queryKey: ["tc"] });
+    void invalidateStaff();
+  };
+
+  /** Marks a shift completed and sends its hours to Payroll for approval. */
+  const completeShift = useMutation({
+    mutationFn: async (input: CompleteShiftInput) => {
+      requireOnline();
+      const { data, error } = await supabase.rpc("shift_complete", {
+        p_shift_id: input.shiftId,
+        p_profile_id: input.profileId,
+        p_clock_in: input.clockIn?.toISOString(),
+        p_clock_out: input.clockOut?.toISOString(),
+        p_note: input.note?.trim() ?? "",
+        p_tz: browserTimeZone(),
+        p_no_login: input.noLogin ?? false,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: invalidateWork,
+  });
+
+  /** Undoes "Mark completed" while the hours are still awaiting approval. */
+  const reopenShift = useMutation({
+    mutationFn: async (shiftId: string) => {
+      requireOnline();
+      const { error } = await supabase.rpc("shift_reopen", { p_shift_id: shiftId });
+      if (error) throw error;
+    },
+    onSuccess: invalidateWork,
+  });
+
+  const workByShift = useMemo<Map<string, ShiftWork>>(() => {
+    const m = new Map<string, ShiftWork>();
+    for (const w of workQuery.data ?? []) {
+      const cur = m.get(w.shiftId);
+      if (!cur || WORK_RANK[w.status] > WORK_RANK[cur.status] || (WORK_RANK[w.status] === WORK_RANK[cur.status] && w.clockIn > cur.clockIn)) {
+        m.set(w.shiftId, w);
+      }
+    }
+    return m;
+  }, [workQuery.data]);
+
   const staff = useMemo<Staff[]>(() => staffQuery.data ?? [], [staffQuery.data]);
   const shifts = useMemo<Shift[]>(() => shiftsQuery.data ?? [], [shiftsQuery.data]);
   const staffById = useMemo<Map<string, Staff>>(() => new Map(staff.map((s) => [s.id, s])), [staff]);
@@ -265,6 +374,9 @@ export const useSchedule = (weekStart: Date) => {
     updateShift,
     deleteShift,
     setPaid,
+    workByShift,
+    completeShift,
+    reopenShift,
   };
 };
 

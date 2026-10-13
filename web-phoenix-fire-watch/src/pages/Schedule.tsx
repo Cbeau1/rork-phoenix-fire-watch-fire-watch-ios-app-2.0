@@ -15,6 +15,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
+import { CompleteShiftDialog } from "@/components/fw/CompleteShiftDialog";
 import { Card, EmptyState, PageHeader } from "@/components/fw/primitives";
 import { ShiftCard } from "@/components/fw/ShiftCard";
 import { ShiftDialog, type ShiftDraft } from "@/components/fw/ShiftDialog";
@@ -63,9 +64,10 @@ const Schedule = () => {
   const [shiftOpen, setShiftOpen] = useState<boolean>(false);
   const [staffOpen, setStaffOpen] = useState<boolean>(false);
   const [draft, setDraft] = useState<ShiftDraft>({});
+  const [completing, setCompleting] = useState<Shift | null>(null);
 
   const schedule = useSchedule(weekStart);
-  const { isAdmin, shifts, staffById, staff, setPaid } = schedule;
+  const { isAdmin, shifts, staffById, staff, setPaid, workByShift } = schedule;
   const days = useMemo<Date[]>(() => weekDays(weekStart), [weekStart]);
   const isThisWeek = toDateKey(weekStart) === toDateKey(weekStartOf(new Date()));
 
@@ -158,7 +160,11 @@ const Schedule = () => {
     <>
       <PageHeader
         title="Schedule"
-        subtitle={isAdmin ? "Plan the week, assign staff to sites and track who's been paid" : "Your team's weekly shifts"}
+        subtitle={
+          isAdmin
+            ? "Plan the week, complete shifts for payroll approval and track who's been paid"
+            : "Your team's weekly shifts"
+        }
         actions={
           isAdmin ? (
             <>
@@ -381,6 +387,8 @@ const Schedule = () => {
                             mine={myStaffIds.has(s.staffId)}
                             onEdit={isAdmin ? openEdit : undefined}
                             onTogglePaid={isAdmin ? togglePaid : undefined}
+                            work={workByShift.get(s.id)}
+                            onComplete={isAdmin ? setCompleting : undefined}
                           />
                         ))}
                       </ul>
@@ -478,6 +486,13 @@ const Schedule = () => {
             schedule={schedule}
           />
           <StaffDialog open={staffOpen} onOpenChange={setStaffOpen} schedule={schedule} />
+          <CompleteShiftDialog
+            shift={completing}
+            staffName={completing ? (staffById.get(completing.staffId)?.name ?? "Removed staff") : ""}
+            propertyName={completing ? (propertyById.get(completing.propertyId)?.name ?? "Removed property") : ""}
+            schedule={schedule}
+            onClose={() => setCompleting(null)}
+          />
         </>
       )}
     </>

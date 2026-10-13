@@ -16,6 +16,10 @@ nonisolated struct Shift: Codable, Identifiable, Hashable, Sendable {
     var minutes: Int { ScheduleDates.duration(start: start, end: end) }
     var isOvernight: Bool { ScheduleDates.isOvernight(start: start, end: end) }
     var rangeLabel: String { ScheduleDates.range(start: start, end: end) }
+    /// Scheduled start in the device's time zone.
+    var startDate: Date? {
+        ScheduleDates.date(fromKey: date).map { $0.addingTimeInterval(TimeInterval(ScheduleDates.minutes(start) * 60)) }
+    }
 
     static func byStart(_ a: Shift, _ b: Shift) -> Bool {
         a.date == b.date ? ScheduleDates.minutes(a.start) < ScheduleDates.minutes(b.start) : a.date < b.date
