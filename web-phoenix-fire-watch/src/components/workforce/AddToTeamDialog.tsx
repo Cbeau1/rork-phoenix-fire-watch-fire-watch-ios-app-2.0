@@ -3,7 +3,7 @@ import { KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { FieldError, FieldHint, FieldLabel } from "@/components/fw/primitives";
-import { createTeamLogin, generatePassword, RolePicker, type LoginCredentials } from "@/components/fw/TeamLogin";
+import { createTeamLogin, generatePassword, nextGenericLoginEmail, RolePicker, type LoginCredentials } from "@/components/fw/TeamLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { friendlyError } from "@/lib/supabase";
@@ -37,10 +37,12 @@ export const AddToTeamDialog = ({
 
   useEffect(() => {
     if (!open) return;
-    setEmail(worker.email ?? "");
+    setEmail(worker.email || nextGenericLoginEmail(worker.first_name, worker.last_name, wf.members.map((m) => m.email)).email);
     setPassword(generatePassword());
     setRole("officer");
     setErrors({});
+    // Only re-seed when the dialog opens, not when the member list refreshes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, worker]);
 
   const name = fullName(worker);
@@ -88,7 +90,11 @@ export const AddToTeamDialog = ({
           Email (their username)
         </FieldLabel>
         <Input id="att-email" type="email" inputMode="email" value={email} aria-invalid={!!errors.email} onChange={(ev) => setEmail(ev.target.value)} placeholder="officer@company.com" />
-        {errors.email ? <FieldError message={errors.email} /> : <FieldHint>Also saved as the email on this profile.</FieldHint>}
+        {errors.email ? (
+          <FieldError message={errors.email} />
+        ) : (
+          <FieldHint>{worker.email ? "Also saved as the email on this profile." : "Generated from their name — change it if they have their own email."}</FieldHint>
+        )}
       </div>
       <div>
         <FieldLabel htmlFor="att-password" required>

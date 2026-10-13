@@ -5,7 +5,14 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { FieldError, FieldHint, FieldLabel } from "@/components/fw/primitives";
-import { createTeamLogin, generatePassword, RolePicker, type LoginCredentials } from "@/components/fw/TeamLogin";
+import {
+  createGenericTeamLogin,
+  createTeamLogin,
+  generatePassword,
+  nextGenericLoginEmail,
+  RolePicker,
+  type LoginCredentials,
+} from "@/components/fw/TeamLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { friendlyError } from "@/lib/supabase";
@@ -129,9 +136,17 @@ export const WorkerFormDialog = ({
     [wf.workers, worker],
   );
 
-  /** New direct employees can get a Team login (app account) in the same step. */
-  const canAddToTeam = !worker && isAdmin && d.source === "direct" && !d.profile_id;
+  /** New workers get a Team login (app account) in the same step unless the admin opts out. */
+  const canAddToTeam = !worker && isAdmin && !d.profile_id;
   const willAddToTeam = canAddToTeam && addToTeam;
+  /** Login username: their email, or a generated name-based one when no email is entered. */
+  const loginPreview = useMemo(() => {
+    const typed = d.email.trim().toLowerCase();
+    if (typed) return { email: typed, generated: false };
+    if (!d.first_name.trim() && !d.last_name.trim()) return null;
+    const { email } = nextGenericLoginEmail(d.first_name, d.last_name, wf.members.map((m) => m.email));
+    return { email, generated: true };
+  }, [d.email, d.first_name, d.last_name, wf.members]);
 
   const save = useMutation({
     mutationFn: async (): Promise<{ w: Worker; state: NewLoginState }> => {
@@ -163,6 +178,26 @@ export const WorkerFormDialog = ({
       const w = await api.createWorker({ ...row, source: d.source, org_id: wf.orgId });
       if (!willAddToTeam) return { w, state: {} };
       // Profile first: the new login is matched to it by email, so no duplicate profile is created.
+      if (!row.email) {
+        let saved = "";
+        try {
+          const credentials = await createGenericTeamLogin({
+            first: row.first_name,
+            last: row.last_name,
+            taken: wf.members.map((m) => m.email),
+            password,
+            role,
+            beforeAttempt: async (email) => {
+              await api.updateWorker(w.id, { email });
+              saved = email;
+            },
+          });
+          return { w: { ...w, email: credentials.email }, state: { newLogin: credentials } };
+        } catch (err) {
+          if (saved) await api.updateWorker(w.id, { email: "" }).catch(() => undefined);
+          return { w, state: { loginError: friendlyError(err) } };
+        }
+      }
       const credentials: LoginCredentials = { name: `${row.first_name} ${row.last_name}`, email: row.email, password };
       try {
         await createTeamLogin({ fullName: credentials.name, email: credentials.email, password, role });
@@ -193,8 +228,7 @@ export const WorkerFormDialog = ({
     if (d.email.trim() && !EMAIL_RE.test(d.email.trim())) e.email = "Enter a valid email address.";
     if (willAddToTeam) {
       const email = d.email.trim().toLowerCase();
-      if (!email) e.email = "Email is required for a Team login — it's their username.";
-      else if (wf.members.some((m) => m.email.toLowerCase() === email)) e.email = "Someone on your Team already uses this email.";
+      if (email && wf.members.some((m) => m.email.toLowerCase() === email)) e.email = "Someone on your Team already uses this email.";
       if (password.length < 8) e.password = "Use at least 8 characters.";
     }
     if (d.start_date && !isDate(d.start_date)) e.start_date = "Use a valid date.";
@@ -259,11 +293,10 @@ export const WorkerFormDialog = ({
           label="Email"
           type="email"
           inputMode="email"
-          required={willAddToTeam}
           value={d.email}
           onChange={(v) => set("email", v)}
           error={errors.email}
-          hint={willAddToTeam ? "Also their Team login username." : undefined}
+          hint={willAddToTeam ? (d.email.trim() ? "Also their Team login username." : "Optional — leave blank to generate a login email.") : undefined}
           maxLength={200}
         />
         <TextField label="Position" value={d.position} onChange={(v) => set("position", v)} placeholder="e.g. Fire Watch Officer" maxLength={120} />
@@ -303,6 +336,17 @@ export const WorkerFormDialog = ({
           />
           {addToTeam && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <div className="text-sm font-medium text-ink">Login email</div>
+                <div className="mt-1.5 flex min-h-11 items-center break-all rounded-md border border-line bg-field px-3 py-2 font-mono text-sm text-link">
+                  {loginPreview?.email ?? <span className="font-sans text-ink-3">Enter a name to generate it</span>}
+                </div>
+                <FieldHint>
+                  {loginPreview?.generated
+                    ? "Generated from their name. Shown with the password after saving so you can share it."
+                    : "Uses the email above."}
+                </FieldHint>
+              </div>
               <div>
                 <FieldLabel htmlFor="wf-team-password" required>
                   Temporary password

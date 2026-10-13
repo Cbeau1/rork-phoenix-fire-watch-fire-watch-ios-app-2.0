@@ -17,6 +17,65 @@ export const generatePassword = (): string => {
   return Array.from(bytes, (b) => chars[b % chars.length]).join("");
 };
 
+/** Domain used for generated logins when a worker has no personal email. */
+export const LOGIN_DOMAIN = "phoenixfirewatch.com";
+
+const slug = (s: string): string =>
+  s
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+
+/**
+ * Generic login email from a name, e.g. "christopher.engdahl@phoenixfirewatch.com".
+ * `n` > 1 adds a number for people who share a name ("christopher.engdahl2@…").
+ */
+export const genericLoginEmail = (first: string, last: string, n: number = 1): string => {
+  const local = [slug(first), slug(last)].filter(Boolean).join(".") || "officer";
+  return `${local.slice(0, 60)}${n > 1 ? n : ""}@${LOGIN_DOMAIN}`;
+};
+
+/** First generic email not already used by someone on the Team. */
+export const nextGenericLoginEmail = (first: string, last: string, taken: Iterable<string>, start: number = 1): { email: string; n: number } => {
+  const used = new Set(Array.from(taken, (e) => e.toLowerCase()));
+  let n = start;
+  while (used.has(genericLoginEmail(first, last, n))) n += 1;
+  return { email: genericLoginEmail(first, last, n), n };
+};
+
+const isEmailTaken = (err: unknown): boolean => err instanceof Error && /already in use/i.test(err.message);
+
+/**
+ * Creates a login with a generated name-based email, trying the next number if that address is
+ * already taken by an account outside this Team. `beforeAttempt` runs before each try so the
+ * caller can save the candidate on the Workforce profile (the login is matched to it by email).
+ */
+export const createGenericTeamLogin = async (opts: {
+  first: string;
+  last: string;
+  taken: Iterable<string>;
+  password: string;
+  role: Role;
+  beforeAttempt: (email: string) => Promise<void>;
+}): Promise<LoginCredentials> => {
+  const fullName = `${opts.first} ${opts.last}`.trim();
+  const taken = Array.from(opts.taken);
+  let n = 1;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const next = nextGenericLoginEmail(opts.first, opts.last, taken, n);
+    await opts.beforeAttempt(next.email);
+    try {
+      await createTeamLogin({ fullName, email: next.email, password: opts.password, role: opts.role });
+      return { name: fullName, email: next.email, password: opts.password };
+    } catch (err) {
+      if (!isEmailTaken(err)) throw err;
+      n = next.n + 1;
+    }
+  }
+  throw new Error("Couldn't find a free login email for this name. Enter their email instead.");
+};
+
 /**
  * Creates a Team login (app account) inside the caller's organization.
  * The database links it to the Workforce profile with the same email, or creates one.

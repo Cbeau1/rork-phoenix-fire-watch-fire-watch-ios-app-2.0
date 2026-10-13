@@ -161,7 +161,7 @@ const WorkerProfile = () => {
         }
         actions={
           <>
-            {!isAgency && !worker.profile_id && !worker.archived_at && isAdmin && (
+            {!worker.profile_id && !worker.archived_at && isAdmin && (
               <Button onClick={() => setTeamOpen(true)}>
                 <UserPlus />
                 Add to Team
