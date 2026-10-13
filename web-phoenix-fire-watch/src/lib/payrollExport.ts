@@ -11,6 +11,7 @@ import {
   type PayPeriod,
   type PersonSummary,
 } from "@/lib/timeclock";
+import { GROUP_LABEL, groupPeople, type PersonType } from "@/lib/payrollGroups";
 import { buildPdf, downloadBlob, downloadCsv, type PdfSection } from "@/lib/workforce/exports";
 
 const fileStem = (period: PayPeriod) =>
@@ -27,8 +28,16 @@ export const downloadPayrollPdf = (opts: {
   siteName: (id: string | null) => string;
   /** Gross-pay estimates per person key; omitted when the admin can't see wages. */
   pay?: Map<string, PayEstimate>;
+  /** Direct vs. agency classification; when given, rows and gross pay are split by group. */
+  typeOf?: (p: PersonSummary) => PersonType;
 }) => {
-  const { period, people, pay } = opts;
+  const { period, pay, typeOf } = opts;
+  const groups = typeOf ? groupPeople(opts.people, typeOf, pay ?? new Map()) : [];
+  const people = typeOf ? groups.flatMap((g) => g.people) : opts.people;
+  const typeLabel = (p: PersonSummary) => {
+    const t = typeOf?.(p);
+    return !t ? "" : t.group === "agency" ? `Agency${t.agency ? ` · ${t.agency}` : ""}` : "Direct";
+  };
   const grossTotal = pay ? [...pay.values()].reduce((s, e) => s + e.grossCents, 0) : 0;
   const rateCell = (p: PersonSummary) => {
     const r = pay?.get(p.key)?.rate;
@@ -52,7 +61,12 @@ export const downloadPayrollPdf = (opts: {
         ["Employees", String(people.length)],
         ["Approved hours", fmtHours(totalApproved)],
         ["Regular / overtime", `${fmtHours(totalReg)} / ${fmtHours(totalOt)}`],
-        ...(pay ? ([["Estimated gross pay", `${fmtCents(grossTotal)} (before taxes and deductions)`]] as [string, string][]) : []),
+        ...(pay
+          ? ([
+              ...groups.map((g) => [`${GROUP_LABEL[g.group]} gross pay`, `${fmtCents(g.grossCents)} · ${g.people.length} people · ${fmtHours(g.approvedMin)} hrs`]),
+              ["Estimated gross pay (combined)", `${fmtCents(grossTotal)} (before taxes and deductions)`],
+            ] as [string, string][])
+          : []),
         ["Unapproved entries", unapproved === 0 ? "None — all hours reviewed" : `${unapproved} not included in totals`],
       ],
     },
@@ -61,6 +75,7 @@ export const downloadPayrollPdf = (opts: {
       table: {
         head: [
           "Employee",
+          ...(typeOf ? ["Type"] : []),
           ...(twoWeeks ? ["Week 1", "Week 2"] : []),
           "Regular",
           "Overtime",
@@ -69,17 +84,35 @@ export const downloadPayrollPdf = (opts: {
           ...(pay ? ["Rate", "Gross pay"] : []),
         ],
         body: [
-          ...people.map((p) => [
-            p.name,
-            ...(twoWeeks ? p.weeks.map((w) => fmtHours(w.approvedMin)) : []),
-            fmtHours(p.regularMin),
-            fmtHours(p.overMin),
-            fmtHours(p.approvedMin),
-            p.pendingMin > 0 || p.openCount > 0 ? `${fmtHours(p.pendingMin)}${p.openCount ? ` + ${p.openCount} open` : ""}` : "—",
-            ...(pay ? [rateCell(p), grossCell(p)] : []),
+          ...(typeOf ? groups : [{ group: null, people }]).flatMap((g) => [
+            ...g.people.map((p) => [
+              p.name,
+              ...(typeOf ? [typeLabel(p)] : []),
+              ...(twoWeeks ? p.weeks.map((w) => fmtHours(w.approvedMin)) : []),
+              fmtHours(p.regularMin),
+              fmtHours(p.overMin),
+              fmtHours(p.approvedMin),
+              p.pendingMin > 0 || p.openCount > 0 ? `${fmtHours(p.pendingMin)}${p.openCount ? ` + ${p.openCount} open` : ""}` : "—",
+              ...(pay ? [rateCell(p), grossCell(p)] : []),
+            ]),
+            ...("grossCents" in g && groups.length > 1
+              ? [
+                  [
+                    `${GROUP_LABEL[g.group]} subtotal`,
+                    "",
+                    ...(twoWeeks ? [0, 1].map((i) => fmtHours(g.people.reduce((s, p) => s + (p.weeks[i]?.approvedMin ?? 0), 0))) : []),
+                    fmtHours(g.regularMin),
+                    fmtHours(g.overMin),
+                    fmtHours(g.approvedMin),
+                    "",
+                    ...(pay ? ["", fmtCents(g.grossCents)] : []),
+                  ],
+                ]
+              : []),
           ]),
           [
             "TOTAL",
+            ...(typeOf ? [""] : []),
             ...(twoWeeks ? [0, 1].map((i) => fmtHours(people.reduce((s, p) => s + (p.weeks[i]?.approvedMin ?? 0), 0))) : []),
             fmtHours(totalReg),
             fmtHours(totalOt),
@@ -92,7 +125,7 @@ export const downloadPayrollPdf = (opts: {
       emptyText: "No hours recorded in this period.",
     },
     ...people.map<PdfSection>((p) => ({
-      title: `${p.name} — ${fmtHours(p.approvedMin)} approved hrs`,
+      title: `${p.name}${typeOf ? ` (${typeLabel(p)})` : ""} — ${fmtHours(p.approvedMin)} approved hrs`,
       table: {
         head: ["Date", "Clock in", "Clock out", "Hours", "Site", "Status"],
         body: p.entries.map((e) => [
@@ -136,13 +169,21 @@ export const downloadPayrollCsv = (
   people: PersonSummary[],
   siteName: (id: string | null) => string,
   pay?: Map<string, PayEstimate>,
+  typeOf?: (p: PersonSummary) => PersonType,
 ) => {
   const rows: unknown[][] = [];
-  for (const p of people) {
+  const typeCell = (p: PersonSummary) => {
+    const t = typeOf?.(p);
+    return !t ? "Direct" : t.group === "agency" ? `Agency${t.agency ? ` - ${t.agency}` : ""}` : "Direct";
+  };
+  const groups = typeOf ? groupPeople(people, typeOf, pay ?? new Map()) : [];
+  const ordered = typeOf ? groups.flatMap((g) => g.people) : people;
+  for (const p of ordered) {
     const est = pay?.get(p.key);
     for (const e of p.entries) {
       rows.push([
         p.name,
+        typeCell(p),
         format(new Date(e.clockIn), "yyyy-MM-dd"),
         t(e.clockIn),
         t(e.clockOut),
@@ -155,12 +196,15 @@ export const downloadPayrollCsv = (
       ]);
     }
     if (pay && est) {
-      rows.push([`${p.name} — estimated gross pay`, "", "", "", fmtHours(p.approvedMin), "", "", "", "", (est.grossCents / 100).toFixed(2)]);
+      rows.push([`${p.name} — estimated gross pay`, typeCell(p), "", "", "", fmtHours(p.approvedMin), "", "", "", "", (est.grossCents / 100).toFixed(2)]);
     }
+  }
+  if (pay) {
+    for (const g of groups) rows.push([`${GROUP_LABEL[g.group]} — total gross pay`, "", "", "", "", fmtHours(g.approvedMin), "", "", "", "", (g.grossCents / 100).toFixed(2)]);
   }
   downloadCsv(
     `${fileStem(period)}.csv`,
-    ["Employee", "Date", "Clock in", "Clock out", "Hours", "Site", "Status", "Edited", "Admin note", ...(pay ? ["Hourly rate / gross"] : [])],
+    ["Employee", "Type", "Date", "Clock in", "Clock out", "Hours", "Site", "Status", "Edited", "Admin note", ...(pay ? ["Hourly rate / gross"] : [])],
     rows,
   );
 };

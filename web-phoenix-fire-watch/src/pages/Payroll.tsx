@@ -43,6 +43,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useNow } from "@/hooks/use-now";
 import { timeOfDay, toLocalInputValue } from "@/lib/format";
 import { downloadPayrollCsv, downloadPayrollPdf } from "@/lib/payrollExport";
+import { GROUP_LABEL, groupPeople, loadWorkerTypes, personType, type GroupTotals, type PayGroup } from "@/lib/payrollGroups";
 import {
   currentPeriod,
   ENTRY_STATUS,
@@ -52,6 +53,7 @@ import {
   loadPayRates,
   rateKey,
   type PayEstimate,
+  type PersonSummary,
   fmtDuration,
   fmtElapsed,
   fmtHours,
@@ -92,6 +94,7 @@ const Payroll = () => {
   const openQ = useQuery({ queryKey: ["tc", "open-all", user?.orgId ?? ""], enabled: isAdmin, queryFn: () => loadOpenEntries() });
   const teamQ = useQuery({ queryKey: ["tc", "team", user?.orgId ?? ""], enabled: isAdmin, staleTime: 120_000, queryFn: loadTeam });
   const ratesQ = useQuery({ queryKey: ["tc", "rates", user?.orgId ?? ""], enabled: isAdmin, staleTime: 60_000, queryFn: loadPayRates });
+  const typesQ = useQuery({ queryKey: ["wf", "pay-types", user?.orgId ?? ""], enabled: isAdmin, staleTime: 60_000, queryFn: loadWorkerTypes });
 
   const now = useNow(1000, (openQ.data?.length ?? 0) > 0);
   const teamName = useMemo(() => new Map((teamQ.data ?? []).map((m) => [m.id, m.name])), [teamQ.data]);
@@ -108,6 +111,9 @@ const Payroll = () => {
     return m;
   }, [people, period, ratesQ.data]);
   const grossTotal = [...pay.values()].reduce((s, e) => s + e.grossCents, 0);
+  const typeOf = useMemo(() => (p: Pick<PersonSummary, "profileId" | "name">) => personType(typesQ.data, p), [typesQ.data]);
+  const groups = useMemo(() => groupPeople(people, typeOf, pay), [people, typeOf, pay]);
+  const groupOf = (g: PayGroup) => groups.find((x) => x.group === g);
   const missingRate = people.filter((p) => p.approvedMin > 0 && (pay.get(p.key)?.unpricedMin ?? 0) > 0).map((p) => p.name);
   const pending = entries.filter((e) => e.status === "pending");
   const openInPeriod = entries.filter((e) => e.status === "open");
@@ -154,6 +160,7 @@ const Payroll = () => {
       return n;
     });
 
+  const colCount = (period.days > 7 ? 8 : 6) + (showPay ? 1 : 0);
   const selectedIds = [...selected].filter((id) => entries.some((e) => e.id === id && e.status !== "open"));
   const shift = (dir: number) => {
     setSelected(new Set());
@@ -161,7 +168,7 @@ const Payroll = () => {
   };
 
   const doPdf = () => {
-    downloadPayrollPdf({ period, people, orgName: user?.orgName ?? "", preparedBy: user?.name ?? "", siteName, pay: showPay ? pay : undefined });
+    downloadPayrollPdf({ period, people, orgName: user?.orgName ?? "", preparedBy: user?.name ?? "", siteName, pay: showPay ? pay : undefined, typeOf });
     setExportWarn(false);
   };
 
@@ -189,7 +196,7 @@ const Payroll = () => {
               <Plus />
               Add entry
             </Button>
-            <Button variant="outline" onClick={() => downloadPayrollCsv(period, people, siteName, showPay ? pay : undefined)} disabled={entries.length === 0}>
+            <Button variant="outline" onClick={() => downloadPayrollCsv(period, people, siteName, showPay ? pay : undefined, typeOf)} disabled={entries.length === 0}>
               <Sheet />
               CSV
             </Button>
@@ -241,8 +248,15 @@ const Payroll = () => {
       </div>
 
       {/* Metrics */}
-      <div className={cn("mb-5 grid grid-cols-2 gap-3", showPay ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
-        {showPay && <Metric label="Est. gross pay" value={fmtCents(grossTotal)} dot={THEME.success} sub="Approved hours × rate, before taxes" />}
+      {showPay && (
+        <GrossSplit
+          total={grossTotal}
+          direct={groupOf("direct")}
+          agency={groupOf("agency")}
+        />
+      )}
+
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Metric label="Approved hours" value={fmtHours(totals.approved)} dot={THEME.success} />
         <Metric label="Awaiting approval" value={fmtHours(totals.pending)} dot={THEME.warning} sub={`${pending.length} ${pending.length === 1 ? "entry" : "entries"}`} />
         <Metric label="Overtime (approved)" value={fmtHours(totals.overtime)} dot={THEME.warning} sub="Over 40 hrs / week" />
@@ -346,7 +360,10 @@ const Payroll = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {people.map((p) => {
+                {groups.map((g) => (
+                  <Fragment key={g.group}>
+                    <GroupHeader g={g} colSpan={colCount} showPay={showPay} />
+                {g.people.map((p) => {
                   const open = expanded.has(p.key);
                   const reviewable = p.entries.filter((e) => e.status !== "open").map((e) => e.id);
                   const allSel = reviewable.length > 0 && reviewable.every((id) => selected.has(id));
@@ -377,6 +394,9 @@ const Payroll = () => {
                                 {p.pendingMin > 0 && <span className="font-mono text-xs text-status-follow">· {fmtHours(p.pendingMin)} pending</span>}
                                 {showPay && est && <span className="font-mono text-xs text-status-clear">· {fmtCents(est.grossCents)}</span>}
                               </div>
+                              {g.group === "agency" && (
+                                <div className="mt-0.5 text-xs text-ink-3">{typeOf(p).agency ? `via ${typeOf(p).agency}` : "Agency placed"}</div>
+                              )}
                               {p.openCount > 0 && (
                                 <Pill tone="green" className="mt-1">
                                   Clocked in
@@ -413,7 +433,7 @@ const Payroll = () => {
                       </tr>
                       {open && (
                         <tr>
-                          <td colSpan={(period.days > 7 ? 8 : 6) + (showPay ? 1 : 0)} className="bg-canvas/40 p-2 sm:p-3">
+                          <td colSpan={colCount} className="bg-canvas/40 p-2 sm:p-3">
                             <ul className="space-y-1.5">
                               {p.entries.map((e) => (
                                 <EntryRow
@@ -438,6 +458,8 @@ const Payroll = () => {
                     </Fragment>
                   );
                 })}
+                  </Fragment>
+                ))}
               </tbody>
             </table>
           </div>
@@ -473,6 +495,72 @@ const Payroll = () => {
     </>
   );
 };
+
+const GrossSplit = ({ total, direct, agency }: { total: number; direct?: GroupTotals; agency?: GroupTotals }) => {
+  const cells: { key: string; label: string; cents: number; sub: string; color: string; share: number }[] = [
+    {
+      key: "direct",
+      label: GROUP_LABEL.direct,
+      cents: direct?.grossCents ?? 0,
+      sub: `${direct?.people.length ?? 0} ${direct?.people.length === 1 ? "employee" : "employees"} · ${fmtHours(direct?.approvedMin ?? 0)} hrs`,
+      color: THEME.primary,
+      share: total > 0 ? (direct?.grossCents ?? 0) / total : 0,
+    },
+    {
+      key: "agency",
+      label: GROUP_LABEL.agency,
+      cents: agency?.grossCents ?? 0,
+      sub: `${agency?.people.length ?? 0} ${agency?.people.length === 1 ? "worker" : "workers"} · ${fmtHours(agency?.approvedMin ?? 0)} hrs`,
+      color: THEME.warning,
+      share: total > 0 ? (agency?.grossCents ?? 0) / total : 0,
+    },
+  ];
+  return (
+    <section aria-label="Estimated gross pay" className="mb-3 rounded-xl border border-line bg-surface p-4 shadow-card sm:p-5">
+      <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end sm:gap-6">
+        {cells.map((c) => (
+          <div key={c.key} className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} aria-hidden />
+              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-2">{c.label} · gross</span>
+            </div>
+            <div className="mt-2 font-display text-3xl font-extrabold tabular-nums text-ink sm:text-4xl">{fmtCents(c.cents)}</div>
+            <div className="mt-1 text-xs text-ink-3">{c.sub}</div>
+          </div>
+        ))}
+        <div className="border-t border-line pt-3 sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0 sm:text-right">
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-2">Combined</div>
+          <div className="mt-1 font-mono text-xl font-semibold tabular-nums text-status-clear">{fmtCents(total)}</div>
+          <div className="mt-0.5 text-xs text-ink-3">Approved hours × rate, before taxes</div>
+        </div>
+      </div>
+      <div className="mt-4 flex h-1.5 overflow-hidden rounded-full bg-rail" aria-hidden>
+        {cells.map((c) => (
+          <div key={c.key} className="h-full transition-[width] duration-700 ease-out" style={{ width: `${c.share * 100}%`, backgroundColor: c.color }} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const GroupHeader = ({ g, colSpan, showPay }: { g: GroupTotals; colSpan: number; showPay: boolean }) => (
+  <tr className="bg-rail/60">
+    <td colSpan={colSpan} className="px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: g.group === "direct" ? THEME.primary : THEME.warning }} aria-hidden />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink">{GROUP_LABEL[g.group]}</span>
+          <span className="text-xs text-ink-3">{g.people.length}</span>
+        </div>
+        <div className="flex items-center gap-4 font-mono text-xs tabular-nums text-ink-2">
+          <span>{fmtHours(g.approvedMin)} hrs approved</span>
+          {g.overMin > 0 && <span className="text-link">{fmtHours(g.overMin)} OT</span>}
+          {showPay && <span className="font-semibold text-status-clear">{fmtCents(g.grossCents)}</span>}
+        </div>
+      </div>
+    </td>
+  </tr>
+);
 
 const Metric = ({ label, value, dot, sub, pulse }: { label: string; value: string; dot: string; sub?: string; pulse?: boolean }) => (
   <div className="rounded-xl border border-line bg-surface shadow-card p-4 sm:p-5">
