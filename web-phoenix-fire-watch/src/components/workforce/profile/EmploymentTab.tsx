@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DoorOpen, Pencil, Plus, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -111,6 +111,7 @@ const EmploymentDialog = ({
 
 const PayDialog = ({ open, onOpenChange, worker }: { open: boolean; onOpenChange: (v: boolean) => void; worker: Worker }) => {
   const wf = useWorkforce();
+  const queryClient = useQueryClient();
   const [rate, setRate] = useState<string>("");
   const [eff, setEff] = useState<string>(todayKey());
   const [note, setNote] = useState<string>("");
@@ -127,6 +128,7 @@ const PayDialog = ({ open, onOpenChange, worker }: { open: boolean; onOpenChange
     mutationFn: () => api.addPay(worker.id, toNum(rate) ?? 0, eff, note.trim()),
     onSuccess: () => {
       wf.invalidate("pay");
+      void queryClient.invalidateQueries({ queryKey: ["tc"] });
       toast.success("Pay rate added — history preserved");
       onOpenChange(false);
     },
@@ -274,10 +276,64 @@ const AccessReviewDialog = ({
 /** Exported so the placement end flow can reuse the same access-review dialog. */
 export { AccessReviewDialog };
 
+/** Effective-dated hourly pay history for any worker (direct or agency). */
+export const PayRatesCard = ({ worker }: { worker: Worker }) => {
+  const wf = useWorkforce();
+  const [payOpen, setPayOpen] = useState<boolean>(false);
+  const payQ = useQuery({ queryKey: ["wf", "pay", worker.id], enabled: wf.perms.pay, queryFn: () => api.listPay(worker.id) });
+  const pay = payQ.data ?? [];
+  const today = todayKey();
+  const current = pay.filter((p) => p.effective_date <= today).sort((a, b) => b.effective_date.localeCompare(a.effective_date))[0];
+  return (
+    <>
+      <SectionCard
+        title="Pay-rate history"
+        subtitle={worker.source === "agency" ? "What this worker earns per hour — used for gross pay on the Payroll tab. Separate from what the agency bills you." : "Used for gross pay on the Payroll tab. Earlier rates are kept as history."}
+        action={
+          wf.perms.pay ? (
+            <Button size="sm" onClick={() => setPayOpen(true)}>
+              <Plus />
+              Add rate
+            </Button>
+          ) : undefined
+        }
+      >
+        {!wf.perms.pay ? (
+          <Restricted what="Employee pay information" />
+        ) : payQ.isLoading ? (
+          <Loading />
+        ) : payQ.error ? (
+          <ErrorBlock message={(payQ.error as Error).message} onRetry={() => void payQ.refetch()} />
+        ) : pay.length === 0 ? (
+          <Empty title="No pay rates recorded" />
+        ) : (
+          <ul className="space-y-2">
+            {pay.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-raised px-4 py-3">
+                <div>
+                  <span className="font-display text-lg font-bold tabular-nums text-ink">{money(Number(p.hourly_rate))}</span>
+                  <span className="text-sm text-ink-3"> / hr</span>
+                  {p.id === current?.id && <Pill tone="green" className="ml-2">Current</Pill>}
+                  {p.effective_date > today && <Pill tone="blue" className="ml-2">Scheduled</Pill>}
+                  {p.note && <div className="text-xs text-ink-2">{p.note}</div>}
+                </div>
+                <div className="text-right text-xs text-ink-3">
+                  Effective {fmtDate(p.effective_date)}
+                  <div>Added by {wf.memberName(p.created_by)}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+      <PayDialog open={payOpen} onOpenChange={setPayOpen} worker={worker} />
+    </>
+  );
+};
+
 export const EmploymentTab = ({ worker }: { worker: Worker }) => {
   const wf = useWorkforce();
   const [editOpen, setEditOpen] = useState<boolean>(false);
-  const [payOpen, setPayOpen] = useState<boolean>(false);
   const [offOpen, setOffOpen] = useState<boolean>(false);
   const [reviewOpen, setReviewOpen] = useState<boolean>(false);
 
@@ -346,46 +402,7 @@ export const EmploymentTab = ({ worker }: { worker: Worker }) => {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Pay-rate history"
-        subtitle="Employee wages only — kept separate from agency bill rates and client billing. Not connected to payroll or invoicing."
-        action={
-          wf.perms.pay ? (
-            <Button size="sm" onClick={() => setPayOpen(true)}>
-              <Plus />
-              Add rate
-            </Button>
-          ) : undefined
-        }
-      >
-        {!wf.perms.pay ? (
-          <Restricted what="Employee pay information" />
-        ) : payQ.isLoading ? (
-          <Loading />
-        ) : payQ.error ? (
-          <ErrorBlock message={(payQ.error as Error).message} onRetry={() => void payQ.refetch()} />
-        ) : pay.length === 0 ? (
-          <Empty title="No pay rates recorded" />
-        ) : (
-          <ul className="space-y-2">
-            {pay.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-raised px-4 py-3">
-                <div>
-                  <span className="font-display text-lg font-bold tabular-nums text-ink">{money(Number(p.hourly_rate))}</span>
-                  <span className="text-sm text-ink-3"> / hr</span>
-                  {p.id === current?.id && <Pill tone="green" className="ml-2">Current</Pill>}
-                  {p.effective_date > today && <Pill tone="blue" className="ml-2">Scheduled</Pill>}
-                  {p.note && <div className="text-xs text-ink-2">{p.note}</div>}
-                </div>
-                <div className="text-right text-xs text-ink-3">
-                  Effective {fmtDate(p.effective_date)}
-                  <div>Added by {wf.memberName(p.created_by)}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SectionCard>
+      <PayRatesCard worker={worker} />
 
       <ChecklistPanel kind="direct" workerId={worker.id} />
 
@@ -446,7 +463,6 @@ export const EmploymentTab = ({ worker }: { worker: Worker }) => {
       )}
 
       <EmploymentDialog open={editOpen} onOpenChange={setEditOpen} worker={worker} emp={emp} />
-      <PayDialog open={payOpen} onOpenChange={setPayOpen} worker={worker} />
       <OffboardDialog open={offOpen} onOpenChange={setOffOpen} worker={worker} emp={emp} />
       <AccessReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} onSave={(n) => review.mutate(n)} saving={review.isPending} />
     </div>

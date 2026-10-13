@@ -290,15 +290,26 @@ export interface RateRow {
   effective: string;
 }
 
-/** Hourly rate history per Team login, newest first. Empty when the caller can't see wages. */
+/** Key used to look up a person's pay rates: their login id, or their name when they have no login. */
+export const rateKey = (profileId: string | null, name: string): string =>
+  profileId ?? `name:${name.trim().replace(/\s+/g, " ").toLowerCase()}`;
+
+/**
+ * Hourly rate history per person (see `rateKey`), newest first. Empty when the caller can't see wages.
+ * Employees with a login are keyed by profile id; everyone else by name, matching no-login hour entries.
+ */
 export async function loadPayRates(): Promise<Map<string, RateRow[]>> {
   const { data, error } = await supabase.rpc("tc_pay_rates");
   if (error) throw wfError(error);
   const map = new Map<string, RateRow[]>();
   for (const r of data ?? []) {
-    const list = map.get(r.profile_id) ?? [];
-    list.push({ rate: Number(r.hourly_rate), effective: r.effective_date });
-    map.set(r.profile_id, list);
+    const keys = [rateKey(null, r.worker_name ?? "")];
+    if (r.profile_id) keys.push(r.profile_id);
+    for (const k of keys) {
+      const list = map.get(k) ?? [];
+      list.push({ rate: Number(r.hourly_rate), effective: r.effective_date });
+      map.set(k, list);
+    }
   }
   for (const list of map.values()) list.sort((a, b) => b.effective.localeCompare(a.effective));
   return map;

@@ -53,7 +53,7 @@ export const WorkerSummaryDialog = ({ open, onOpenChange, worker }: { open: bool
     { id: "placements", label: "Placements", show: isAgency },
     { id: "history", label: "Work history", show: true },
     { id: "equipment", label: "Equipment", show: true },
-    { id: "pay", label: "Employee pay rates", hint: "Sensitive", show: !isAgency && wf.perms.pay, sensitive: true },
+    { id: "pay", label: "Employee pay rates", hint: "Sensitive", show: wf.perms.pay, sensitive: true },
     { id: "costs", label: "Agency bill rates & estimated cost", hint: "Sensitive", show: isAgency && wf.perms.finance, sensitive: true },
     { id: "personnel", label: "Personnel records", hint: "Sensitive", show: wf.perms.personnel, sensitive: true },
   ];
@@ -157,7 +157,7 @@ export const WorkerSummaryDialog = ({ open, onOpenChange, worker }: { open: bool
           emptyText: "No equipment issued.",
         });
       }
-      if (sel.pay && !isAgency && wf.perms.pay) {
+      if (sel.pay && wf.perms.pay) {
         included.push("pay");
         const pay = await api.listPay(worker.id);
         sections.push({ title: "Employee pay rates (confidential)", table: { head: ["Effective", "Hourly rate", "Note"], body: pay.map((p) => [fmtDate(p.effective_date), money(Number(p.hourly_rate)), p.note]) }, emptyText: "No pay rates." });

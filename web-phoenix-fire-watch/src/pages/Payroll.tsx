@@ -50,6 +50,7 @@ import {
   estimatePay,
   fmtCents,
   loadPayRates,
+  rateKey,
   type PayEstimate,
   fmtDuration,
   fmtElapsed,
@@ -103,7 +104,7 @@ const Payroll = () => {
   const pay = useMemo(() => {
     const m = new Map<string, PayEstimate>();
     if (!ratesQ.data) return m;
-    for (const p of people) m.set(p.key, estimatePay(p, period, p.profileId ? ratesQ.data.get(p.profileId) : undefined));
+    for (const p of people) m.set(p.key, estimatePay(p, period, ratesQ.data.get(rateKey(p.profileId, p.name))));
     return m;
   }, [people, period, ratesQ.data]);
   const grossTotal = [...pay.values()].reduce((s, e) => s + e.grossCents, 0);
@@ -254,7 +255,7 @@ const Payroll = () => {
           <span>
             No pay rate on file for {missingRate.join(", ")} — those hours aren't in the gross pay total.{" "}
             <Link to="/team" className="font-medium text-link underline-offset-2 hover:underline">
-              Set rates on the Team page
+              Set rates on the Team page or their Workforce profile
             </Link>
           </span>
         </div>

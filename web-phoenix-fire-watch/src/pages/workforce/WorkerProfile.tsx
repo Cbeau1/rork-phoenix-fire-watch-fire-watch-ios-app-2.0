@@ -12,7 +12,7 @@ import { DocumentsPanel } from "@/components/workforce/DocumentsPanel";
 import { ConfirmDialog, MetaPill, Pill } from "@/components/workforce/kit";
 import { PlacementsTab } from "@/components/workforce/placements";
 import { ActivityTab } from "@/components/workforce/profile/ActivityTab";
-import { EmploymentTab } from "@/components/workforce/profile/EmploymentTab";
+import { EmploymentTab, PayRatesCard } from "@/components/workforce/profile/EmploymentTab";
 import { EquipmentTab } from "@/components/workforce/profile/EquipmentTab";
 import { OverviewTab } from "@/components/workforce/profile/OverviewTab";
 import { PersonnelTab } from "@/components/workforce/profile/PersonnelTab";
@@ -214,7 +214,14 @@ const WorkerProfile = () => {
         {tab === "documents" && (
           <DocumentsPanel ownerType="worker" ownerId={worker.id} source={worker.source} filter={(d) => d.worker_id === worker.id && d.owner_type === "worker"} />
         )}
-        {tab === "employment" && (isAgency ? <PlacementsTab workerId={worker.id} /> : <EmploymentTab worker={worker} />)}
+        {tab === "employment" && (isAgency ? (
+            <div className="space-y-5">
+              <PayRatesCard worker={worker} />
+              <PlacementsTab workerId={worker.id} />
+            </div>
+          ) : (
+            <EmploymentTab worker={worker} />
+          ))}
         {tab === "history" && <WorkHistoryTab worker={worker} />}
         {tab === "personnel" && <PersonnelTab worker={worker} />}
         {tab === "equipment" && <EquipmentTab worker={worker} />}

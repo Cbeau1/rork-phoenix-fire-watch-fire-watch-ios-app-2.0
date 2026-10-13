@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
   Check,
+  DollarSign,
   KeyRound,
   Star,
   Loader2,
@@ -48,7 +49,7 @@ import { initials, timeAgo } from "@/lib/format";
 import { linkTeamMember, loadTeamLinks, type TeamLink } from "@/lib/workforce/api";
 import { fullName as workerName, WORKER_STATUS, type Worker } from "@/lib/workforce/constants";
 import { callFunction, friendlyError, supabase } from "@/lib/supabase";
-import { loadPayRates, rateOn, type RateRow } from "@/lib/timeclock";
+import { loadPayRates, rateKey, rateOn, type RateRow } from "@/lib/timeclock";
 import { ROLE_LABEL, type Member, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
@@ -355,7 +356,12 @@ const Team = () => {
             </div>
             <ul className="space-y-2.5">
               {noLogin.map((w) => (
-                <NoLoginRow key={w.id} worker={w} onCreate={() => setLoginFor(w)} />
+                <NoLoginRow
+                  key={w.id}
+                  worker={w}
+                  rate={rateOn(rates.get(rateKey(null, workerName(w))), new Date().toLocaleDateString("en-CA"))}
+                  onCreate={() => setLoginFor(w)}
+                />
               ))}
             </ul>
           </div>
@@ -498,7 +504,7 @@ const Team = () => {
   );
 };
 
-const NoLoginRow = ({ worker, onCreate }: { worker: Worker; onCreate: () => void }) => {
+const NoLoginRow = ({ worker, rate, onCreate }: { worker: Worker; rate: number | null; onCreate: () => void }) => {
   const name = workerName(worker);
   const status = WORKER_STATUS[worker.status]?.label ?? worker.status;
   return (
@@ -515,6 +521,11 @@ const NoLoginRow = ({ worker, onCreate }: { worker: Worker; onCreate: () => void
           <span className="rounded-full bg-status-follow/10 px-2 py-0.5 text-[11px] font-medium text-status-follow ring-1 ring-inset ring-status-follow/30">
             No login
           </span>
+          {rate !== null && (
+            <span className="rounded-full bg-status-clear/10 px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums text-status-clear ring-1 ring-inset ring-status-clear/30">
+              ${rate.toFixed(2)}/hr
+            </span>
+          )}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
           <span className="truncate">{worker.email || `${worker.source === "agency" ? "Agency" : "Direct"} · ${status}`}</span>
@@ -527,6 +538,12 @@ const NoLoginRow = ({ worker, onCreate }: { worker: Worker; onCreate: () => void
           </Link>
         </div>
       </div>
+      <Button asChild variant="outline" size="sm" className="shrink-0">
+        <Link to={`/workforce/workers/${worker.id}?tab=employment`} aria-label={`Pay rate for ${name}`}>
+          <DollarSign />
+          <span className="hidden sm:inline">{rate === null ? "Set pay" : "Pay"}</span>
+        </Link>
+      </Button>
       <Button size="sm" onClick={onCreate} aria-label={`Create login for ${name}`} className="shrink-0">
         <KeyRound />
         <span className="hidden sm:inline">Create login</span>

@@ -3479,6 +3479,7 @@ export type Database = {
           effective_date: string
           hourly_rate: number
           profile_id: string
+          worker_name: string
         }[]
       }
       tc_review: {
