@@ -1,9 +1,15 @@
-import { useMutation } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, KeyRound, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { FieldError, FieldHint, FieldLabel } from "@/components/fw/primitives";
+import { createTeamLogin, generatePassword, RolePicker, type LoginCredentials } from "@/components/fw/TeamLogin";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { friendlyError } from "@/lib/supabase";
+import type { Role } from "@/lib/types";
 import * as api from "@/lib/workforce/api";
 import {
   AGENCY_STATUSES,
@@ -14,9 +20,10 @@ import {
   type Worker,
   type WorkerSource,
 } from "@/lib/workforce/constants";
+import { useAuth } from "@/state/AuthProvider";
 import { useWorkforce } from "@/state/WorkforceProvider";
 
-import { AreaField, FormDialog, isDate, SelectField, TextField } from "./kit";
+import { AreaField, CheckField, FormDialog, isDate, SelectField, TextField } from "./kit";
 
 interface Draft {
   source: WorkerSource;
@@ -66,6 +73,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Dupe = { id: string; worker_code: string; full_name: string; source: string; reason: string };
 
+/** Navigation state handed to the new worker's profile so it can show the one-time login details. */
+export type NewLoginState = { newLogin?: LoginCredentials; loginError?: string };
+
 /** Create or edit a worker profile (direct employee or temporary agency worker). */
 export const WorkerFormDialog = ({
   open,
@@ -79,7 +89,12 @@ export const WorkerFormDialog = ({
   defaultSource?: WorkerSource;
 }) => {
   const wf = useWorkforce();
+  const { isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [addToTeam, setAddToTeam] = useState<boolean>(true);
+  const [password, setPassword] = useState<string>(generatePassword);
+  const [role, setRole] = useState<Role>("officer");
   const [d, setD] = useState<Draft>(() => toDraft(worker, defaultSource));
   const [initial, setInitial] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -92,6 +107,9 @@ export const WorkerFormDialog = ({
     setInitial(JSON.stringify(next));
     setErrors({});
     setDupes(null);
+    setAddToTeam(true);
+    setPassword(generatePassword());
+    setRole("officer");
   }, [open, worker, defaultSource]);
 
   const dirty = JSON.stringify(d) !== initial;
@@ -111,8 +129,12 @@ export const WorkerFormDialog = ({
     [wf.workers, worker],
   );
 
+  /** New direct employees can get a Team login (app account) in the same step. */
+  const canAddToTeam = !worker && isAdmin && d.source === "direct" && !d.profile_id;
+  const willAddToTeam = canAddToTeam && addToTeam;
+
   const save = useMutation({
-    mutationFn: async (): Promise<Worker> => {
+    mutationFn: async (): Promise<{ w: Worker; state: NewLoginState }> => {
       const row = {
         first_name: d.first_name.trim(),
         last_name: d.last_name.trim(),
@@ -137,14 +159,27 @@ export const WorkerFormDialog = ({
         profile_id: d.profile_id || null,
         staff_id: d.staff_id || null,
       };
-      if (worker) return api.updateWorker(worker.id, row);
-      return api.createWorker({ ...row, source: d.source, org_id: wf.orgId });
+      if (worker) return { w: await api.updateWorker(worker.id, row), state: {} };
+      const w = await api.createWorker({ ...row, source: d.source, org_id: wf.orgId });
+      if (!willAddToTeam) return { w, state: {} };
+      // Profile first: the new login is matched to it by email, so no duplicate profile is created.
+      const credentials: LoginCredentials = { name: `${row.first_name} ${row.last_name}`, email: row.email, password };
+      try {
+        await createTeamLogin({ fullName: credentials.name, email: credentials.email, password, role });
+        return { w, state: { newLogin: credentials } };
+      } catch (err) {
+        return { w, state: { loginError: friendlyError(err) } };
+      }
     },
-    onSuccess: (w) => {
-      wf.invalidate("workers", "checklist");
-      toast.success(worker ? "Profile saved" : `Profile created — ${w.worker_code}`);
+    onSuccess: ({ w, state }) => {
+      wf.invalidate("workers", "checklist", "members");
+      void queryClient.invalidateQueries({ queryKey: ["members"] });
+      if (worker) toast.success("Profile saved");
+      else if (state.newLogin) toast.success(`Profile created — ${w.worker_code}`, { description: "Also added to Team with an app login." });
+      else if (state.loginError) toast.error(`Profile created — ${w.worker_code}, but the Team login failed`, { description: state.loginError });
+      else toast.success(`Profile created — ${w.worker_code}`);
       onOpenChange(false);
-      if (!worker) navigate(`/workforce/workers/${w.id}`);
+      if (!worker) navigate(`/workforce/workers/${w.id}`, { state });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't save the profile."),
   });
@@ -156,6 +191,12 @@ export const WorkerFormDialog = ({
     if (d.source === "agency" && !d.agency_id) e.agency_id = "Choose the staffing agency.";
     if (!d.status) e.status = "Choose a status.";
     if (d.email.trim() && !EMAIL_RE.test(d.email.trim())) e.email = "Enter a valid email address.";
+    if (willAddToTeam) {
+      const email = d.email.trim().toLowerCase();
+      if (!email) e.email = "Email is required for a Team login — it's their username.";
+      else if (wf.members.some((m) => m.email.toLowerCase() === email)) e.email = "Someone on your Team already uses this email.";
+      if (password.length < 8) e.password = "Use at least 8 characters.";
+    }
     if (d.start_date && !isDate(d.start_date)) e.start_date = "Use a valid date.";
     setErrors(e);
     if (Object.keys(e).length > 0) return;
@@ -186,7 +227,7 @@ export const WorkerFormDialog = ({
       dirty={dirty}
       saving={save.isPending}
       onSubmit={() => void submit()}
-      submitLabel={dupes && dupes.length > 0 ? "Save anyway" : worker ? "Save changes" : "Create profile"}
+      submitLabel={dupes && dupes.length > 0 ? "Save anyway" : worker ? "Save changes" : willAddToTeam ? "Create profile & login" : "Create profile"}
       wide
     >
       {!worker && (
@@ -214,7 +255,17 @@ export const WorkerFormDialog = ({
         <TextField label="First name" required value={d.first_name} onChange={(v) => set("first_name", v)} error={errors.first_name} maxLength={80} />
         <TextField label="Last name" required value={d.last_name} onChange={(v) => set("last_name", v)} error={errors.last_name} maxLength={80} />
         <TextField label="Phone" type="tel" inputMode="tel" value={d.phone} onChange={(v) => set("phone", v)} maxLength={40} />
-        <TextField label="Email" type="email" inputMode="email" value={d.email} onChange={(v) => set("email", v)} error={errors.email} maxLength={200} />
+        <TextField
+          label="Email"
+          type="email"
+          inputMode="email"
+          required={willAddToTeam}
+          value={d.email}
+          onChange={(v) => set("email", v)}
+          error={errors.email}
+          hint={willAddToTeam ? "Also their Team login username." : undefined}
+          maxLength={200}
+        />
         <TextField label="Position" value={d.position} onChange={(v) => set("position", v)} placeholder="e.g. Fire Watch Officer" maxLength={120} />
         <TextField
           label={d.source === "agency" ? "First assignment date" : "Hire date"}
@@ -241,6 +292,48 @@ export const WorkerFormDialog = ({
         />
         <TextField label="Service areas" value={d.service_areas} onChange={(v) => set("service_areas", v)} placeholder="Comma separated, e.g. Downtown, North" hint="Separate areas with commas." />
       </div>
+
+      {canAddToTeam && (
+        <div className="space-y-4 rounded-xl border border-line bg-raised/50 p-4">
+          <CheckField
+            label="Also add to Team"
+            hint="Creates their app login so they appear on the Team page and can clock in and log patrols."
+            checked={addToTeam}
+            onChange={setAddToTeam}
+          />
+          {addToTeam && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <FieldLabel htmlFor="wf-team-password" required>
+                  Temporary password
+                </FieldLabel>
+                <div className="flex gap-2">
+                  <Input
+                    id="wf-team-password"
+                    value={password}
+                    aria-invalid={!!errors.password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="font-mono"
+                    autoComplete="off"
+                  />
+                  <Button type="button" variant="outline" onClick={() => setPassword(generatePassword())} aria-label="Generate a new password">
+                    <KeyRound />
+                    <span className="hidden sm:inline">Generate</span>
+                  </Button>
+                </div>
+                {errors.password ? <FieldError message={errors.password} /> : <FieldHint>Shown once after saving so you can share it.</FieldHint>}
+              </div>
+              <div>
+                <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-ink">
+                  <Users className="h-4 w-4 text-ink-3" />
+                  Team role
+                </div>
+                <RolePicker value={role} onChange={setRole} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {d.source === "agency" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -281,7 +374,7 @@ export const WorkerFormDialog = ({
           options={wf.members
             .filter((m) => !linkedProfiles.has(m.id))
             .map((m) => ({ value: m.id, label: `${m.full_name} · ${m.email}${m.active ? "" : " (inactive)"}` }))}
-          hint="Accounts already linked to another profile are hidden."
+          hint={canAddToTeam && addToTeam ? "Pick an existing login instead of creating a new one." : "Accounts already linked to another profile are hidden."}
         />
         <SelectField
           label="Linked schedule name"

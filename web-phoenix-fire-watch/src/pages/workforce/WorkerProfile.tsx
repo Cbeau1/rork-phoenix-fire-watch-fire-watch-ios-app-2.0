@@ -1,10 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, Camera, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Camera, FileDown, Loader2, Pencil, Trash2, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/fw/primitives";
+import { LoginReadyDialog, type LoginCredentials } from "@/components/fw/TeamLogin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DocumentsPanel } from "@/components/workforce/DocumentsPanel";
@@ -18,19 +19,25 @@ import { PersonnelTab } from "@/components/workforce/profile/PersonnelTab";
 import { WorkHistoryTab } from "@/components/workforce/profile/WorkHistoryTab";
 import { WorkerSummaryDialog } from "@/components/workforce/WorkerSummaryDialog";
 import { useWorkerPhotos, WorkerAvatar } from "@/components/workforce/WorkerAvatar";
-import { WorkerFormDialog } from "@/components/workforce/WorkerFormDialog";
+import { AddToTeamDialog } from "@/components/workforce/AddToTeamDialog";
+import { WorkerFormDialog, type NewLoginState } from "@/components/workforce/WorkerFormDialog";
 import * as api from "@/lib/workforce/api";
 import { fullName, SOURCE_LABEL, WORKER_STATUS, type WorkerSource } from "@/lib/workforce/constants";
 import { hasOpenPlacement } from "@/lib/workforce/derive";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/NotFound";
+import { useAuth } from "@/state/AuthProvider";
 import { useWorkforce } from "@/state/WorkforceProvider";
 
 const WorkerProfile = () => {
   const { id = "" } = useParams();
   const wf = useWorkforce();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAdmin } = useAuth();
   const [params, setParams] = useSearchParams();
+  const [teamOpen, setTeamOpen] = useState<boolean>(false);
+  const [credentials, setCredentials] = useState<LoginCredentials | null>(null);
   const worker = wf.workerById.get(id);
   const [editOpen, setEditOpen] = useState<boolean>(false);
   const [archiveOpen, setArchiveOpen] = useState<boolean>(false);
@@ -39,6 +46,14 @@ const WorkerProfile = () => {
   const [summaryOpen, setSummaryOpen] = useState<boolean>(false);
   const photoRef = useRef<HTMLInputElement>(null);
   const photos = useWorkerPhotos(worker ? [worker] : []);
+
+  // One-time login details from "Add worker" (also added to Team); cleared from history so they don't reappear.
+  useEffect(() => {
+    const st = location.state as NewLoginState | null;
+    if (!st?.newLogin) return;
+    setCredentials(st.newLogin);
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (worker) void api.logEvent("view", "wf_workers", "Viewed worker profile", { entityId: worker.id, workerId: worker.id }).catch(() => undefined);
@@ -133,10 +148,25 @@ const WorkerProfile = () => {
             <MetaPill meta={WORKER_STATUS} value={worker.status} />
             {worker.archived_at && <Pill tone="slate">Archived</Pill>}
             {isAgency && worker.agency_id && <span className="text-sm">{wf.agencyById.get(worker.agency_id)?.name}</span>}
+            {worker.profile_id && (
+              <Link
+                to="/team"
+                className="focus-ring inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-ink-2 ring-1 ring-inset ring-line hover:text-link hover:ring-link/40"
+              >
+                <Users className="h-3 w-3" />
+                On Team
+              </Link>
+            )}
           </span>
         }
         actions={
           <>
+            {!isAgency && !worker.profile_id && !worker.archived_at && isAdmin && (
+              <Button onClick={() => setTeamOpen(true)}>
+                <UserPlus />
+                Add to Team
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setSummaryOpen(true)}>
               <FileDown />
               Summary PDF
@@ -192,6 +222,16 @@ const WorkerProfile = () => {
       </div>
 
       <WorkerFormDialog open={editOpen} onOpenChange={setEditOpen} worker={worker} />
+      <AddToTeamDialog
+        worker={worker}
+        open={teamOpen}
+        onOpenChange={setTeamOpen}
+        onCreated={(c) => {
+          setCredentials(c);
+          toast.success(`${c.name} added to Team`);
+        }}
+      />
+      <LoginReadyDialog credentials={credentials} onClose={() => setCredentials(null)} />
       <WorkerSummaryDialog open={summaryOpen} onOpenChange={setSummaryOpen} worker={worker} />
       <ConfirmDialog
         open={archiveOpen}

@@ -20,6 +20,7 @@ import { Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { EditMemberDialog } from "@/components/fw/EditMemberDialog";
+import { createTeamLogin, generatePassword, LoginReadyDialog, RolePicker } from "@/components/fw/TeamLogin";
 import { Card, CardHeader, EmptyState, FieldError, FieldHint, FieldLabel, PageHeader } from "@/components/fw/primitives";
 import {
   AlertDialog,
@@ -51,34 +52,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const generatePassword = (): string => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-  const bytes = new Uint32Array(10);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
-};
-
-const RolePicker = ({ value, onChange }: { value: Role; onChange: (r: Role) => void }) => (
-  <div className="grid grid-cols-2 gap-2" role="radiogroup">
-    {(["officer", "admin"] as const).map((r) => (
-      <button
-        key={r}
-        type="button"
-        role="radio"
-        aria-checked={value === r}
-        onClick={() => onChange(r)}
-        className={cn(
-          "focus-ring rounded-lg border px-3 py-2.5 text-left transition-colors",
-          value === r ? "border-primary/60 bg-primary/10" : "border-line bg-raised hover:border-line-strong",
-        )}
-      >
-        <div className={cn("text-sm font-medium", value === r ? "text-link" : "text-ink")}>{ROLE_LABEL[r]}</div>
-        <div className="mt-0.5 text-xs text-ink-3">{r === "admin" ? "Manages team + everything" : "Logs patrols & notes"}</div>
-      </button>
-    ))}
-  </div>
-);
 
 const Team = () => {
   useDocumentTitle("Team");
@@ -162,7 +135,7 @@ const Team = () => {
 
   const createMutation = useMutation({
     mutationFn: (payload: { fullName: string; email: string; password: string; role: Role }) =>
-      callFunction<{ ok: boolean }>("manage-members", { action: "create", ...payload }),
+      createTeamLogin(payload),
     onSuccess: (_d, vars) => {
       void refresh();
       setCreated({ name: vars.fullName, email: vars.email, password: vars.password });
@@ -234,17 +207,6 @@ const Team = () => {
     setErrors(next);
     if (Object.keys(next).length) return;
     createMutation.mutate({ fullName: fullName.trim(), email: email.trim().toLowerCase(), password, role });
-  };
-
-  const copyCredentials = async () => {
-    if (!created) return;
-    const text = `Phoenix Fire Watch login\n${window.location.origin}\nEmail: ${created.email}\nPassword: ${created.password}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Login details copied");
-    } catch {
-      toast.error("Couldn't copy — select the text manually");
-    }
   };
 
   return (
@@ -415,32 +377,7 @@ const Team = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!created} onOpenChange={(o) => !o && setCreated(null)}>
-        <DialogContent className="border-line bg-surface text-ink sm:max-w-md sm:rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">Login ready</DialogTitle>
-            <DialogDescription className="text-ink-2">
-              Share these details with {created?.name}. The password won't be shown again.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 rounded-lg border border-line bg-raised p-4 font-mono text-sm">
-            <div>
-              <div className="font-sans text-xs uppercase tracking-[0.14em] text-ink-3">Email</div>
-              <div className="mt-1 select-all break-all text-ink">{created?.email}</div>
-            </div>
-            <div>
-              <div className="font-sans text-xs uppercase tracking-[0.14em] text-ink-3">Password</div>
-              <div className="mt-1 select-all text-link">{created?.password}</div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => void copyCredentials()}>
-              Copy details
-            </Button>
-            <Button onClick={() => setCreated(null)}>Done</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <LoginReadyDialog credentials={created} onClose={() => setCreated(null)} />
 
       <Dialog open={!!resetFor} onOpenChange={(o) => !o && setResetFor(null)}>
         <DialogContent className="border-line bg-surface text-ink sm:max-w-md sm:rounded-xl">
