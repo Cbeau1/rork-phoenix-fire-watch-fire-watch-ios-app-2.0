@@ -315,9 +315,12 @@ export async function loadPayRates(): Promise<Map<string, RateRow[]>> {
   return map;
 }
 
-/** Rate in effect on a given day (yyyy-MM-dd), or null if none was set yet. */
+/**
+ * Rate in effect on a given day (yyyy-MM-dd). Hours worked before the first rate's effective date use that
+ * first rate (it's the rate they were hired at, just entered late). Null only when no rate is on file.
+ */
 export const rateOn = (rates: RateRow[] | undefined, day: string): number | null =>
-  rates?.find((r) => r.effective <= day)?.rate ?? null;
+  rates?.find((r) => r.effective <= day)?.rate ?? rates?.[rates.length - 1]?.rate ?? null;
 
 export interface PayEstimate {
   /** Rate in effect at the end of the period (for display). */
