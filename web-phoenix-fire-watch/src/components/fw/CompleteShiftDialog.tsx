@@ -75,15 +75,16 @@ export const CompleteShiftDialog = ({ shift, staffName, propertyName, schedule, 
     setErrors(next);
     if (Object.keys(next).length) return;
 
-    const sameStart = startDate && toLocalInputValue(startDate) === toLocalInputValue(win.start);
-    const sameEnd = endDate && toLocalInputValue(endDate) === toLocalInputValue(win.end);
+    // Always send the on-screen times as absolute instants (except a real clock-in, which we keep).
+    // Falling back to the server's scheduled window resolves it in the org timezone, which can
+    // disagree with this device and wrongly reject a shift that just ended.
     schedule.completeShift.mutate(
       {
         shiftId: shift.id,
         profileId: needsLogin && profileId !== NO_LOGIN ? profileId : undefined,
         noLogin: needsLogin && profileId === NO_LOGIN,
-        clockIn: clockedIn || sameStart ? undefined : (startDate ?? undefined),
-        clockOut: !clockedIn && sameEnd ? undefined : (endDate ?? undefined),
+        clockIn: clockedIn ? undefined : (startDate ?? undefined),
+        clockOut: endDate ?? undefined,
         note,
       },
       {
