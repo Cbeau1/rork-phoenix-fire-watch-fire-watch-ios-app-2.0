@@ -1685,6 +1685,7 @@ export type Database = {
           personnel_record_id: string | null
           placement_id: string | null
           signed: boolean
+          time_entry_id: string | null
           title: string
           updated_at: string
           worker_id: string | null
@@ -1707,6 +1708,7 @@ export type Database = {
           personnel_record_id?: string | null
           placement_id?: string | null
           signed?: boolean
+          time_entry_id?: string | null
           title: string
           updated_at?: string
           worker_id?: string | null
@@ -1729,6 +1731,7 @@ export type Database = {
           personnel_record_id?: string | null
           placement_id?: string | null
           signed?: boolean
+          time_entry_id?: string | null
           title?: string
           updated_at?: string
           worker_id?: string | null
@@ -1781,6 +1784,13 @@ export type Database = {
             columns: ["placement_id"]
             isOneToOne: false
             referencedRelation: "wf_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wf_documents_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
             referencedColumns: ["id"]
           },
           {
@@ -3791,6 +3801,7 @@ export type Database = {
           p_path: string
           p_signed: boolean
           p_size: number
+          p_time_entry?: string
           p_title: string
         }
         Returns: Json

@@ -151,6 +151,7 @@ export const PERSONNEL_STATUS: Record<string, { label: string; tone: Tone }> = {
 };
 
 export const WORKER_DOC_CATEGORIES: Record<string, string> = {
+  time_ticket: "Daily time ticket",
   application_resume: "Application / resume",
   offer_agreement: "Offer letter / employment agreement",
   signed_policies: "Signed policies",

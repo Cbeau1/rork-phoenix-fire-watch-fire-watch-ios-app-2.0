@@ -293,6 +293,36 @@ export const checkFile = (file: File): string | null => {
   return null;
 };
 
+/**
+ * Prepares a phone photo for upload: re-encodes large or non-JPG/PNG images (e.g. HEIC where the
+ * browser can decode it) as a JPEG of at most 2400 px, so daily paperwork photos stay well under
+ * the 10 MB limit and remain sharp enough to read. Anything else is returned unchanged.
+ */
+export const prepareUpload = async (file: File): Promise<File> => {
+  const isImage = file.type.startsWith("image/") || /\.(heic|heif|webp)$/i.test(file.name);
+  const plain = /^image\/(jpeg|png)$/.test(file.type);
+  if (!isImage || (plain && file.size <= 3 * 1024 * 1024)) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    if (!blob) return file;
+    const base = file.name.replace(/\.[^.]+$/, "") || "photo";
+    return new File([blob], `${base}.jpg`, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+};
+
 export interface UploadInput {
   file: File;
   documentId?: string;
@@ -304,6 +334,8 @@ export interface UploadInput {
   expirationDate?: string;
   classification?: string;
   signed?: boolean;
+  /** Payroll shift (time entry) this paperwork belongs to, e.g. a daily agency time ticket. */
+  timeEntryId?: string;
 }
 
 export const uploadDocument = (input: UploadInput) => {
@@ -319,6 +351,7 @@ export const uploadDocument = (input: UploadInput) => {
   form.set("expirationDate", input.expirationDate ?? "");
   form.set("classification", input.classification ?? "standard");
   form.set("signed", input.signed ? "true" : "false");
+  if (input.timeEntryId) form.set("timeEntryId", input.timeEntryId);
   return invokeForm<{ ok: boolean; documentId: string; versionId: string; version: number }>(form);
 };
 

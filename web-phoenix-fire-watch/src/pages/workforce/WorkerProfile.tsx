@@ -18,6 +18,7 @@ import { EquipmentTab } from "@/components/workforce/profile/EquipmentTab";
 import { OverviewTab } from "@/components/workforce/profile/OverviewTab";
 import { PersonnelTab } from "@/components/workforce/profile/PersonnelTab";
 import { WorkHistoryTab } from "@/components/workforce/profile/WorkHistoryTab";
+import { WorkerTimeTicketsPanel } from "@/components/workforce/TimeTickets";
 import { WorkerSummaryDialog } from "@/components/workforce/WorkerSummaryDialog";
 import { useWorkerPhotos, WorkerAvatar } from "@/components/workforce/WorkerAvatar";
 import { AddToTeamDialog } from "@/components/workforce/AddToTeamDialog";
@@ -104,11 +105,13 @@ const WorkerProfile = () => {
   const tabs = isAgency
     ? [
         { id: "overview", label: "Overview" },
+        { id: "tickets", label: "Time tickets" },
         { id: "employment", label: "Pay & placement" },
       ]
     : [
         { id: "overview", label: "Overview" },
         { id: "documents", label: "Documents" },
+        { id: "tickets", label: "Time tickets" },
         { id: "employment", label: "Employment" },
         ...recordTabs.filter((t) => t.id !== "documents").map((t) => ({ id: t.id, label: t.label })),
       ];
@@ -252,6 +255,7 @@ const WorkerProfile = () => {
 
       <div role="tabpanel">
         {tab === "overview" && <OverviewTab worker={worker} />}
+        {tab === "tickets" && <WorkerTimeTicketsPanel worker={worker} name={name} />}
         {tab === "documents" && (
           <DocumentsPanel ownerType="worker" ownerId={worker.id} source={worker.source} filter={(d) => d.worker_id === worker.id && d.owner_type === "worker"} />
         )}

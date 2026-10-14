@@ -10,6 +10,7 @@ import {
   Clock,
   FileDown,
   History,
+  Paperclip,
   Pencil,
   Plus,
   RotateCcw,
@@ -39,6 +40,7 @@ import {
   SelectField,
   TextField,
 } from "@/components/workforce/kit";
+import { ShiftTicketsDialog, useEntryTickets, type Ticket } from "@/components/workforce/TimeTickets";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useNow } from "@/hooks/use-now";
 import { timeOfDay, toLocalInputValue } from "@/lib/format";
@@ -88,6 +90,7 @@ const Payroll = () => {
   const [rejecting, setRejecting] = useState<string[] | null>(null);
   const [historyFor, setHistoryFor] = useState<TimeEntry | null>(null);
   const [exportWarn, setExportWarn] = useState<boolean>(false);
+  const [ticketsFor, setTicketsFor] = useState<TimeEntry | null>(null);
 
   const key = ["tc", "payroll", user?.orgId ?? "", period.start.toISOString(), period.days];
   const entriesQ = useQuery({ queryKey: key, enabled: isAdmin, queryFn: () => loadEntries(period) });
@@ -102,6 +105,8 @@ const Payroll = () => {
   const siteName = (id: string | null) => (id ? (propertyById.get(id)?.name ?? "Removed site") : "—");
 
   const entries = useMemo(() => entriesQ.data ?? [], [entriesQ.data]);
+  const entryIds = useMemo(() => entries.map((e) => e.id), [entries]);
+  const tickets = useEntryTickets(entryIds, isAdmin);
   const people = useMemo(() => summarize(entries, period, nameFor), [entries, period, teamName]); // eslint-disable-line react-hooks/exhaustive-deps
   const showPay = (ratesQ.data?.size ?? 0) > 0;
   const pay = useMemo(() => {
@@ -448,6 +453,8 @@ const Payroll = () => {
                                   onReopen={() => review.mutate({ ids: [e.id], action: "reopen" })}
                                   onEdit={() => setEditing(e)}
                                   onHistory={() => setHistoryFor(e)}
+                                  tickets={tickets.get(e.id) ?? []}
+                                  onTickets={() => setTicketsFor(e)}
                                   busy={review.isPending}
                                 />
                               ))}
@@ -483,6 +490,13 @@ const Payroll = () => {
       />
 
       <HistoryDialog entry={historyFor} onClose={() => setHistoryFor(null)} />
+
+      <ShiftTicketsDialog
+        entry={ticketsFor}
+        personName={ticketsFor ? nameFor(ticketsFor.profileId, ticketsFor.workerName) : ""}
+        tickets={ticketsFor ? (tickets.get(ticketsFor.id) ?? []) : []}
+        onClose={() => setTicketsFor(null)}
+      />
 
       <ConfirmDialog
         open={exportWarn}
@@ -584,6 +598,8 @@ const EntryRow = ({
   onReopen,
   onEdit,
   onHistory,
+  tickets,
+  onTickets,
   busy,
 }: {
   entry: TimeEntry;
@@ -596,6 +612,8 @@ const EntryRow = ({
   onReopen: () => void;
   onEdit: () => void;
   onHistory: () => void;
+  tickets: Ticket[];
+  onTickets: () => void;
   busy: boolean;
 }) => {
   const isOpen = e.status === "open";
@@ -632,6 +650,14 @@ const EntryRow = ({
               </span>
             )}
             {site !== "—" && <span className="text-xs text-ink-3">{site}</span>}
+            {tickets.length > 0 && (
+              <button type="button" onClick={onTickets} className="focus-ring rounded-full">
+                <Pill tone="blue">
+                  <Paperclip className="mr-1 inline h-3 w-3" />
+                  {tickets.length === 1 ? "Time ticket" : `${tickets.length} tickets`}
+                </Pill>
+              </button>
+            )}
           </div>
           {(e.adminNote || e.employeeNote) && (
             <p className="mt-1 line-clamp-2 text-xs text-ink-3">{e.adminNote ? `Admin: ${e.adminNote}` : `Note: ${e.employeeNote}`}</p>
@@ -657,6 +683,16 @@ const EntryRow = ({
             Undo
           </Button>
         )}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onTickets}
+          aria-label={tickets.length > 0 ? `Time tickets (${tickets.length})` : "Attach time ticket"}
+          title={tickets.length > 0 ? "View time tickets" : "Attach time ticket"}
+          className={cn(tickets.length > 0 && "text-link")}
+        >
+          <Paperclip />
+        </Button>
         <Button size="sm" variant="ghost" onClick={onEdit} aria-label="Edit times">
           <Pencil />
         </Button>

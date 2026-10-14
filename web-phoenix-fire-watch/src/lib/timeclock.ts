@@ -222,6 +222,26 @@ export async function loadPropertyEntries(propertyId: string, shiftIds: string[]
   return [...map.values()].sort((a, b) => Date.parse(a.clockIn) - Date.parse(b.clockIn));
 }
 
+/** One person's most recent punches, newest first (admin), for picking a shift to attach paperwork to. */
+export async function loadPersonEntries(profileId: string, limit = 60): Promise<TimeEntry[]> {
+  const { data, error } = await supabase
+    .from("time_entries")
+    .select(COLS)
+    .eq("profile_id", profileId)
+    .order("clock_in", { ascending: false })
+    .limit(limit);
+  if (error) throw wfError(error);
+  return ((data ?? []) as EntryRow[]).map(toEntry);
+}
+
+/** Specific entries by id (admin), e.g. to label documents that are attached to payroll shifts. */
+export async function loadEntriesByIds(ids: string[]): Promise<TimeEntry[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("time_entries").select(COLS).in("id", ids.slice(0, 300));
+  if (error) throw wfError(error);
+  return ((data ?? []) as EntryRow[]).map(toEntry);
+}
+
 /** Everyone currently clocked in (admin) or just the caller (officer). */
 export async function loadOpenEntries(profileId?: string): Promise<TimeEntry[]> {
   let q = supabase.from("time_entries").select(COLS).is("clock_out", null);

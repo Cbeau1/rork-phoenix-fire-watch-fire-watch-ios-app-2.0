@@ -145,6 +145,7 @@ Deno.serve(async (req) => {
           p_file_name: name,
           p_mime: MIME[kind],
           p_size: bytes.length,
+          p_time_entry: readString(form.get("timeEntryId"), 64) || null,
         });
         if (error) {
           await admin.storage.from(BUCKET).remove([path]);
