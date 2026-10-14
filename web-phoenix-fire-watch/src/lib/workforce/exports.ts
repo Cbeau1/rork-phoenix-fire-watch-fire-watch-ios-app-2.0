@@ -2,6 +2,8 @@ import { format } from "date-fns";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
+import { BRAND, drawBrandLogo, drawPageFooter, drawRunningHeader, loadBrandLogo, loadBrandMark } from "@/lib/pdf-brand";
+
 /**
  * Neutralizes spreadsheet formula injection: any cell starting with = + - @ (or tab/CR) is prefixed
  * with an apostrophe so Excel/Sheets treat it as text.
@@ -43,13 +45,13 @@ export interface PdfSection {
   emptyText?: string;
 }
 
-const INK: [number, number, number] = [22, 23, 26];
-const INK_2: [number, number, number] = [92, 95, 102];
-const EMBER: [number, number, number] = [220, 38, 38];
-const LINE: [number, number, number] = [224, 225, 229];
+const INK: [number, number, number] = BRAND.ink;
+const INK_2: [number, number, number] = BRAND.ink2;
+const EMBER: [number, number, number] = BRAND.ember;
+const LINE: [number, number, number] = BRAND.line;
 
 /** Generic branded, confidential PDF used by all workforce reports. */
-export const buildPdf = (opts: {
+export const buildPdf = async (opts: {
   title: string;
   subtitle?: string;
   orgName: string;
@@ -61,43 +63,62 @@ export const buildPdf = (opts: {
   heading?: string;
   /** Footer disclaimer on every page. */
   footer?: string;
-}): Blob => {
+}): Promise<Blob> => {
   const doc = new jsPDF({ unit: "pt", format: "letter", orientation: opts.landscape ? "landscape" : "portrait", compress: true });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const M = 40;
   doc.setProperties({ title: opts.title, author: opts.orgName, creator: "Phoenix Fire Watch" });
 
+  const logo = await loadBrandLogo();
+  const mark = await loadBrandMark();
+  // The logo already carries the brand name — drop the prefix callers used to include.
+  const heading = (opts.heading ?? "WORKFORCE MANAGEMENT").replace(/^PHOENIX FIRE WATCH\s*·\s*/i, "");
+
+  // ---- Letterhead: ember edge bar, logo lockup, accent heading, confidential notice
   doc.setFillColor(...EMBER);
-  doc.rect(0, 0, W, 6, "F");
+  doc.rect(0, 0, W, 5, "F");
+  const logoH = 46;
+  let textX = M;
+  if (logo) textX = M + drawBrandLogo(doc, logo, M, 20, logoH) + 16;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(...EMBER);
-  doc.text(opts.heading ?? "PHOENIX FIRE WATCH · WORKFORCE MANAGEMENT", M, 32);
+  doc.text(heading.toUpperCase(), textX, 38, { charSpace: 1.4, maxWidth: W - 2 * M - (textX - M) - 190 });
   if (opts.confidential !== false) {
-    doc.text("CONFIDENTIAL — INTERNAL USE ONLY", W - M, 32, { align: "right" });
+    doc.text("CONFIDENTIAL — INTERNAL USE ONLY", W - M, 38, { align: "right" });
   }
-  doc.setTextColor(...INK);
+  if (logo) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...BRAND.ink3);
+    doc.text(opts.orgName, textX, 53);
+  }
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text(opts.title, M, 60);
+  doc.setTextColor(...INK);
+  doc.text(opts.title, M, 90);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(...INK_2);
-  let y = 78;
+  let y = 106;
   if (opts.subtitle) {
     doc.text(opts.subtitle, M, y);
     y += 14;
   }
   doc.text(`${opts.orgName} · Prepared by ${opts.preparedBy} · ${format(new Date(), "MMM d, yyyy h:mm a")}`, M, y);
-  y += 12;
+  y += 10;
   doc.setDrawColor(...LINE);
+  doc.setLineWidth(0.8);
   doc.line(M, y, W - M, y);
-  y += 18;
+  doc.setFillColor(...EMBER);
+  doc.rect(M, y - 1, 52, 2, "F");
+  y += 20;
 
   const ensure = (need: number) => {
     if (y + need > H - 50) {
       doc.addPage();
-      y = 50;
+      y = 66;
     }
   };
 
@@ -114,7 +135,7 @@ export const buildPdf = (opts: {
     if (s.fields && s.fields.length > 0) {
       autoTable(doc, {
         startY: y,
-        margin: { left: M, right: M },
+        margin: { left: M, right: M, top: 66 },
         theme: "plain",
         styles: { fontSize: 9, cellPadding: 3, textColor: INK, overflow: "linebreak" },
         columnStyles: { 0: { cellWidth: 150, textColor: INK_2, fontStyle: "bold" } },
@@ -126,7 +147,7 @@ export const buildPdf = (opts: {
     if (s.table && s.table.body.length > 0) {
       autoTable(doc, {
         startY: y,
-        margin: { left: M, right: M },
+        margin: { left: M, right: M, top: 66 },
         head: [s.table.head],
         body: s.table.body,
         theme: "grid",
@@ -158,10 +179,11 @@ export const buildPdf = (opts: {
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(...INK_2);
-    doc.text(`Page ${i} of ${pages}`, W - M, H - 24, { align: "right" });
-    doc.text(opts.footer ?? "Contains personnel information. Do not share with clients or officers.", M, H - 24);
+    if (i > 1) drawRunningHeader(doc, mark, `${opts.title}${opts.subtitle ? `  ·  ${opts.subtitle}` : ""}`);
+    drawPageFooter(doc, {
+      orgName: "Phoenix Fire Watch",
+      docLabel: opts.footer ?? "Contains personnel information. Do not share with clients or officers.",
+    });
   }
   return doc.output("blob");
 };

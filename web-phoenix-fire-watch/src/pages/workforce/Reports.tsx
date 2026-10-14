@@ -96,7 +96,7 @@ const Reports = () => {
       if (fmt === "csv") downloadCsv(`${key}_${stamp()}.csv`, head, rows);
       else
         downloadBlob(
-          buildPdf({
+          await buildPdf({
             title,
             subtitle: extra?.subtitle,
             orgName: wf.user?.orgName ?? "",

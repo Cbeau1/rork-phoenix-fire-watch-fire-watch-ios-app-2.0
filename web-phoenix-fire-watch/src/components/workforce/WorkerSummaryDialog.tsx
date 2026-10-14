@@ -195,7 +195,7 @@ export const WorkerSummaryDialog = ({ open, onOpenChange, worker }: { open: bool
         workerId: worker.id,
         perm: sensitive.includes("personnel") ? "personnel" : sensitive.includes("pay") ? "pay" : sensitive.includes("costs") ? "finance" : "manage",
       });
-      const blob = buildPdf({
+      const blob = await buildPdf({
         title: `Worker Summary — ${fullName(worker)}`,
         subtitle: `${worker.worker_code} · ${SOURCE_LABEL[worker.source as WorkerSource]}`,
         orgName: wf.user?.orgName ?? "",

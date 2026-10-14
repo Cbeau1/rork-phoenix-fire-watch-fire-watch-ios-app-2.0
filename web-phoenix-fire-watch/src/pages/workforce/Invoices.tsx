@@ -363,7 +363,7 @@ export const InvoiceDetail = () => {
     try {
       await api.logEvent("export", "wf_invoices", `Exported reconciliation report for invoice #${invoice.invoice_number}`, { entityId: invoice.id, perm: "finance" });
       downloadBlob(
-        buildPdf({
+        await buildPdf({
           title: `Invoice Reconciliation — #${invoice.invoice_number}`,
           subtitle: `${agency?.name ?? ""} · ${invoice.period_start ? `${fmtDate(invoice.period_start)} – ${fmtDate(invoice.period_end)}` : ""}`,
           orgName: wf.user?.orgName ?? "",

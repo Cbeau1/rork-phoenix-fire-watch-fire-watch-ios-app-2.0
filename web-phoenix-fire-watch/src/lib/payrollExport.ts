@@ -20,7 +20,7 @@ const fileStem = (period: PayPeriod) =>
 const t = (iso: string | null) => (iso ? format(new Date(iso), "h:mm a") : "—");
 
 /** Payroll PDF: summary + per-person daily detail. Only approved hours count toward totals. */
-export const downloadPayrollPdf = (opts: {
+export const downloadPayrollPdf = async (opts: {
   period: PayPeriod;
   people: PersonSummary[];
   orgName: string;
@@ -152,7 +152,7 @@ export const downloadPayrollPdf = (opts: {
     },
   ];
 
-  const blob = buildPdf({
+  const blob = await buildPdf({
     title: "Payroll Hours Report",
     subtitle: periodLabel(period),
     orgName: opts.orgName,

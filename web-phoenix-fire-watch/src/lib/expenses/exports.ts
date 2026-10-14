@@ -109,9 +109,9 @@ export const exportRecordsPdf = (rows: ExpRow[], ctx: ExportCtx, filters: string
     },
   ]);
 
-export const exportPdf = (ctx: ExportCtx, title: string, subtitle: string, sections: PdfSection[]) =>
+export const exportPdf = async (ctx: ExportCtx, title: string, subtitle: string, sections: PdfSection[]) =>
   downloadBlob(
-    buildPdf({
+    await buildPdf({
       title,
       subtitle,
       orgName: ctx.user?.orgName ?? "",

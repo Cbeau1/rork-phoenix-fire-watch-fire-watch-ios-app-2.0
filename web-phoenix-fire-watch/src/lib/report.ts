@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { signPhotoUrls } from "@/hooks/use-photo-urls";
+import { BRAND, drawBrandLogo, drawPageFooter, drawRunningHeader, loadBrandLogo, loadBrandMark, type RGB } from "./pdf-brand";
 
 import { STATUS_META, type Patrol, type PatrolStatus, type Property } from "./types";
 
@@ -16,16 +17,14 @@ export interface ShiftReportOptions {
   includePhotos?: boolean;
 }
 
-type RGB = [number, number, number];
-
-const INK: RGB = [22, 23, 26];
-const INK_2: RGB = [92, 95, 102];
-const INK_3: RGB = [138, 141, 148];
-const LINE: RGB = [224, 225, 229];
-const PAPER_2: RGB = [247, 247, 248];
+const INK: RGB = BRAND.ink;
+const INK_2: RGB = BRAND.ink2;
+const INK_3: RGB = BRAND.ink3;
+const LINE: RGB = BRAND.line;
+const PAPER_2: RGB = BRAND.paper2;
 const CANVAS: RGB = [11, 11, 12];
 const HEAD_FILL: RGB = [240, 241, 243];
-const EMBER: RGB = [220, 38, 38];
+const EMBER: RGB = BRAND.ember;
 
 const STATUS_RGB: Record<PatrolStatus, RGB> = {
   clear: [22, 163, 74],
@@ -128,7 +127,8 @@ export async function buildShiftReport(opts: ShiftReportOptions): Promise<{ blob
     creator: "Phoenix Fire Watch",
   });
 
-  const [logo, scriptFont] = await Promise.all([toJpeg("/icon.png", 240, "#23272D"), loadScriptFont()]);
+  const [logo, scriptFont] = await Promise.all([loadBrandLogo(), loadScriptFont()]);
+  const mark = await loadBrandMark();
   let hasScript = false;
   if (scriptFont) {
     try {
@@ -153,20 +153,32 @@ export async function buildShiftReport(opts: ShiftReportOptions): Promise<{ blob
     doc.text(label.toUpperCase(), M + 10, y, { charSpace: 1.2 });
   };
 
-  // ---- Page 1 letterhead (clean white, brand mark + hairline rule with ember accent)
-  if (logo) doc.addImage(logo.data, "JPEG", M, 26, 46, 46);
-  const lx = M + 58;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(17);
-  setText(INK);
-  doc.text("PHOENIX", lx, 44, { charSpace: 2.2 });
-  doc.setFontSize(7.5);
-  setText(EMBER);
-  doc.text("FIRE WATCH", lx + 0.5, 58, { charSpace: 3.4 });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  setText(INK_3);
-  doc.text(orgName, lx, 74, { maxWidth: 200 });
+  // ---- Page 1 letterhead: official logo lockup beside the organization name
+  const logoH = 56;
+  if (logo) {
+    const lw = drawBrandLogo(doc, logo, M, 24, logoH);
+    const lx = M + lw + 14;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    setText(INK);
+    doc.text(orgName, lx, 50, { maxWidth: 240 });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    setText(EMBER);
+    doc.text("FIRE WATCH SERVICES", lx + 0.5, 64, { charSpace: 2.2 });
+  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(17);
+    setText(INK);
+    doc.text("PHOENIX", M, 44, { charSpace: 2.2 });
+    doc.setFontSize(7.5);
+    setText(EMBER);
+    doc.text("FIRE WATCH", M + 0.5, 58, { charSpace: 3.4 });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    setText(INK_3);
+    doc.text(orgName, M, 74, { maxWidth: 200 });
+  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12.5);
@@ -619,31 +631,13 @@ export async function buildShiftReport(opts: ShiftReportOptions): Promise<{ blob
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i += 1) {
     doc.setPage(i);
-    if (i > 1) {
-      if (logo) doc.addImage(logo.data, "JPEG", M, 10, 26, 26);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      setText(INK);
-      doc.text("PHOENIX FIRE WATCH", M + 34, 20, { charSpace: 1.2 });
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      setText(INK_3);
-      const title = (doc.splitTextToSize(`${property.name}  ·  ${periodLabel}`, 330) as string[])[0] ?? "";
-      doc.text(title, W - M, 26, { align: "right" });
-      setFill(LINE);
-      doc.rect(M + 52, 43.7, W - 2 * M - 52, 0.5, "F");
-      setFill(EMBER);
-      doc.rect(M, 43, 52, 1.6, "F");
-    }
-    setDraw(LINE);
-    doc.setLineWidth(0.6);
-    doc.line(M, H - 38, W - M, H - 38);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    setText(INK_3);
-    doc.text(`${orgName}  ·  Fire Watch Shift Report  ·  ${reportId}`, M, H - 24);
-    doc.text("Confidential", W / 2 + 60, H - 24, { align: "center" });
-    doc.text(`Page ${i} of ${pages}`, W - M, H - 24, { align: "right" });
+    if (i > 1) drawRunningHeader(doc, mark, `${property.name}  ·  ${periodLabel}`);
+    drawPageFooter(doc, {
+      orgName,
+      docLabel: "Fire Watch Shift Report",
+      reportId,
+      note: "Confidential",
+    });
   }
 
   const datePart = first ? format(new Date(first.dateTime), "yyyy-MM-dd") : format(now, "yyyy-MM-dd");

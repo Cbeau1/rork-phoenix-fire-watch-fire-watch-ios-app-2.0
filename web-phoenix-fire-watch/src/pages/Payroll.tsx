@@ -168,7 +168,7 @@ const Payroll = () => {
   };
 
   const doPdf = () => {
-    downloadPayrollPdf({ period, people, orgName: user?.orgName ?? "", preparedBy: user?.name ?? "", siteName, pay: showPay ? pay : undefined, typeOf });
+    void downloadPayrollPdf({ period, people, orgName: user?.orgName ?? "", preparedBy: user?.name ?? "", siteName, pay: showPay ? pay : undefined, typeOf });
     setExportWarn(false);
   };
 
