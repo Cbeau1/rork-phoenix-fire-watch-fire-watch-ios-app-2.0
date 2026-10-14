@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, Camera, FileDown, Loader2, Pencil, Trash2, UserPlus, Users } from "lucide-react";
+import { Archive, ArchiveRestore, Camera, ChevronDown, FileDown, FileText, History, Loader2, Pencil, ShieldAlert, Trash2, UserPlus, Users, Wrench, Activity, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/fw/primitives";
 import { LoginReadyDialog, type LoginCredentials } from "@/components/fw/TeamLogin";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { DocumentsPanel } from "@/components/workforce/DocumentsPanel";
 import { ConfirmDialog, MetaPill, Pill } from "@/components/workforce/kit";
@@ -92,16 +93,28 @@ const WorkerProfile = () => {
 
   if (!worker) return <NotFound embedded />;
   const isAgency = worker.source === "agency";
-  const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "documents", label: "Documents" },
-    { id: "employment", label: isAgency ? "Placements" : "Employment" },
-    { id: "history", label: "Work History" },
-    { id: "personnel", label: "Personnel Records" },
-    { id: "equipment", label: "Equipment" },
-    { id: "activity", label: "Activity" },
+  // Temp agency workers get a short profile: everything record-keeping lives under “More”.
+  const recordTabs: { id: string; label: string; icon: LucideIcon }[] = [
+    { id: "documents", label: "Documents", icon: FileText },
+    { id: "history", label: "Work History", icon: History },
+    { id: "personnel", label: "Personnel Records", icon: ShieldAlert },
+    { id: "equipment", label: "Equipment", icon: Wrench },
+    { id: "activity", label: "Activity", icon: Activity },
   ];
-  const tab = tabs.some((t) => t.id === params.get("tab")) ? (params.get("tab") as string) : "overview";
+  const tabs = isAgency
+    ? [
+        { id: "overview", label: "Overview" },
+        { id: "employment", label: "Pay & placement" },
+      ]
+    : [
+        { id: "overview", label: "Overview" },
+        { id: "documents", label: "Documents" },
+        { id: "employment", label: "Employment" },
+        ...recordTabs.filter((t) => t.id !== "documents").map((t) => ({ id: t.id, label: t.label })),
+      ];
+  const allTabIds = [...tabs.map((t) => t.id), ...recordTabs.map((t) => t.id)];
+  const tab = allTabIds.includes(params.get("tab") ?? "") ? (params.get("tab") as string) : "overview";
+  const inMore = isAgency && recordTabs.some((t) => t.id === tab);
   const name = fullName(worker);
 
   return (
@@ -206,6 +219,34 @@ const WorkerProfile = () => {
               {t.label}
             </button>
           ))}
+          {isAgency && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                role="tab"
+                aria-label="More record sections"
+                aria-selected={inMore}
+                className={cn(
+                  "focus-ring -mb-px flex items-center gap-1 whitespace-nowrap border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors",
+                  inMore ? "border-primary text-link" : "border-transparent text-ink-2 hover:text-ink",
+                )}
+              >
+                More
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="border-line bg-surface text-ink">
+                {recordTabs.map((t) => (
+                  <DropdownMenuItem
+                    key={t.id}
+                    onClick={() => setParams({ tab: t.id }, { replace: true })}
+                    className={cn("gap-2 focus:bg-raised focus:text-ink", tab === t.id && "bg-raised text-link")}
+                  >
+                    <t.icon className="h-4 w-4" aria-hidden />
+                    {t.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
   Check,
+  Clock,
   DollarSign,
   KeyRound,
   Star,
@@ -16,14 +17,15 @@ import {
   UserX,
   Users,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { EditMemberDialog } from "@/components/fw/EditMemberDialog";
-import { createTeamLogin, generatePassword, LoginReadyDialog, RolePicker } from "@/components/fw/TeamLogin";
+import { generatePassword, LoginReadyDialog } from "@/components/fw/TeamLogin";
 import { AddToTeamDialog } from "@/components/workforce/AddToTeamDialog";
-import { Card, CardHeader, EmptyState, FieldError, FieldHint, FieldLabel, PageHeader } from "@/components/fw/primitives";
+import { WorkerFormDialog, type NewLoginState } from "@/components/workforce/WorkerFormDialog";
+import { Card, CardHeader, EmptyState, FieldError, PageHeader } from "@/components/fw/primitives";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +48,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { initials, timeAgo } from "@/lib/format";
+import { refreshPeople } from "@/lib/people";
+import { loadWorkerTypes, personType, type PersonType, type WorkerTypeIndex } from "@/lib/payrollGroups";
 import { linkTeamMember, loadTeamLinks, type TeamLink } from "@/lib/workforce/api";
 import { fullName as workerName, WORKER_STATUS, type Worker } from "@/lib/workforce/constants";
 import { callFunction, friendlyError, supabase } from "@/lib/supabase";
@@ -53,8 +57,6 @@ import { loadPayRates, rateKey, rateOn, type RateRow } from "@/lib/timeclock";
 import { ROLE_LABEL, type Member, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Team = () => {
   useDocumentTitle("Team");
@@ -64,11 +66,7 @@ const Team = () => {
   const membersKey = useMemo(() => ["members", orgId] as const, [orgId]);
 
   const [addOpen, setAddOpen] = useState<boolean>(false);
-  const [fullName, setFullName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>(generatePassword);
-  const [role, setRole] = useState<Role>("officer");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [editWorker, setEditWorker] = useState<Worker | null>(null);
   const [created, setCreated] = useState<{ name: string; email: string; password: string } | null>(null);
 
   const [resetFor, setResetFor] = useState<Member | null>(null);
@@ -141,6 +139,34 @@ const Team = () => {
   });
   const rates = ratesQuery.data ?? new Map<string, RateRow[]>();
 
+  // Direct vs. temp agency, so every row can show who they work for.
+  const typesQuery = useQuery({
+    queryKey: ["wf", "pay-types", orgId],
+    enabled: !!orgId && isAdmin,
+    staleTime: 60_000,
+    queryFn: loadWorkerTypes,
+  });
+  const types = typesQuery.data;
+
+  // Timesheets waiting on the admin's approval — the daily routine starts here.
+  const pendingQuery = useQuery({
+    queryKey: ["tc", "pending-card", orgId],
+    enabled: !!orgId && isAdmin,
+    staleTime: 30_000,
+    queryFn: async (): Promise<{ count: number; minutes: number }> => {
+      const { data, error } = await supabase.from("time_entries").select("clock_in, clock_out").eq("status", "pending");
+      if (error) throw error;
+      let minutes = 0;
+      for (const r of data ?? []) {
+        const a = new Date(r.clock_in).getTime();
+        const b = r.clock_out ? new Date(r.clock_out).getTime() : NaN;
+        if (!Number.isNaN(a) && !Number.isNaN(b)) minutes += Math.max(0, (b - a) / 60_000);
+      }
+      return { count: (data ?? []).length, minutes };
+    },
+  });
+  const pending = pendingQuery.data ?? { count: 0, minutes: 0 };
+
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: membersKey }),
@@ -154,17 +180,6 @@ const Team = () => {
       toast.success(`${m.name} added to Workforce`);
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : friendlyError(err)),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (payload: { fullName: string; email: string; password: string; role: Role }) =>
-      createTeamLogin(payload),
-    onSuccess: (_d, vars) => {
-      void refresh();
-      setCreated({ name: vars.fullName, email: vars.email, password: vars.password });
-      setAddOpen(false);
-    },
-    onError: (err) => toast.error(friendlyError(err)),
   });
 
   const updateMutation = useMutation({
@@ -213,24 +228,13 @@ const Team = () => {
   const activeCount = members.filter((m) => m.active).length;
   const totalPeople = members.length + noLogin.length;
 
-  const openAdd = () => {
-    setFullName("");
-    setEmail("");
-    setPassword(generatePassword());
-    setRole("officer");
-    setErrors({});
-    setAddOpen(true);
-  };
+  const openAdd = () => setAddOpen(true);
 
-  const submitAdd = (e: FormEvent) => {
-    e.preventDefault();
-    const next: Record<string, string> = {};
-    if (!fullName.trim()) next.fullName = "Name is required";
-    if (!EMAIL_RE.test(email.trim())) next.email = "Enter a valid email address";
-    if (password.length < 8) next.password = "Use at least 8 characters";
-    setErrors(next);
-    if (Object.keys(next).length) return;
-    createMutation.mutate({ fullName: fullName.trim(), email: email.trim().toLowerCase(), password, role });
+  /** A person saved from the Team page stays here — logins surface in the existing dialog. */
+  const onPersonSaved = ({ state }: { w: Worker; state: NewLoginState }) => {
+    refreshPeople(queryClient);
+    void refresh();
+    if (state.newLogin) setCreated(state.newLogin);
   };
 
   return (
@@ -282,6 +286,8 @@ const Team = () => {
         </form>
       )}
 
+      {isAdmin && <ApprovalCard count={pending.count} minutes={pending.minutes} pending={pendingQuery.isPending} />}
+
       <Card>
         <CardHeader
           icon={Users}
@@ -305,6 +311,7 @@ const Team = () => {
               meId={user?.id ?? ""}
               links={links}
               rates={rates}
+              types={types}
               canLink={canLink}
               onEdit={setEditFor}
               onLink={(m) => linkMutation.mutate(m)}
@@ -334,6 +341,7 @@ const Team = () => {
             meId={user?.id ?? ""}
             links={links}
             rates={rates}
+            types={types}
             canLink={canLink}
             onEdit={setEditFor}
             onLink={(m) => linkMutation.mutate(m)}
@@ -360,7 +368,9 @@ const Team = () => {
                   key={w.id}
                   worker={w}
                   rate={rateOn(rates.get(rateKey(null, workerName(w))), new Date().toLocaleDateString("en-CA"))}
+                  type={personType(types, { profileId: null, name: workerName(w) })}
                   onCreate={() => setLoginFor(w)}
+                  onEdit={() => setEditWorker(w)}
                 />
               ))}
             </ul>
@@ -382,58 +392,11 @@ const Team = () => {
         />
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="border-line bg-surface text-ink sm:max-w-lg sm:rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">Add Employee</DialogTitle>
-            <DialogDescription className="text-ink-2">
-              Creates a login inside {user?.orgName} and a matching Workforce profile. Share the password with them
-              securely.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={submitAdd} noValidate className="space-y-5">
-            <div>
-              <FieldLabel htmlFor="m-name" required>
-                Full name
-              </FieldLabel>
-              <Input id="m-name" autoFocus value={fullName} aria-invalid={!!errors.fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g., Jonaven Viera" />
-              <FieldError message={errors.fullName} />
-            </div>
-            <div>
-              <FieldLabel htmlFor="m-email" required>
-                Email (their username)
-              </FieldLabel>
-              <Input id="m-email" type="email" value={email} aria-invalid={!!errors.email} onChange={(e) => setEmail(e.target.value)} placeholder="officer@company.com" />
-              <FieldError message={errors.email} />
-            </div>
-            <div>
-              <FieldLabel htmlFor="m-password" required>
-                Temporary password
-              </FieldLabel>
-              <div className="flex gap-2">
-                <Input id="m-password" value={password} aria-invalid={!!errors.password} onChange={(e) => setPassword(e.target.value)} className="font-mono" />
-                <Button type="button" variant="outline" onClick={() => setPassword(generatePassword())}>
-                  Generate
-                </Button>
-              </div>
-              {errors.password ? <FieldError message={errors.password} /> : <FieldHint>They can change it after signing in.</FieldHint>}
-            </div>
-            <div>
-              <div className="mb-2 text-sm font-medium text-ink">Role</div>
-              <RolePicker value={role} onChange={setRole} />
-            </div>
-            <div className="flex justify-end gap-3 pt-1">
-              <Button type="button" variant="outline" onClick={() => setAddOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? <Loader2 className="animate-spin" /> : <UserPlus />}
-                Create Login
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <WorkerFormDialog open={addOpen} onOpenChange={setAddOpen} defaultSource="direct" onCreated={onPersonSaved} />
+
+      {editWorker && (
+        <WorkerFormDialog open worker={editWorker} onOpenChange={(o) => !o && setEditWorker(null)} onCreated={onPersonSaved} />
+      )}
 
       <LoginReadyDialog credentials={created} onClose={() => setCreated(null)} />
 
@@ -504,7 +467,48 @@ const Team = () => {
   );
 };
 
-const NoLoginRow = ({ worker, rate, onCreate }: { worker: Worker; rate: number | null; onCreate: () => void }) => {
+const TypePill = ({ type }: { type: PersonType }) =>
+  type.group === "agency" ? (
+    <span className="rounded-full bg-status-follow/10 px-2 py-0.5 text-[11px] font-medium text-status-follow ring-1 ring-inset ring-status-follow/30">
+      {type.agency ? `Temp agency · ${type.agency}` : "Temp agency"}
+    </span>
+  ) : (
+    <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-2 ring-1 ring-inset ring-line">Direct</span>
+  );
+
+const ApprovalCard = ({ count, minutes, pending }: { count: number; minutes: number; pending: boolean }) => (
+  <Card
+    className={cn(
+      "mb-5 flex flex-wrap items-center gap-x-5 gap-y-3 border-l-4 px-4 py-3.5 sm:px-5",
+      count > 0 ? "border-status-follow bg-status-follow/[0.06]" : "border-status-clear/60",
+    )}
+  >
+    <div
+      className={cn(
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-1",
+        count > 0 ? "bg-status-follow/10 text-status-follow ring-status-follow/30" : "bg-status-clear/10 text-status-clear ring-status-clear/30",
+      )}
+      aria-hidden
+    >
+      <Clock className="h-5 w-5" />
+    </div>
+    <div className="min-w-0 flex-1">
+      <div className="text-sm font-semibold text-ink">Timesheets to approve</div>
+      <div className="text-xs text-ink-2" role="status">
+        {pending
+          ? "Checking…"
+          : count > 0
+            ? `${count} ${count === 1 ? "entry" : "entries"}${minutes >= 1 ? ` · ${(minutes / 60).toFixed(2)} hrs` : ""} waiting for your approval`
+            : "All caught up — nothing is waiting on you."}
+      </div>
+    </div>
+    <Button asChild variant={count > 0 ? "default" : "outline"} size="sm" className="shrink-0">
+      <Link to="/payroll">Review in Payroll</Link>
+    </Button>
+  </Card>
+);
+
+const NoLoginRow = ({ worker, rate, type, onCreate, onEdit }: { worker: Worker; rate: number | null; type: PersonType; onCreate: () => void; onEdit: () => void }) => {
   const name = workerName(worker);
   const status = WORKER_STATUS[worker.status]?.label ?? worker.status;
   return (
@@ -521,6 +525,7 @@ const NoLoginRow = ({ worker, rate, onCreate }: { worker: Worker; rate: number |
           <span className="rounded-full bg-status-follow/10 px-2 py-0.5 text-[11px] font-medium text-status-follow ring-1 ring-inset ring-status-follow/30">
             No login
           </span>
+          <TypePill type={type} />
           {rate !== null && (
             <span className="rounded-full bg-status-clear/10 px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums text-status-clear ring-1 ring-inset ring-status-clear/30">
               ${rate.toFixed(2)}/hr
@@ -544,6 +549,10 @@ const NoLoginRow = ({ worker, rate, onCreate }: { worker: Worker; rate: number |
           <span className="hidden sm:inline">{rate === null ? "Set pay" : "Pay"}</span>
         </Link>
       </Button>
+      <Button variant="outline" size="sm" onClick={onEdit} aria-label={`Edit ${name}`} className="shrink-0">
+        <Pencil />
+        <span className="hidden sm:inline">Edit</span>
+      </Button>
       <Button size="sm" onClick={onCreate} aria-label={`Create login for ${name}`} className="shrink-0">
         <KeyRound />
         <span className="hidden sm:inline">Create login</span>
@@ -557,6 +566,7 @@ const MemberList = ({
   meId,
   links,
   rates,
+  types,
   canLink,
   onEdit,
   onLink,
@@ -569,6 +579,7 @@ const MemberList = ({
   meId: string;
   links: Map<string, TeamLink>;
   rates: Map<string, RateRow[]>;
+  types: WorkerTypeIndex | undefined;
   canLink: boolean;
   onEdit: (m: Member) => void;
   onLink: (m: Member) => void;
@@ -583,6 +594,7 @@ const MemberList = ({
       const isMe = m.id === meId;
       const link = links.get(m.id);
       const rate = rateOn(rates.get(m.id), today);
+      const type = personType(types, { profileId: m.id, name: m.name });
       return (
         <li key={m.id} className={cn("flex items-center gap-4 rounded-lg border border-line bg-raised px-4 py-3.5 sm:px-5", !m.active && "opacity-55")}>
           <div
@@ -597,6 +609,7 @@ const MemberList = ({
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="truncate text-[15px] font-medium text-ink">{m.name}</span>
               {isMe && <span className="text-xs text-ink-3">(you)</span>}
+              <TypePill type={type} />
               {m.guideAcknowledgedAt && (
                 <span
                   title={`Field guide acknowledged ${new Date(m.guideAcknowledgedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`}
@@ -648,6 +661,14 @@ const MemberList = ({
             </div>
           </div>
           <span className="hidden shrink-0 text-xs text-ink-3 md:block">Added {timeAgo(m.createdAt)}</span>
+          {link ? (
+            <Button asChild variant="outline" size="sm" className="shrink-0">
+              <Link to={`/workforce/workers/${link.workerId}?tab=employment`} aria-label={`Pay rate for ${m.name}`}>
+                <DollarSign />
+                <span className="hidden sm:inline">{rate === null ? "Set pay" : "Pay"}</span>
+              </Link>
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" onClick={() => onEdit(m)} aria-label={`Edit ${m.name}`} className="shrink-0">
             <Pencil />
             <span className="hidden sm:inline">Edit</span>

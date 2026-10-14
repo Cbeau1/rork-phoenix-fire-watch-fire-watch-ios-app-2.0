@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, KeyRound, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, ChevronDown, KeyRound, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -16,8 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { refreshPeople } from "@/lib/people";
-import { friendlyError } from "@/lib/supabase";
+import { friendlyError, supabase } from "@/lib/supabase";
 import type { Role } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import * as api from "@/lib/workforce/api";
 import {
   AGENCY_STATUSES,
@@ -29,7 +30,6 @@ import {
   type WorkerSource,
 } from "@/lib/workforce/constants";
 import { useAuth } from "@/state/AuthProvider";
-import { useWorkforce } from "@/state/WorkforceProvider";
 
 import { AreaField, CheckField, FormDialog, isDate, SelectField, TextField } from "./kit";
 
@@ -39,6 +39,7 @@ interface Draft {
   last_name: string;
   phone: string;
   email: string;
+  pay_rate: string;
   position: string;
   service_areas: string;
   start_date: string;
@@ -55,13 +56,16 @@ interface Draft {
   staff_id: string;
 }
 
+const DEFAULT_POSITION = "Fire Watch Officer";
+
 const toDraft = (w: Worker | null, source: WorkerSource): Draft => ({
   source: (w?.source as WorkerSource) ?? source,
   first_name: w?.first_name ?? "",
   last_name: w?.last_name ?? "",
   phone: w?.phone ?? "",
   email: w?.email ?? "",
-  position: w?.position ?? "",
+  pay_rate: "",
+  position: w?.position ?? DEFAULT_POSITION,
   service_areas: (w?.service_areas ?? []).join(", "),
   start_date: w?.start_date ?? "",
   status: w?.status ?? (source === "agency" ? "pending_placement" : "onboarding"),
@@ -77,32 +81,77 @@ const toDraft = (w: Worker | null, source: WorkerSource): Draft => ({
   staff_id: w?.staff_id ?? "",
 });
 
+/** True when any of the rarely used ("Add details") fields already hold data. */
+const hasDetails = (d: Draft): boolean =>
+  !!d.address.trim() ||
+  !!d.service_areas.trim() ||
+  !!d.emergency_name.trim() ||
+  !!d.emergency_relationship.trim() ||
+  !!d.emergency_phone.trim() ||
+  !!d.preferred_contact ||
+  !!d.availability.trim() ||
+  !!d.profile_id ||
+  !!d.staff_id;
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Dupe = { id: string; worker_code: string; full_name: string; source: string; reason: string };
 
 /** Navigation state handed to the new worker's profile so it can show the one-time login details. */
-export type NewLoginState = { newLogin?: LoginCredentials; loginError?: string };
+export type NewLoginState = { newLogin?: LoginCredentials; loginError?: string; payFailed?: boolean };
 
-/** Create or edit a worker profile (direct employee or temporary agency worker). */
-export const WorkerFormDialog = ({
-  open,
-  onOpenChange,
-  worker,
-  defaultSource = "direct",
-}: {
+/**
+ * Light data loading for the form — same query keys the Workforce pages use, so the cache is
+ * shared and the dialog works anywhere (Team page included) without the full Workforce context.
+ */
+const useWfFormData = () => {
+  const { user } = useAuth();
+  const orgId = user?.orgId ?? "";
+  const qc = useQueryClient();
+  const opts = { enabled: !!orgId, staleTime: 20_000, retry: 1 } as const;
+  const workers = useQuery({ queryKey: ["wf", "workers", orgId], queryFn: api.listWorkers, ...opts });
+  const agencies = useQuery({ queryKey: ["wf", "agencies", orgId], queryFn: api.listAgencies, ...opts });
+  const members = useQuery({ queryKey: ["wf", "members", orgId], queryFn: api.listMembers, ...opts });
+  const staff = useQuery({ queryKey: ["wf", "staff", orgId], queryFn: api.listStaff, ...opts });
+  const invalidate = useCallback(
+    (...keys: string[]) => {
+      const list = keys.length > 0 ? keys : ["workers"];
+      for (const k of list) void qc.invalidateQueries({ queryKey: ["wf", k] });
+      void qc.invalidateQueries({ queryKey: ["wf", "reminders"] });
+      void qc.invalidateQueries({ queryKey: ["wf", "audit"] });
+    },
+    [qc],
+  );
+  return {
+    orgId,
+    workers: workers.data ?? [],
+    agencies: agencies.data ?? [],
+    members: members.data ?? [],
+    staff: staff.data ?? [],
+    invalidate,
+  };
+};
+
+interface WorkerFormDialogProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  worker: Worker | null;
+  /** Existing profile to edit, or null to add a new person. */
+  worker?: Worker | null;
   defaultSource?: WorkerSource;
-}) => {
-  const wf = useWorkforce();
+  /** When given, saving never navigates — the caller decides what happens next (Team page). */
+  onCreated?: (payload: { w: Worker; state: NewLoginState }) => void;
+}
+
+/** Create or edit a worker profile (direct employee or temporary agency worker). */
+export const WorkerFormDialog = ({ open, onOpenChange, worker = null, defaultSource = "direct", onCreated }: WorkerFormDialogProps) => {
+  const wf = useWfFormData();
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [addToTeam, setAddToTeam] = useState<boolean>(true);
   const [password, setPassword] = useState<string>(generatePassword);
   const [role, setRole] = useState<Role>("officer");
+  const [detailsOpen, setDetailsOpen] = useState<boolean>(false);
   const [d, setD] = useState<Draft>(() => toDraft(worker, defaultSource));
   const [initial, setInitial] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -118,6 +167,7 @@ export const WorkerFormDialog = ({
     setAddToTeam(true);
     setPassword(generatePassword());
     setRole("officer");
+    setDetailsOpen(worker ? hasDetails(next) : false);
   }, [open, worker, defaultSource]);
 
   const dirty = JSON.stringify(d) !== initial;
@@ -177,7 +227,17 @@ export const WorkerFormDialog = ({
       };
       if (worker) return { w: await api.updateWorker(worker.id, row), state: {} };
       const w = await api.createWorker({ ...row, source: d.source, org_id: wf.orgId });
-      if (!willAddToTeam) return { w, state: {} };
+      // Pay rate entered during Add becomes the first rate in their history. Non-fatal on failure.
+      let payFailed = false;
+      const rate = Number(d.pay_rate);
+      if (rate > 0) {
+        try {
+          await api.addPay(w.id, rate, new Date().toLocaleDateString("en-CA"), "Starting rate");
+        } catch {
+          payFailed = true;
+        }
+      }
+      if (!willAddToTeam) return { w, state: { payFailed } };
       // Profile first: the new login is matched to it by email, so no duplicate profile is created.
       if (!row.email) {
         let saved = "";
@@ -193,18 +253,18 @@ export const WorkerFormDialog = ({
               saved = email;
             },
           });
-          return { w: { ...w, email: credentials.email }, state: { newLogin: credentials } };
+          return { w: { ...w, email: credentials.email }, state: { newLogin: credentials, payFailed } };
         } catch (err) {
           if (saved) await api.updateWorker(w.id, { email: "" }).catch(() => undefined);
-          return { w, state: { loginError: friendlyError(err) } };
+          return { w, state: { loginError: friendlyError(err), payFailed } };
         }
       }
       const credentials: LoginCredentials = { name: `${row.first_name} ${row.last_name}`, email: row.email, password };
       try {
         await createTeamLogin({ fullName: credentials.name, email: credentials.email, password, role });
-        return { w, state: { newLogin: credentials } };
+        return { w, state: { newLogin: credentials, payFailed } };
       } catch (err) {
-        return { w, state: { loginError: friendlyError(err) } };
+        return { w, state: { loginError: friendlyError(err), payFailed } };
       }
     },
     onSuccess: ({ w, state }) => {
@@ -214,7 +274,13 @@ export const WorkerFormDialog = ({
       else if (state.newLogin) toast.success(`Profile created — ${w.worker_code}`, { description: "Also added to Team with an app login." });
       else if (state.loginError) toast.error(`Profile created — ${w.worker_code}, but the Team login failed`, { description: state.loginError });
       else toast.success(`Profile created — ${w.worker_code}`);
+      if (state.payFailed)
+        toast.error("The pay rate didn't save", { description: `Set it on ${w.first_name}'s profile under Pay & placement.` });
       onOpenChange(false);
+      if (onCreated) {
+        onCreated({ w, state });
+        return;
+      }
       if (!worker) navigate(`/workforce/workers/${w.id}`, { state });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't save the profile."),
@@ -227,6 +293,7 @@ export const WorkerFormDialog = ({
     if (d.source === "agency" && !d.agency_id) e.agency_id = "Choose the staffing agency.";
     if (!d.status) e.status = "Choose a status.";
     if (d.email.trim() && !EMAIL_RE.test(d.email.trim())) e.email = "Enter a valid email address.";
+    if (d.pay_rate.trim() && !(Number(d.pay_rate) > 0)) e.pay_rate = "Enter an hourly rate, like 23.95.";
     if (willAddToTeam) {
       const email = d.email.trim().toLowerCase();
       if (email && wf.members.some((m) => m.email.toLowerCase() === email)) e.email = "Someone on your Team already uses this email.";
@@ -257,8 +324,12 @@ export const WorkerFormDialog = ({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={worker ? `Edit ${worker.first_name} ${worker.last_name}` : "Add worker"}
-      description={worker ? `${worker.worker_code} · ${SOURCE_LABEL[worker.source as WorkerSource]}` : "A unique worker ID is assigned automatically."}
+      title={worker ? `Edit ${worker.first_name} ${worker.last_name}` : "Add employee"}
+      description={
+        worker
+          ? `${worker.worker_code} · ${SOURCE_LABEL[worker.source as WorkerSource]}`
+          : "A unique worker ID is assigned automatically."
+      }
       dirty={dirty}
       saving={save.isPending}
       onSubmit={() => void submit()}
@@ -290,6 +361,18 @@ export const WorkerFormDialog = ({
         <TextField label="First name" required value={d.first_name} onChange={(v) => set("first_name", v)} error={errors.first_name} maxLength={80} />
         <TextField label="Last name" required value={d.last_name} onChange={(v) => set("last_name", v)} error={errors.last_name} maxLength={80} />
         <TextField label="Phone" type="tel" inputMode="tel" value={d.phone} onChange={(v) => set("phone", v)} maxLength={40} />
+        {!worker && (
+          <TextField
+            label="Hourly pay rate ($/hr)"
+            type="number"
+            inputMode="decimal"
+            value={d.pay_rate}
+            onChange={(v) => set("pay_rate", v)}
+            error={errors.pay_rate}
+            placeholder="e.g. 23.95"
+            hint="Starts today. You can raise it later — history is kept."
+          />
+        )}
         <TextField
           label="Email"
           type="email"
@@ -297,10 +380,10 @@ export const WorkerFormDialog = ({
           value={d.email}
           onChange={(v) => set("email", v)}
           error={errors.email}
-          hint={willAddToTeam ? (d.email.trim() ? "Also their Team login username." : "Optional — leave blank to generate a login email.") : undefined}
+          hint={willAddToTeam ? (d.email.trim() ? "Also their Team login username." : "Optional — leave blank to generate a login email.") : "Optional."}
           maxLength={200}
         />
-        <TextField label="Position" value={d.position} onChange={(v) => set("position", v)} placeholder="e.g. Fire Watch Officer" maxLength={120} />
+        <TextField label="Job title" value={d.position} onChange={(v) => set("position", v)} placeholder={DEFAULT_POSITION} maxLength={120} />
         <TextField
           label={d.source === "agency" ? "First assignment date" : "Hire date"}
           type="date"
@@ -324,8 +407,14 @@ export const WorkerFormDialog = ({
                 : "Onboarding paperwork is tracked separately and never changes this status."
           }
         />
-        <TextField label="Service areas" value={d.service_areas} onChange={(v) => set("service_areas", v)} placeholder="Comma separated, e.g. Downtown, North" hint="Separate areas with commas." />
       </div>
+
+      {d.source === "agency" && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SelectField label="Staffing agency" required value={d.agency_id} onChange={(v) => set("agency_id", v)} error={errors.agency_id} options={agencyOptions} />
+          <TextField label="Agency worker / reference ID" value={d.agency_worker_ref} onChange={(v) => set("agency_worker_ref", v)} maxLength={80} />
+        </div>
+      )}
 
       {canAddToTeam && (
         <div className="space-y-4 rounded-xl border border-line bg-raised/50 p-4">
@@ -380,56 +469,59 @@ export const WorkerFormDialog = ({
         </div>
       )}
 
-      {d.source === "agency" && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SelectField label="Staffing agency" required value={d.agency_id} onChange={(v) => set("agency_id", v)} error={errors.agency_id} options={agencyOptions} />
-          <TextField label="Agency worker / reference ID" value={d.agency_worker_ref} onChange={(v) => set("agency_worker_ref", v)} maxLength={80} />
-        </div>
-      )}
-
-      <AreaField
-        label={d.source === "agency" ? "Address (optional)" : "Address"}
-        value={d.address}
-        onChange={(v) => set("address", v)}
-        rows={2}
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <TextField label="Emergency contact" value={d.emergency_name} onChange={(v) => set("emergency_name", v)} maxLength={120} />
-        <TextField label="Relationship" value={d.emergency_relationship} onChange={(v) => set("emergency_relationship", v)} maxLength={60} />
-        <TextField label="Emergency phone" type="tel" value={d.emergency_phone} onChange={(v) => set("emergency_phone", v)} maxLength={40} />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField
-          label="Preferred contact method"
-          value={d.preferred_contact}
-          onChange={(v) => set("preferred_contact", v)}
-          options={Object.entries(PREFERRED_CONTACT).map(([value, label]) => ({ value, label }))}
-          allowNone
-          noneLabel="Not specified"
-        />
-        <TextField label="Availability" value={d.availability} onChange={(v) => set("availability", v)} placeholder="e.g. Nights & weekends" maxLength={200} />
-        <SelectField
-          label="Linked officer app account"
-          value={d.profile_id}
-          onChange={(v) => set("profile_id", v)}
-          allowNone
-          noneLabel="No app account"
-          options={wf.members
-            .filter((m) => !linkedProfiles.has(m.id))
-            .map((m) => ({ value: m.id, label: `${m.full_name} · ${m.email}${m.active ? "" : " (inactive)"}` }))}
-          hint={canAddToTeam && addToTeam ? "Pick an existing login instead of creating a new one." : "Accounts already linked to another profile are hidden."}
-        />
-        <SelectField
-          label="Linked schedule name"
-          value={d.staff_id}
-          onChange={(v) => set("staff_id", v)}
-          allowNone
-          noneLabel="Not on the schedule"
-          options={wf.staff.filter((s) => !linkedStaff.has(s.id)).map((s) => ({ value: s.id, label: s.name }))}
-          hint="Connects existing scheduled shifts to Work History."
-        />
+      <div>
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((o) => !o)}
+          aria-expanded={detailsOpen}
+          className="focus-ring -ml-1 flex items-center gap-1.5 rounded px-1 py-1.5 text-sm font-medium text-ink-2 hover:text-link"
+        >
+          <ChevronDown className={cn("h-4 w-4 transition-transform", detailsOpen && "rotate-180")} aria-hidden />
+          {detailsOpen ? "Hide details" : "Add details"}
+          <span className="font-normal text-ink-3">— emergency contact, address, availability, links</span>
+        </button>
+        {detailsOpen && (
+          <div className="mt-4 space-y-4 rounded-xl border border-line bg-raised/30 p-4">
+            <TextField label="Service areas" value={d.service_areas} onChange={(v) => set("service_areas", v)} placeholder="Comma separated, e.g. Downtown, North" hint="Separate areas with commas." />
+            <AreaField label={d.source === "agency" ? "Address (optional)" : "Address"} value={d.address} onChange={(v) => set("address", v)} rows={2} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <TextField label="Emergency contact" value={d.emergency_name} onChange={(v) => set("emergency_name", v)} maxLength={120} />
+              <TextField label="Relationship" value={d.emergency_relationship} onChange={(v) => set("emergency_relationship", v)} maxLength={60} />
+              <TextField label="Emergency phone" type="tel" value={d.emergency_phone} onChange={(v) => set("emergency_phone", v)} maxLength={40} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <SelectField
+                label="Preferred contact method"
+                value={d.preferred_contact}
+                onChange={(v) => set("preferred_contact", v)}
+                options={Object.entries(PREFERRED_CONTACT).map(([value, label]) => ({ value, label }))}
+                allowNone
+                noneLabel="Not specified"
+              />
+              <TextField label="Availability" value={d.availability} onChange={(v) => set("availability", v)} placeholder="e.g. Nights & weekends" maxLength={200} />
+              <SelectField
+                label="Linked officer app account"
+                value={d.profile_id}
+                onChange={(v) => set("profile_id", v)}
+                allowNone
+                noneLabel="No app account"
+                options={wf.members
+                  .filter((m) => !linkedProfiles.has(m.id))
+                  .map((m) => ({ value: m.id, label: `${m.full_name} · ${m.email}${m.active ? "" : " (inactive)"}` }))}
+                hint={canAddToTeam && addToTeam ? "Pick an existing login instead of creating a new one." : "Accounts already linked to another profile are hidden."}
+              />
+              <SelectField
+                label="Linked schedule name"
+                value={d.staff_id}
+                onChange={(v) => set("staff_id", v)}
+                allowNone
+                noneLabel="Not on the schedule"
+                options={wf.staff.filter((s) => !linkedStaff.has(s.id)).map((s) => ({ value: s.id, label: s.name }))}
+                hint="Connects existing scheduled shifts to Work History."
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {dupes && dupes.length > 0 && (
