@@ -12,15 +12,14 @@ import {
   type PersonSummary,
 } from "@/lib/timeclock";
 import { GROUP_LABEL, groupPeople, type PersonType } from "@/lib/payrollGroups";
-import { buildPdf, downloadBlob, downloadCsv, type PdfSection } from "@/lib/workforce/exports";
+import { buildPdf, downloadBlob, downloadCsv, type PdfCell, type PdfSection } from "@/lib/workforce/exports";
 
 const fileStem = (period: PayPeriod) =>
   `payroll_${format(period.start, "yyyy-MM-dd")}_to_${format(periodEnd(period), "yyyy-MM-dd")}`;
 
 const t = (iso: string | null) => (iso ? format(new Date(iso), "h:mm a") : "—");
 
-/** Payroll PDF: summary + per-person daily detail. Only approved hours count toward totals. */
-export const downloadPayrollPdf = async (opts: {
+type PayrollPdfOpts = {
   period: PayPeriod;
   people: PersonSummary[];
   orgName: string;
@@ -30,7 +29,15 @@ export const downloadPayrollPdf = async (opts: {
   pay?: Map<string, PayEstimate>;
   /** Direct vs. agency classification; when given, rows and gross pay are split by group. */
   typeOf?: (p: PersonSummary) => PersonType;
-}) => {
+};
+
+/** Payroll PDF: summary + per-person daily detail. Only approved hours count toward totals. */
+export const downloadPayrollPdf = async (opts: PayrollPdfOpts): Promise<void> => {
+  downloadBlob(await buildPayrollPdf(opts), `${fileStem(opts.period)}.pdf`);
+};
+
+/** Builds the Payroll Hours Report PDF with period, group, and per-employee totals. */
+export const buildPayrollPdf = async (opts: PayrollPdfOpts): Promise<Blob> => {
   const { period, pay, typeOf } = opts;
   const groups = typeOf ? groupPeople(opts.people, typeOf, pay ?? new Map()) : [];
   const people = typeOf ? groups.flatMap((g) => g.people) : opts.people;
@@ -52,8 +59,86 @@ export const downloadPayrollPdf = async (opts: {
   const totalApproved = people.reduce((s, p) => s + p.approvedMin, 0);
   const totalReg = people.reduce((s, p) => s + p.regularMin, 0);
   const totalOt = people.reduce((s, p) => s + p.overMin, 0);
+  const totalPending = people.reduce((s, p) => s + p.pendingMin, 0);
+  const totalOpen = people.reduce((s, p) => s + p.openCount, 0);
+  const totalShifts = people.reduce((s, p) => s + p.entries.length, 0);
+
+  // Hours-by-employee table: rows, bold subtotal rows, and a grand-total footer.
+  const lead = typeOf ? 2 : 1;
+  const empHead = [
+    "Employee",
+    ...(typeOf ? ["Type"] : []),
+    "Shifts",
+    ...(twoWeeks ? ["Week 1", "Week 2"] : []),
+    "Regular",
+    "Overtime",
+    "Approved total",
+    "Not approved",
+    ...(pay ? ["Rate", "Gross pay"] : []),
+  ];
+  const numericCols = empHead.map((_, i) => i).filter((i) => i >= lead);
+  const empBody: PdfCell[][] = [];
+  const boldRows: number[] = [];
+  const notApproved = (pendingMin: number, open: number) =>
+    pendingMin > 0 || open > 0 ? `${fmtHours(pendingMin)}${open ? ` + ${open} open` : ""}` : "—";
+  const weekCells = (list: PersonSummary[]) =>
+    twoWeeks ? [0, 1].map((i) => fmtHours(list.reduce((s, p) => s + (p.weeks[i]?.approvedMin ?? 0), 0))) : [];
+  for (const g of typeOf ? groups : [{ group: null, people }]) {
+    for (const p of g.people) {
+      empBody.push([
+        p.name,
+        ...(typeOf ? [typeLabel(p)] : []),
+        String(p.entries.length),
+        ...(twoWeeks ? p.weeks.map((w) => fmtHours(w.approvedMin)) : []),
+        fmtHours(p.regularMin),
+        fmtHours(p.overMin),
+        fmtHours(p.approvedMin),
+        notApproved(p.pendingMin, p.openCount),
+        ...(pay ? [rateCell(p), grossCell(p)] : []),
+      ]);
+    }
+    if ("grossCents" in g && groups.length > 1) {
+      boldRows.push(empBody.length);
+      empBody.push([
+        { content: `${GROUP_LABEL[g.group]} subtotal`, colSpan: lead },
+        String(g.people.reduce((s, p) => s + p.entries.length, 0)),
+        ...weekCells(g.people),
+        fmtHours(g.regularMin),
+        fmtHours(g.overMin),
+        fmtHours(g.approvedMin),
+        notApproved(
+          g.people.reduce((s, p) => s + p.pendingMin, 0),
+          g.people.reduce((s, p) => s + p.openCount, 0),
+        ),
+        ...(pay ? ["", fmtCents(g.grossCents)] : []),
+      ]);
+    }
+  }
+  const empFoot: PdfCell[][] = [
+    [
+      { content: `TOTAL — ${people.length} ${people.length === 1 ? "employee" : "employees"}`, colSpan: lead },
+      String(totalShifts),
+      ...weekCells(people),
+      fmtHours(totalReg),
+      fmtHours(totalOt),
+      fmtHours(totalApproved),
+      notApproved(totalPending, totalOpen),
+      ...(pay ? ["", fmtCents(grossTotal)] : []),
+    ],
+  ];
 
   const sections: PdfSection[] = [
+    {
+      title: "Period totals",
+      metrics: [
+        { label: "Approved hours", value: fmtHours(totalApproved), hint: `${totalShifts} shifts · ${people.length} employees` },
+        { label: "Regular hours", value: fmtHours(totalReg), hint: "Up to 40 hrs / week" },
+        { label: "Overtime hours", value: fmtHours(totalOt), hint: "Over 40 hrs / week" },
+        pay
+          ? { label: "Est. gross pay", value: fmtCents(grossTotal), hint: "Before taxes & deductions" }
+          : { label: "Not approved", value: fmtHours(totalPending), hint: "Excluded from totals" },
+      ],
+    },
     {
       title: "Summary",
       fields: [
@@ -72,72 +157,62 @@ export const downloadPayrollPdf = async (opts: {
     },
     {
       title: "Hours by employee",
-      table: {
-        head: [
-          "Employee",
-          ...(typeOf ? ["Type"] : []),
-          ...(twoWeeks ? ["Week 1", "Week 2"] : []),
-          "Regular",
-          "Overtime",
-          "Approved total",
-          "Not approved",
-          ...(pay ? ["Rate", "Gross pay"] : []),
-        ],
-        body: [
-          ...(typeOf ? groups : [{ group: null, people }]).flatMap((g) => [
-            ...g.people.map((p) => [
-              p.name,
-              ...(typeOf ? [typeLabel(p)] : []),
-              ...(twoWeeks ? p.weeks.map((w) => fmtHours(w.approvedMin)) : []),
-              fmtHours(p.regularMin),
-              fmtHours(p.overMin),
-              fmtHours(p.approvedMin),
-              p.pendingMin > 0 || p.openCount > 0 ? `${fmtHours(p.pendingMin)}${p.openCount ? ` + ${p.openCount} open` : ""}` : "—",
-              ...(pay ? [rateCell(p), grossCell(p)] : []),
-            ]),
-            ...("grossCents" in g && groups.length > 1
-              ? [
-                  [
-                    `${GROUP_LABEL[g.group]} subtotal`,
-                    "",
-                    ...(twoWeeks ? [0, 1].map((i) => fmtHours(g.people.reduce((s, p) => s + (p.weeks[i]?.approvedMin ?? 0), 0))) : []),
-                    fmtHours(g.regularMin),
-                    fmtHours(g.overMin),
-                    fmtHours(g.approvedMin),
-                    "",
-                    ...(pay ? ["", fmtCents(g.grossCents)] : []),
-                  ],
-                ]
-              : []),
-          ]),
-          [
-            "TOTAL",
-            ...(typeOf ? [""] : []),
-            ...(twoWeeks ? [0, 1].map((i) => fmtHours(people.reduce((s, p) => s + (p.weeks[i]?.approvedMin ?? 0), 0))) : []),
-            fmtHours(totalReg),
-            fmtHours(totalOt),
-            fmtHours(totalApproved),
-            "",
-            ...(pay ? ["", fmtCents(grossTotal)] : []),
-          ],
-        ],
-      },
+      table: { head: empHead, body: empBody, foot: empFoot, boldRows, numeric: numericCols },
       emptyText: "No hours recorded in this period.",
     },
-    ...people.map<PdfSection>((p) => ({
-      title: `${p.name}${typeOf ? ` (${typeLabel(p)})` : ""} — ${fmtHours(p.approvedMin)} approved hrs`,
-      table: {
-        head: ["Date", "Clock in", "Clock out", "Hours", "Site", "Status"],
-        body: p.entries.map((e) => [
-          format(new Date(e.clockIn), "EEE MMM d"),
-          t(e.clockIn),
-          t(e.clockOut),
-          e.clockOut ? fmtHours(entryMinutes(e)) : "open",
-          opts.siteName(e.propertyId),
-          `${ENTRY_STATUS[e.status].label}${e.edited ? " (edited)" : ""}`,
-        ]),
-      },
-    })),
+    ...people.map<PdfSection>((p) => {
+      const est = pay?.get(p.key);
+      const recordedMin = p.entries.reduce((s, e) => s + (e.clockOut ? entryMinutes(e) : 0), 0);
+      const foot: PdfCell[][] = [
+        [
+          { content: `Total recorded — ${p.entries.length} ${p.entries.length === 1 ? "shift" : "shifts"}`, colSpan: 3 },
+          fmtHours(recordedMin),
+          { content: "", colSpan: 2 },
+        ],
+        [
+          { content: "Approved hours (paid)", colSpan: 3 },
+          fmtHours(p.approvedMin),
+          { content: `Regular ${fmtHours(p.regularMin)}  ·  Overtime ${fmtHours(p.overMin)}`, colSpan: 2 },
+        ],
+        ...(p.pendingMin > 0 || p.openCount > 0
+          ? [
+              [
+                { content: "Not yet approved (excluded)", colSpan: 3 },
+                fmtHours(p.pendingMin),
+                { content: p.openCount ? `${p.openCount} still clocked in` : "", colSpan: 2 },
+              ] as PdfCell[],
+            ]
+          : []),
+        ...(est
+          ? [
+              [
+                { content: "Estimated gross pay", colSpan: 3 },
+                fmtCents(est.grossCents),
+                {
+                  content: `${est.rate !== null ? `$${est.rate.toFixed(2)}/hr` : "No rate on file"}${est.overtimePremiumCents > 0 ? `  ·  incl. ${fmtCents(est.overtimePremiumCents)} OT premium` : ""}`,
+                  colSpan: 2,
+                },
+              ] as PdfCell[],
+            ]
+          : []),
+      ];
+      return {
+        title: `${p.name}${typeOf ? ` (${typeLabel(p)})` : ""} — ${fmtHours(p.approvedMin)} approved hrs`,
+        table: {
+          head: ["Date", "Clock in", "Clock out", "Hours", "Site", "Status"],
+          body: p.entries.map((e) => [
+            format(new Date(e.clockIn), "EEE MMM d"),
+            t(e.clockIn),
+            t(e.clockOut),
+            e.clockOut ? fmtHours(entryMinutes(e)) : "open",
+            opts.siteName(e.propertyId),
+            `${ENTRY_STATUS[e.status].label}${e.edited ? " (edited)" : ""}`,
+          ]),
+          foot,
+          numeric: [3],
+        },
+      };
+    }),
     {
       title: "Approval",
       text: [
@@ -152,7 +227,7 @@ export const downloadPayrollPdf = async (opts: {
     },
   ];
 
-  const blob = await buildPdf({
+  return buildPdf({
     title: "Payroll Hours Report",
     subtitle: periodLabel(period),
     orgName: opts.orgName,
@@ -161,7 +236,6 @@ export const downloadPayrollPdf = async (opts: {
     footer: pay ? "Contains employee time and wage records. Confidential." : "Hours only — contains employee time records. Confidential.",
     sections,
   });
-  downloadBlob(blob, `${fileStem(period)}.pdf`);
 };
 
 export const downloadPayrollCsv = (

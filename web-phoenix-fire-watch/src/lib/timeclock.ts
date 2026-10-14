@@ -205,6 +205,23 @@ export async function loadEntries(period: PayPeriod, profileId?: string): Promis
   return ((data ?? []) as EntryRow[]).map(toEntry);
 }
 
+/**
+ * Every time entry for one property (admin): punches tagged with the site plus any linked to one of
+ * its scheduled shifts. Rejected entries are included so callers can show and exclude them.
+ */
+export async function loadPropertyEntries(propertyId: string, shiftIds: string[]): Promise<TimeEntry[]> {
+  const byProp = supabase.from("time_entries").select(COLS).eq("property_id", propertyId).limit(5000);
+  const chunks: string[][] = [];
+  for (let i = 0; i < shiftIds.length; i += 150) chunks.push(shiftIds.slice(i, i + 150));
+  const results = await Promise.all([byProp, ...chunks.map((ids) => supabase.from("time_entries").select(COLS).in("shift_id", ids).limit(5000))]);
+  const map = new Map<string, TimeEntry>();
+  for (const r of results) {
+    if (r.error) throw wfError(r.error);
+    for (const row of (r.data ?? []) as EntryRow[]) map.set(row.id, toEntry(row));
+  }
+  return [...map.values()].sort((a, b) => Date.parse(a.clockIn) - Date.parse(b.clockIn));
+}
+
 /** Everyone currently clocked in (admin) or just the caller (officer). */
 export async function loadOpenEntries(profileId?: string): Promise<TimeEntry[]> {
   let q = supabase.from("time_entries").select(COLS).is("clock_out", null);

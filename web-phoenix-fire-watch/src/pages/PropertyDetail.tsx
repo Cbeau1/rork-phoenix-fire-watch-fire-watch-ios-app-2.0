@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  BriefcaseBusiness,
   Download,
   Eye,
   FileText,
@@ -36,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { fullDateTime } from "@/lib/format";
+import { buildJobReport, loadJobData } from "@/lib/jobReport";
 import { buildShiftReport, downloadBlob } from "@/lib/report";
 import { groupSessions, sessionLabel, sessionRange, type FireWatchSession } from "@/lib/sessions";
 import { friendlyError } from "@/lib/supabase";
@@ -103,7 +105,7 @@ const PropertyDetail = () => {
   const [confirmDelete, setConfirmDelete] = useState<boolean>(false);
   const [pendingPatrol, setPendingPatrol] = useState<Patrol | null>(null);
   const [selected, setSelected] = useState<string>(ALL);
-  const [busy, setBusy] = useState<"pdf" | "send" | null>(null);
+  const [busy, setBusy] = useState<"pdf" | "send" | "job" | null>(null);
   const [viewing, setViewing] = useState<{ patrols: Patrol[]; label: string } | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
 
@@ -186,6 +188,27 @@ const PropertyDetail = () => {
     }
   };
 
+  const downloadJobReport = async () => {
+    setBusy("job");
+    try {
+      const data = await loadJobData(property.id);
+      const { blob, fileName } = await buildJobReport({
+        orgName,
+        preparedBy: user?.name ?? "Administrator",
+        property,
+        patrols: propertyPatrols,
+        data,
+      });
+      downloadBlob(blob, fileName);
+      toast.success("Job report downloaded", { description: fileName });
+    } catch (err) {
+      console.error("[JobReport] generation failed", err);
+      toast.error("Couldn't generate the job report", { description: friendlyError(err) });
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const sendReport = async () => {
     if (reportPatrols.length === 0) {
       toast.error("No patrols to include in this report");
@@ -217,6 +240,12 @@ const PropertyDetail = () => {
         }
         actions={
           <>
+            {isAdmin && (
+              <Button onClick={() => void downloadJobReport()} disabled={!!busy} title="Download a PDF of this job: hours, payroll, patrol reports and costs">
+                {busy === "job" ? <Loader2 className="animate-spin" /> : <BriefcaseBusiness />}
+                Job Report
+              </Button>
+            )}
             <Button asChild variant="outline">
               <Link to={`/properties/${property.id}/edit`}>
                 <Pencil />

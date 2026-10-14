@@ -60,7 +60,7 @@ export const loadBrandLogo = async (): Promise<BrandLogo | null> => {
  */
 export const loadBrandMark = async (): Promise<BrandLogo | null> => {
   if (markCache === undefined) {
-    markCache = await loadFlattened("/phoenix-mark.png", 240);
+    markCache = await loadFlattened("/phoenix-seal.png", 240);
     if (!markCache) markCache = await loadBrandLogo();
   }
   return markCache;
@@ -102,18 +102,29 @@ export const drawRunningHeader = (
   const M = opts?.margin ?? 40;
   let x = M;
   if (logo) x += drawBrandLogo(doc, logo, M, 20, 26) + 12;
+  const wordmark = opts?.wordmark ?? "PHOENIX FIRE WATCH";
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...BRAND.ink);
-  doc.text(opts?.wordmark ?? "PHOENIX FIRE WATCH", x, 32, { charSpace: 1.2 });
+  doc.text(wordmark, x, 32, { charSpace: 1.2 });
+  const wordmarkEnd = x + doc.getTextWidth(wordmark) + wordmark.length * 1.2;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   doc.setTextColor(...BRAND.ink3);
-  doc.text(doc.splitTextToSize(context, W - M - x - 12)[0] ?? "", W - M, 30, { align: "right" });
+  doc.text(fitText(doc, context, W - M - wordmarkEnd - 24), W - M, 32, { align: "right" });
   doc.setFillColor(...BRAND.line);
   doc.rect(M + (logo ? 40 : 0), 43.7, W - 2 * M - (logo ? 40 : 0), 0.5, "F");
   doc.setFillColor(...BRAND.ember);
   doc.rect(M, 43, logo ? 40 : 52, 1.6, "F");
+};
+
+/** Truncates text with an ellipsis so it fits in `maxWidth` at the current font. */
+export const fitText = (doc: jsPDF, text: string, maxWidth: number): string => {
+  if (maxWidth <= 0) return "";
+  if (doc.getTextWidth(text) <= maxWidth) return text;
+  let t = text;
+  while (t.length > 1 && doc.getTextWidth(`${t}…`) > maxWidth) t = t.slice(0, -1);
+  return `${t.trimEnd()}…`;
 };
 
 /** Draws the shared footer: hairline rule, brand line, confidential note, and page numbers. */
