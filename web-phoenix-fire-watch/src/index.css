@@ -287,3 +287,12 @@
   border: 1px solid rgb(var(--c-line));
   box-shadow: var(--shadow-card);
 }
+
+/* Invoice reader: light sweeping down the document icon while the file is read. */
+@keyframes scanline {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(36px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[scanline_1\.6s_ease-in-out_infinite\] { animation: none; }
+}

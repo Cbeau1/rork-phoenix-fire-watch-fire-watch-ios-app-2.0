@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AlertTriangle, Archive, ArchiveRestore, CheckCircle2, CircleHelp, Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Archive, ArchiveRestore, CheckCircle2, CircleHelp, Download, FileText, PenLine, Pencil, Plus, Scale, ScanText, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { DocumentsPanel } from "@/components/workforce/DocumentsPanel";
 import {
   AreaField,
+  CheckField,
   ConfirmDialog,
   DataTile,
   Empty,
@@ -23,6 +24,7 @@ import {
   TextField,
   toNum,
 } from "@/components/workforce/kit";
+import { ScanInvoiceDialog, type InvoicePrefill } from "@/components/workforce/InvoiceScan";
 import { placementPropertyName } from "@/components/workforce/placements";
 import { AgencyPayables, useAgencyInvoiceSync, WeeklyInvoiceDetail, weekRange } from "@/components/workforce/WeeklyInvoice";
 import { fmtHours } from "@/lib/timeclock";
@@ -35,31 +37,44 @@ import { cn } from "@/lib/utils";
 import NotFound from "@/pages/NotFound";
 import { useWorkforce } from "@/state/WorkforceProvider";
 
-const InvoiceDialog = ({ open, onOpenChange, invoice }: { open: boolean; onOpenChange: (v: boolean) => void; invoice: Invoice | null }) => {
+const InvoiceDialog = ({
+  open,
+  onOpenChange,
+  invoice,
+  prefill,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  invoice: Invoice | null;
+  prefill?: InvoicePrefill | null;
+}) => {
   const wf = useWorkforce();
   const navigate = useNavigate();
+  const scan = prefill?.scan ?? null;
   const init = useMemo(
     () => ({
-      agency_id: invoice?.agency_id ?? "",
-      invoice_number: invoice?.invoice_number ?? "",
-      period_start: invoice?.period_start ?? "",
-      period_end: invoice?.period_end ?? "",
-      invoice_date: invoice?.invoice_date ?? todayKey(),
-      due_date: invoice?.due_date ?? "",
-      total: invoice ? String(invoice.total) : "",
+      agency_id: invoice?.agency_id ?? prefill?.agencyId ?? (wf.agencies.length === 1 ? (wf.agencies[0]?.id ?? "") : ""),
+      invoice_number: invoice?.invoice_number ?? scan?.invoice_number ?? "",
+      period_start: invoice?.period_start ?? scan?.period_start ?? "",
+      period_end: invoice?.period_end ?? scan?.period_end ?? "",
+      invoice_date: invoice?.invoice_date ?? scan?.invoice_date ?? todayKey(),
+      due_date: invoice?.due_date ?? scan?.due_date ?? "",
+      total: invoice ? String(invoice.total) : scan?.total != null ? scan.total.toFixed(2) : "",
       status: invoice?.status ?? "received",
       review_notes: invoice?.review_notes ?? "",
       paid_on: invoice?.paid_on ?? "",
       payment_ref: invoice?.payment_ref ?? "",
     }),
-    [invoice],
+    [invoice, prefill, scan, wf.agencies],
   );
   const [d, setD] = useState(init);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [addLines, setAddLines] = useState<boolean>(true);
   useEffect(() => {
     if (open) {
       setD(init);
       setErrors({});
+      setAddLines(true);
     }
   }, [open, init]);
   const set = (k: keyof typeof init) => (v: string) => setD((p) => ({ ...p, [k]: v }));
@@ -69,9 +84,27 @@ const InvoiceDialog = ({ open, onOpenChange, invoice }: { open: boolean; onOpenC
         wf.invoices,
       )
     : [];
+  const scannedLines = scan?.lines ?? [];
+  const linesSum = Math.round(scannedLines.reduce((s, l) => s + (l.amount ?? 0), 0) * 100) / 100;
+  const ours = !invoice?.auto_generated && d.agency_id && d.period_start && d.period_end
+    ? wf.invoices.filter((i) => i.auto_generated && i.agency_id === d.agency_id && !!i.period_start && !!i.period_end && i.period_start <= d.period_end && (i.period_end ?? "") >= d.period_start)
+    : [];
+  const oursTotal = Math.round(ours.reduce((s, i) => s + Number(i.total), 0) * 100) / 100;
+  const billed = toNum(d.total);
+  const gap = billed !== null && ours.length > 0 ? Math.round((billed - oursTotal) * 100) / 100 : null;
+
+  const placementFor = (workerId: string | null, start: string | null, end: string | null) => {
+    if (!workerId) return null;
+    return (
+      wf.placements.find(
+        (p) => p.worker_id === workerId && p.agency_id === d.agency_id && (!end || p.start_date <= end) && (!p.end_date || !start || p.end_date >= start),
+      ) ?? null
+    );
+  };
+
   const save = useMutation({
-    mutationFn: () =>
-      api.saveInvoice(invoice?.id ?? null, {
+    mutationFn: async () => {
+      const saved = await api.saveInvoice(invoice?.id ?? null, {
         org_id: wf.orgId,
         agency_id: d.agency_id,
         invoice_number: d.invoice_number.trim(),
@@ -84,12 +117,56 @@ const InvoiceDialog = ({ open, onOpenChange, invoice }: { open: boolean; onOpenC
         review_notes: d.review_notes.trim(),
         paid_on: d.status === "paid" ? d.paid_on || todayKey() : d.paid_on || null,
         payment_ref: d.payment_ref.trim(),
-      }),
-    onSuccess: (i) => {
-      wf.invalidate("invoices");
-      toast.success(invoice ? "Invoice saved" : "Invoice recorded");
+      });
+      const warnings: string[] = [];
+      if (prefill?.file) {
+        try {
+          await api.uploadDocument({
+            file: prefill.file,
+            ownerType: "invoice",
+            ownerId: saved.id,
+            category: "invoice",
+            title: `${wf.agencyById.get(d.agency_id)?.name ?? "Agency"} invoice #${d.invoice_number.trim()}`,
+            issueDate: d.invoice_date || "",
+            classification: "standard",
+          });
+        } catch (e) {
+          warnings.push(`The invoice was saved, but the file didn't upload (${e instanceof Error ? e.message : "upload failed"}). Attach it under “Invoice file”.`);
+        }
+      }
+      if (!invoice && addLines && scannedLines.length > 0) {
+        const results = await Promise.allSettled(
+          scannedLines.map((l) => {
+            const start = l.service_start ?? (d.period_start || null);
+            const end = l.service_end ?? (d.period_end || null);
+            const pl = placementFor(l.worker_id, start, end);
+            const label = [l.worker_name, l.description].filter(Boolean).join(" — ");
+            return api.saveInvoiceLine(null, {
+              org_id: wf.orgId,
+              invoice_id: saved.id,
+              line_type: l.line_type,
+              placement_id: pl?.id ?? null,
+              worker_id: pl?.worker_id ?? l.worker_id,
+              service_start: start,
+              service_end: end,
+              description: label.slice(0, 300),
+              hours: l.line_type === "fee" ? null : l.hours,
+              rate: l.line_type === "fee" ? null : l.rate,
+              amount: l.amount ?? (l.hours != null && l.rate != null ? Math.round(l.hours * l.rate * 100) / 100 : 0),
+            });
+          }),
+        );
+        const failed = results.filter((r) => r.status === "rejected").length;
+        if (failed > 0) warnings.push(`${failed} of ${scannedLines.length} line items couldn't be added — add them under Line items.`);
+      }
+      return { saved, warnings };
+    },
+    onSuccess: ({ saved, warnings }) => {
+      wf.invalidate("invoices", "lines", "documents", "versions");
+      if (warnings.length) warnings.forEach((w) => toast.warning(w));
+      else toast.success(invoice ? "Invoice saved" : prefill?.file ? "Invoice recorded — file saved with it" : "Invoice recorded");
       onOpenChange(false);
-      if (!invoice) navigate(`/workforce/invoices/${i.id}`);
+      if (!invoice) navigate(`/workforce/invoices/${saved.id}`);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save."),
   });
@@ -97,10 +174,15 @@ const InvoiceDialog = ({ open, onOpenChange, invoice }: { open: boolean; onOpenC
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={invoice ? `Invoice #${invoice.invoice_number}` : "Record agency invoice"}
-      description="Enter details from the agency's invoice. Recording “Paid” is administrative tracking only — no payment is made."
-      dirty={JSON.stringify(d) !== JSON.stringify(init)}
+      title={invoice ? `Invoice #${invoice.invoice_number}` : scan ? "Check the invoice details" : "Record agency invoice"}
+      description={
+        scan
+          ? "Filled in from the agency's invoice. Check each field against the document, then save — the file is stored with the invoice."
+          : "Enter details from the agency's invoice. Recording “Paid” is administrative tracking only — no payment is made."
+      }
+      dirty={!!prefill || JSON.stringify(d) !== JSON.stringify(init)}
       saving={save.isPending}
+      submitLabel={prefill?.file ? "Save invoice & file" : "Save"}
       onSubmit={() => {
         const e: Record<string, string> = {};
         if (!d.agency_id) e.agency_id = "Choose the agency.";
@@ -114,16 +196,114 @@ const InvoiceDialog = ({ open, onOpenChange, invoice }: { open: boolean; onOpenC
       }}
       wide
     >
+      {prefill?.file && (
+        <div className="flex items-center gap-3 rounded-lg border border-line bg-raised px-3.5 py-2.5">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10">
+            <FileText className="h-4 w-4 text-primary" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium text-ink">{prefill.file.name}</div>
+            <div className="text-xs text-ink-3">
+              {(prefill.file.size / 1024).toFixed(0)} KB · saved to this invoice when you press Save
+              {scan?.vendor_name && ` · read as “${scan.vendor_name}”`}
+            </div>
+          </div>
+          {scan && (
+            <Pill tone="primary">
+              <Sparkles className="h-3 w-3" />
+              Auto-filled
+            </Pill>
+          )}
+        </div>
+      )}
+      {scan?.notes && (
+        <div className="flex items-start gap-2 rounded-lg border border-status-follow/50 bg-status-follow/10 px-3.5 py-2.5 text-sm text-ink">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-follow" />
+          {scan.notes}
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField label="Agency" required value={d.agency_id} onChange={set("agency_id")} error={errors.agency_id} disabled={!!invoice} options={wf.agencies.map((a) => ({ value: a.id, label: a.name }))} />
+        <SelectField
+          label="Agency"
+          required
+          value={d.agency_id}
+          onChange={set("agency_id")}
+          error={errors.agency_id ?? (scan && !prefill?.agencyId && !d.agency_id ? `Couldn't match “${scan.vendor_name ?? "the vendor"}” — choose the agency.` : undefined)}
+          disabled={!!invoice}
+          options={wf.agencies.map((a) => ({ value: a.id, label: a.name }))}
+        />
         <TextField label="Invoice number" required value={d.invoice_number} onChange={set("invoice_number")} error={errors.invoice_number} maxLength={80} />
         <TextField label="Service period start" type="date" value={d.period_start} onChange={set("period_start")} />
         <TextField label="Service period end" type="date" value={d.period_end} onChange={set("period_end")} error={errors.period_end} />
         <TextField label="Invoice date" type="date" value={d.invoice_date} onChange={set("invoice_date")} />
-        <TextField label="Due date" type="date" value={d.due_date} onChange={set("due_date")} />
+        <TextField label="Due date" type="date" value={d.due_date} onChange={set("due_date")} hint={scan?.payment_terms ? `Terms on invoice: ${scan.payment_terms}` : undefined} />
         <TextField label="Invoice total ($)" required inputMode="decimal" value={d.total} onChange={set("total")} error={errors.total} />
         <SelectField label="Status" required value={d.status} onChange={set("status")} options={Object.entries(INVOICE_STATUS).map(([value, m]) => ({ value, label: m.label }))} />
       </div>
+      {gap !== null && (
+        <div
+          className={cn(
+            "flex items-start gap-2 rounded-lg border px-3.5 py-2.5 text-sm text-ink",
+            Math.abs(gap) < 0.01 ? "border-status-clear/50 bg-status-clear/10" : "border-status-follow/50 bg-status-follow/10",
+          )}
+        >
+          {Math.abs(gap) < 0.01 ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-status-clear" /> : <Scale className="mt-0.5 h-4 w-4 shrink-0 text-status-follow" />}
+          <span>
+            Your weekly invoice for {ours.map((i) => weekRange(i)).join(", ")} comes to <b className="tabular-nums">{money(oursTotal)}</b> from approved hours.{" "}
+            {Math.abs(gap) < 0.01 ? "The agency's total matches." : (
+              <>
+                The agency billed <b className="tabular-nums">{money(Math.abs(gap))} {gap > 0 ? "more" : "less"}</b> — worth checking before you pay.
+              </>
+            )}
+          </span>
+        </div>
+      )}
+      {!invoice && scannedLines.length > 0 && (
+        <div className="rounded-lg border border-line">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3.5 py-2.5">
+            <CheckField
+              label={`Also add the ${scannedLines.length} line item${scannedLines.length === 1 ? "" : "s"} it found`}
+              checked={addLines}
+              onChange={setAddLines}
+            />
+            <span className={cn("text-xs tabular-nums", billed !== null && Math.abs(linesSum - billed) >= 0.01 ? "text-status-follow" : "text-ink-3")}>
+              Lines total {money(linesSum)}
+              {billed !== null && Math.abs(linesSum - billed) >= 0.01 && ` · ${money(Math.abs(linesSum - billed))} off the invoice total`}
+            </span>
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            <table className={cn("w-full text-left text-xs", !addLines && "opacity-50")}>
+              <thead className="sticky top-0 bg-raised text-[11px] uppercase tracking-wider text-ink-3">
+                <tr>
+                  <th className="px-3.5 py-2 font-medium">Worker / item</th>
+                  <th className="px-2 py-2 font-medium">Type</th>
+                  <th className="px-2 py-2 text-right font-medium">Hrs</th>
+                  <th className="px-2 py-2 text-right font-medium">Rate</th>
+                  <th className="px-3.5 py-2 text-right font-medium">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scannedLines.map((l, idx) => {
+                  const w = l.worker_id ? wf.workerById.get(l.worker_id) : undefined;
+                  return (
+                    <tr key={idx} className={cn("border-t border-line", l.line_type === "overtime" && "bg-status-follow/[0.07]")}>
+                      <td className="px-3.5 py-2">
+                        <div className="text-ink">{w ? fullName(w) : (l.worker_name ?? l.description) || "Item"}</div>
+                        {l.worker_name && !w && <div className="text-[11px] text-status-follow">Not matched to a worker</div>}
+                        {w && l.description && <div className="text-[11px] text-ink-3">{l.description}</div>}
+                      </td>
+                      <td className={cn("px-2 py-2", l.line_type === "overtime" ? "font-medium text-status-follow" : "text-ink-2")}>{INVOICE_LINE_TYPE[l.line_type] ?? l.line_type}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-ink-2">{l.hours ?? "—"}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-ink-2">{l.rate != null ? money(l.rate) : "—"}</td>
+                      <td className="px-3.5 py-2 text-right tabular-nums text-ink">{l.amount != null ? money(l.amount) : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       {d.status === "paid" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Payment date (recorded)" type="date" value={d.paid_on} onChange={set("paid_on")} error={errors.paid_on} />
@@ -197,7 +377,7 @@ const LineDialog = ({ open, onOpenChange, invoice, line }: { open: boolean; onOp
       open={open}
       onOpenChange={onOpenChange}
       title={line ? "Edit invoice line" : "Add invoice line"}
-      description="Enter each line exactly as invoiced. Lines are entered manually — there is no automatic invoice extraction."
+      description="Enter each line exactly as invoiced. Lines read from an uploaded invoice can be corrected here."
       dirty={JSON.stringify(d) !== JSON.stringify(init)}
       saving={save.isPending}
       onSubmit={() => {
@@ -255,6 +435,8 @@ export const InvoiceList = () => {
   const wf = useWorkforce();
   const [params, setParams] = useSearchParams();
   const [addOpen, setAddOpen] = useState<boolean>(false);
+  const [scanOpen, setScanOpen] = useState<boolean>(false);
+  const [prefill, setPrefill] = useState<InvoicePrefill | null>(null);
   const status = params.get("status") ?? "";
   const agency = params.get("agency") ?? "";
   const sync = useAgencyInvoiceSync();
@@ -274,10 +456,16 @@ export const InvoiceList = () => {
         title="Agency invoices"
         subtitle="A weekly invoice for each temp agency is built automatically from approved hours and pay rates (Monday–Sunday). You can still record an agency's own invoice to reconcile."
         actions={
-          <Button variant="outline" onClick={() => setAddOpen(true)} disabled={wf.agencies.length === 0}>
-            <Plus />
-            Record agency's invoice
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => { setPrefill(null); setAddOpen(true); }} disabled={wf.agencies.length === 0}>
+              <PenLine />
+              Enter manually
+            </Button>
+            <Button onClick={() => setScanOpen(true)} disabled={wf.agencies.length === 0}>
+              <ScanText />
+              Upload agency invoice
+            </Button>
+          </>
         }
       />
       {sync.isError && (
@@ -300,7 +488,7 @@ export const InvoiceList = () => {
       </div>
       {list.length === 0 ? (
         <div className="rounded-xl border border-line bg-surface shadow-card p-4">
-          <Empty title="No invoices" description={wf.agencies.length === 0 ? "Add an agency first." : "Record an agency invoice to start reconciling."} />
+          <Empty title="No invoices" description={wf.agencies.length === 0 ? "Add an agency first." : "Upload an agency invoice and it will be filled in for you."} />
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -360,7 +548,24 @@ export const InvoiceList = () => {
           })}
         </ul>
       )}
-      <InvoiceDialog open={addOpen} onOpenChange={setAddOpen} invoice={null} />
+      <ScanInvoiceDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onReady={(p) => {
+          setPrefill(p);
+          setScanOpen(false);
+          setAddOpen(true);
+        }}
+      />
+      <InvoiceDialog
+        open={addOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o);
+          if (!o) setPrefill(null);
+        }}
+        invoice={null}
+        prefill={prefill}
+      />
     </div>
   );
 };

@@ -390,6 +390,57 @@ export const saveInvoiceLine = async (id: string | null, row: TablesInsert<"wf_i
 export const deleteInvoiceLine = async (id: string) => {
   unwrap(await supabase.from("wf_invoice_lines").delete().eq("id", id).select("id"));
 };
+export interface ScannedInvoiceLine {
+  worker_name: string | null;
+  worker_id: string | null;
+  description: string;
+  line_type: "regular" | "overtime" | "holiday" | "fee";
+  service_start: string | null;
+  service_end: string | null;
+  hours: number | null;
+  rate: number | null;
+  amount: number | null;
+}
+
+export interface ScannedInvoice {
+  is_invoice: boolean;
+  vendor_name: string | null;
+  invoice_number: string | null;
+  invoice_date: string | null;
+  due_date: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  subtotal: number | null;
+  total: number | null;
+  payment_terms: string | null;
+  notes: string | null;
+  lines: ScannedInvoiceLine[];
+}
+
+/** Largest file the invoice reader accepts (the AI gateway caps request bodies). */
+export const MAX_SCAN_BYTES = 3 * 1024 * 1024;
+
+/** Reads an agency invoice PDF/photo server-side and returns the extracted fields. Nothing is saved. */
+export async function scanInvoice(file: File): Promise<{ invoice: ScannedInvoice; agencyId: string | null }> {
+  const form = new FormData();
+  form.set("file", file);
+  const { data, error } = await supabase.functions.invoke("invoice-scan", { body: form });
+  if (error) {
+    let message = "Couldn't read that invoice. Try again, or enter it manually.";
+    const ctx = (error as { context?: unknown }).context;
+    if (ctx instanceof Response) {
+      try {
+        const payload = (await ctx.json()) as { error?: string };
+        if (payload.error) message = payload.error;
+      } catch {
+        // not JSON
+      }
+    }
+    throw new Error(message);
+  }
+  return data as { invoice: ScannedInvoice; agencyId: string | null };
+}
+
 /** Rebuilds the weekly agency invoices from approved temp hours (server-side; paid weeks are never changed). */
 export const syncAgencyInvoices = async (): Promise<number> => {
   const { data, error } = await supabase.rpc("wf_sync_agency_invoices");
