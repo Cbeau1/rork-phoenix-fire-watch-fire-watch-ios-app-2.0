@@ -45,6 +45,8 @@ export interface PdfTable {
   foot?: PdfCell[][];
   /** Body row indexes to render bold on a tinted band (e.g. subtotals). */
   boldRows?: number[];
+  /** Body row indexes to flag on an amber band with a left marker (e.g. overtime shifts). */
+  highlightRows?: number[];
   /** Column indexes to right-align (numbers, hours, money). */
   numeric?: number[];
 }
@@ -206,6 +208,7 @@ export const buildPdf = async (opts: {
       const tbl = s.table;
       const numeric = new Set(tbl.numeric ?? []);
       const bold = new Set(tbl.boldRows ?? []);
+      const flagged = new Set(tbl.highlightRows ?? []);
       const columnStyles: Record<number, { halign: "right" }> = {};
       for (const i of numeric) columnStyles[i] = { halign: "right" };
       autoTable(doc, {
@@ -228,8 +231,16 @@ export const buildPdf = async (opts: {
             d.cell.styles.fontStyle = "bold";
             d.cell.styles.fillColor = [241, 242, 245];
           }
+          if (d.section === "body" && flagged.has(d.row.index)) {
+            d.cell.styles.fillColor = [254, 243, 214];
+            d.cell.styles.fontStyle = "bold";
+          }
         },
         didDrawCell: (d) => {
+          if (d.section === "body" && d.column.index === 0 && flagged.has(d.row.index)) {
+            doc.setFillColor(217, 119, 6);
+            doc.rect(d.cell.x, d.cell.y, 2.5, d.cell.height, "F");
+          }
           // Heavy rule above the first totals row, like a ledger.
           if (d.section === "foot" && d.row.index === 0) {
             doc.setDrawColor(...INK);

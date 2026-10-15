@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addDays, format } from "date-fns";
+import { addDays, format, startOfWeek } from "date-fns";
 import {
   AlertTriangle,
   CalendarDays,
@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Clock,
   FileDown,
+  Flame,
   History,
   Paperclip,
   Pencil,
@@ -64,7 +65,10 @@ import {
   loadOpenEntries,
   loadTeam,
   LOG_LABEL,
+  OVERTIME_MINUTES,
   periodLabel,
+  shiftOvertime,
+  type ShiftOvertime,
   reviewEntries,
   saveEntry,
   summarize,
@@ -74,6 +78,21 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/state/AuthProvider";
 import { useFireWatch } from "@/state/FireWatchProvider";
+
+/** A week at or above this (without going over 40) is flagged as "near overtime". */
+const NEAR_OT_MINUTES = 36 * 60;
+
+interface OvertimeInfo {
+  shifts: Map<string, ShiftOvertime>;
+  /** Weekly totals (approved + pending + open), keyed by week Monday. */
+  weeks: Map<string, number>;
+  /** Overtime minutes across the period, including hours still awaiting approval. */
+  overMin: number;
+  peakMin: number;
+  peakWeek: string | null;
+  /** Every overtime shift is already approved. */
+  confirmed: boolean;
+}
 
 const errMsg = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
@@ -109,6 +128,24 @@ const Payroll = () => {
   const tickets = useEntryTickets(entryIds, isAdmin);
   const people = useMemo(() => summarize(entries, period, nameFor), [entries, period, teamName]); // eslint-disable-line react-hooks/exhaustive-deps
   const showPay = (ratesQ.data?.size ?? 0) > 0;
+  const overtime = useMemo(() => {
+    const m = new Map<string, OvertimeInfo>();
+    for (const p of people) {
+      const shifts = shiftOvertime(p.entries, now);
+      const weeks = new Map<string, number>();
+      for (const s of shifts.values()) weeks.set(s.week, Math.max(weeks.get(s.week) ?? 0, s.afterMin));
+      const overMin = [...shifts.values()].reduce((sum, s) => sum + s.overMin, 0);
+      const peakMin = Math.max(0, ...weeks.values());
+      const peakWeek = [...weeks.entries()].find(([, v]) => v === peakMin)?.[0] ?? null;
+      m.set(p.key, { shifts, weeks, overMin, peakMin, peakWeek, confirmed: [...shifts.values()].every((s) => s.overMin === 0 || s.confirmed) });
+    }
+    return m;
+  }, [people, now]);
+  const overtimePeople = people.filter((p) => (overtime.get(p.key)?.overMin ?? 0) > 0);
+  const nearPeople = people.filter((p) => {
+    const o = overtime.get(p.key);
+    return !!o && o.overMin === 0 && o.peakMin >= NEAR_OT_MINUTES;
+  });
   const pay = useMemo(() => {
     const m = new Map<string, PayEstimate>();
     if (!ratesQ.data) return m;
@@ -264,9 +301,55 @@ const Payroll = () => {
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Metric label="Approved hours" value={fmtHours(totals.approved)} dot={THEME.success} />
         <Metric label="Awaiting approval" value={fmtHours(totals.pending)} dot={THEME.warning} sub={`${pending.length} ${pending.length === 1 ? "entry" : "entries"}`} />
-        <Metric label="Overtime (approved)" value={fmtHours(totals.overtime)} dot={THEME.warning} sub="Over 40 hrs / week" />
+        <Metric
+          label="Overtime (approved)"
+          value={fmtHours(totals.overtime)}
+          dot={THEME.warning}
+          sub={overtimePeople.length > 0 ? `${overtimePeople.length} ${overtimePeople.length === 1 ? "person" : "people"} over 40 hrs / week` : "Over 40 hrs / week"}
+        />
         <Metric label="On the clock now" value={String(openQ.data?.length ?? 0)} dot={THEME.success} pulse={(openQ.data?.length ?? 0) > 0} />
       </div>
+
+      {(overtimePeople.length > 0 || nearPeople.length > 0) && (
+        <section
+          aria-label="Overtime this period"
+          className="mb-5 overflow-hidden rounded-xl border border-status-follow/50 bg-status-follow/10"
+        >
+          <div className="flex items-center gap-2 border-b border-status-follow/30 px-4 py-2.5">
+            <Flame className="h-4 w-4 text-status-follow" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink">Overtime watch</span>
+            <span className="text-xs text-ink-3">Over 40 hrs in a Monday–Sunday week · tap a name to see the shift</span>
+          </div>
+          <ul className="flex flex-wrap gap-2 p-3">
+            {[...overtimePeople, ...nearPeople].map((p) => {
+              const o = overtime.get(p.key) as OvertimeInfo;
+              const over = o.overMin > 0;
+              return (
+                <li key={p.key}>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((s) => new Set(s).add(p.key))}
+                    className={cn(
+                      "focus-ring flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors",
+                      over ? "border-status-follow/60 bg-surface hover:bg-raised" : "border-line bg-surface/70 hover:bg-raised",
+                    )}
+                  >
+                    <span className="font-medium text-ink">{p.name}</span>
+                    {over ? (
+                      <span className="rounded-md bg-status-follow px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-canvas">
+                        +{fmtDuration(o.overMin)} OT
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs tabular-nums text-status-follow">{fmtDuration(o.peakMin)} · near 40</span>
+                    )}
+                    {over && !o.confirmed && <span className="text-[11px] text-ink-3">if approved</span>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {showPay && missingRate.length > 0 && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-status-follow/40 bg-status-follow/10 px-4 py-3 text-sm text-ink" role="status">
@@ -373,6 +456,7 @@ const Payroll = () => {
                   const reviewable = p.entries.filter((e) => e.status !== "open").map((e) => e.id);
                   const allSel = reviewable.length > 0 && reviewable.every((id) => selected.has(id));
                   const est = pay.get(p.key);
+                  const ot = overtime.get(p.key);
                   return (
                     <Fragment key={p.key}>
                       <tr className="cursor-pointer bg-raised transition-colors hover:bg-raised/70" onClick={() => toggleExpand(p.key)}>
@@ -399,6 +483,18 @@ const Payroll = () => {
                                 {p.pendingMin > 0 && <span className="font-mono text-xs text-status-follow">· {fmtHours(p.pendingMin)} pending</span>}
                                 {showPay && est && <span className="font-mono text-xs text-status-clear">· {fmtCents(est.grossCents)}</span>}
                               </div>
+                              {ot && ot.overMin > 0 ? (
+                                <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-status-follow px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-canvas">
+                                  <Flame className="h-3 w-3" />
+                                  Overtime · {fmtDuration(ot.overMin)}
+                                  {!ot.confirmed && <span className="font-medium normal-case tracking-normal opacity-80">(incl. pending)</span>}
+                                </div>
+                              ) : (
+                                ot &&
+                                ot.peakMin >= NEAR_OT_MINUTES && (
+                                  <div className="mt-1 text-[11px] font-medium text-status-follow">Near overtime · {fmtDuration(ot.peakMin)} in a week</div>
+                                )
+                              )}
                               {g.group === "agency" && (
                                 <div className="mt-0.5 text-xs text-ink-3">{typeOf(p).agency ? `via ${typeOf(p).agency}` : "Agency placed"}</div>
                               )}
@@ -440,10 +536,18 @@ const Payroll = () => {
                         <tr>
                           <td colSpan={colCount} className="bg-canvas/40 p-2 sm:p-3">
                             <ul className="space-y-1.5">
-                              {p.entries.map((e) => (
+                              {p.entries.map((e, i) => {
+                                const so = ot?.shifts.get(e.id);
+                                const prevWeek = i > 0 ? ot?.shifts.get(p.entries[i - 1].id)?.week : undefined;
+                                const week = so?.week ?? toWeekKey(e.clockIn);
+                                return (
+                                <Fragment key={e.id}>
+                                {(i === 0 || week !== (prevWeek ?? toWeekKey(p.entries[i - 1].clockIn))) && (
+                                  <WeekBar week={week} minutes={ot?.weeks.get(week) ?? 0} />
+                                )}
                                 <EntryRow
-                                  key={e.id}
                                   entry={e}
+                                  overtime={so}
                                   now={now}
                                   site={siteName(e.propertyId)}
                                   selected={selected.has(e.id)}
@@ -457,7 +561,9 @@ const Payroll = () => {
                                   onTickets={() => setTicketsFor(e)}
                                   busy={review.isPending}
                                 />
-                              ))}
+                                </Fragment>
+                                );
+                              })}
                             </ul>
                           </td>
                         </tr>
@@ -587,8 +693,43 @@ const Metric = ({ label, value, dot, sub, pulse }: { label: string; value: strin
   </div>
 );
 
+const toWeekKey = (iso: string): string => format(startOfWeek(new Date(iso), { weekStartsOn: 1 }), "yyyy-MM-dd");
+
+/** Weekly running total against 40 hours, shown above each week's shifts. */
+const WeekBar = ({ week, minutes }: { week: string; minutes: number }) => {
+  const over = minutes > OVERTIME_MINUTES;
+  const cap = Math.max(OVERTIME_MINUTES * 1.25, minutes);
+  const start = new Date(`${week}T00:00:00`);
+  return (
+    <li className="px-1 pb-1 pt-2 first:pt-0" aria-label={`Week of ${format(start, "MMM d")}: ${fmtDuration(minutes)}`}>
+      <div className="flex items-baseline justify-between gap-3 text-[11px]">
+        <span className="font-semibold uppercase tracking-[0.12em] text-ink-2">
+          Week of {format(start, "MMM d")} – {format(addDays(start, 6), "MMM d")}
+        </span>
+        <span className={cn("font-mono tabular-nums", over ? "font-bold text-status-follow" : "text-ink-3")}>
+          {fmtDuration(minutes)} / 40h{over && ` · +${fmtDuration(minutes - OVERTIME_MINUTES)} OT`}
+        </span>
+      </div>
+      <div className="relative mt-1.5 h-1.5 overflow-hidden rounded-full bg-rail">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-700 ease-out"
+          style={{ width: `${(Math.min(minutes, OVERTIME_MINUTES) / cap) * 100}%` }}
+        />
+        {over && (
+          <div
+            className="absolute inset-y-0 bg-status-follow transition-[width] duration-700 ease-out"
+            style={{ left: `${(OVERTIME_MINUTES / cap) * 100}%`, width: `${((minutes - OVERTIME_MINUTES) / cap) * 100}%` }}
+          />
+        )}
+        <div className="absolute inset-y-0 w-px bg-ink-2" style={{ left: `${(OVERTIME_MINUTES / cap) * 100}%` }} aria-hidden />
+      </div>
+    </li>
+  );
+};
+
 const EntryRow = ({
   entry: e,
+  overtime: ot,
   now,
   site,
   selected,
@@ -603,6 +744,7 @@ const EntryRow = ({
   busy,
 }: {
   entry: TimeEntry;
+  overtime?: ShiftOvertime;
   now: number;
   site: string;
   selected: boolean;
@@ -617,8 +759,16 @@ const EntryRow = ({
   busy: boolean;
 }) => {
   const isOpen = e.status === "open";
+  const isOt = (ot?.overMin ?? 0) > 0;
   return (
-    <li className={cn("flex flex-col gap-3 rounded-lg border bg-raised px-3 py-3 sm:flex-row sm:items-center", selected ? "border-primary/60" : "border-line")}>
+    <li
+      className={cn(
+        "relative flex flex-col gap-3 overflow-hidden rounded-lg border px-3 py-3 sm:flex-row sm:items-center",
+        isOt ? "border-status-follow/60 bg-status-follow/10 pl-4" : "bg-raised",
+        selected ? "border-primary/60" : !isOt && "border-line",
+      )}
+    >
+      {isOt && <span className="absolute inset-y-0 left-0 w-1 bg-status-follow" aria-hidden />}
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <input
           type="checkbox"
@@ -637,6 +787,16 @@ const EntryRow = ({
             {timeOfDay(e.clockIn)} → {e.clockOut ? timeOfDay(e.clockOut) : "now"}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {ot && isOt && (
+              <span
+                className="inline-flex items-center gap-1 rounded-md bg-status-follow px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-canvas"
+                title={ot.confirmed ? "Overtime — over 40 hours this week" : "Overtime once these hours are approved"}
+              >
+                <Flame className="h-3 w-3" />
+                {ot.crosses ? `Hits overtime ${ot.crossedAt ? timeOfDay(ot.crossedAt.toISOString()) : ""}` : "Overtime"}
+                <span className="font-mono normal-case tracking-normal">· {fmtDuration(ot.overMin)}</span>
+              </span>
+            )}
             <MetaPill meta={ENTRY_STATUS} value={e.status} />
             {e.shiftId && e.source === "manual" ? (
               <Pill tone="blue">From schedule</Pill>
@@ -663,7 +823,14 @@ const EntryRow = ({
             <p className="mt-1 line-clamp-2 text-xs text-ink-3">{e.adminNote ? `Admin: ${e.adminNote}` : `Note: ${e.employeeNote}`}</p>
           )}
         </div>
-        <div className="shrink-0 text-right font-mono text-base font-semibold tabular-nums text-ink">{fmtDuration(entryMinutes(e, now))}</div>
+        <div className="shrink-0 text-right">
+          <div className="font-mono text-base font-semibold tabular-nums text-ink">{fmtDuration(entryMinutes(e, now))}</div>
+          {ot && e.status !== "rejected" && (
+            <div className={cn("font-mono text-[11px] tabular-nums", isOt ? "font-semibold text-status-follow" : "text-ink-3")}>
+              {fmtDuration(ot.afterMin)} wk
+            </div>
+          )}
+        </div>
       </div>
       <div className="flex shrink-0 flex-wrap justify-end gap-1">
         {e.status === "pending" && (

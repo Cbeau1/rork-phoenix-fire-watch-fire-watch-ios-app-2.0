@@ -190,6 +190,57 @@ export const summarize = (entries: TimeEntry[], period: PayPeriod, nameFor: (id:
   return out.sort((a, b) => a.name.localeCompare(b.name));
 };
 
+/** Where one shift falls against the 40-hour workweek. */
+export interface ShiftOvertime {
+  /** Monday (yyyy-MM-dd) of the workweek this shift counts toward. */
+  week: string;
+  /** Hours already worked that week before this shift started (minutes). */
+  beforeMin: number;
+  /** Running weekly total once this shift ends (minutes). */
+  afterMin: number;
+  /** Part of this shift that is overtime (minutes). */
+  overMin: number;
+  /** True for the shift that pushes the week past 40 hours. */
+  crosses: boolean;
+  /** When the 40th hour was reached, for the crossing shift. */
+  crossedAt: Date | null;
+  /** False while this or an earlier counted shift still needs approval — the overtime is expected, not final. */
+  confirmed: boolean;
+}
+
+/**
+ * Running weekly totals per shift, in clock-in order, for one person's entries. Approved, pending and
+ * still-open shifts all count (so admins see overtime coming before they approve); rejected ones don't.
+ * The approved-only totals in `summarize` remain the paid figures.
+ */
+export const shiftOvertime = (entries: TimeEntry[], now: number = Date.now()): Map<string, ShiftOvertime> => {
+  const out = new Map<string, ShiftOvertime>();
+  const weeks = new Map<string, { min: number; confirmed: boolean }>();
+  const sorted = entries.filter((e) => e.status !== "rejected").sort((a, b) => Date.parse(a.clockIn) - Date.parse(b.clockIn));
+  for (const e of sorted) {
+    const week = toDateKey(weekStartOf(new Date(e.clockIn)));
+    const w = weeks.get(week) ?? { min: 0, confirmed: true };
+    const min = entryMinutes(e, now);
+    const beforeMin = w.min;
+    const afterMin = beforeMin + min;
+    const overMin = Math.max(0, afterMin - Math.max(beforeMin, OVERTIME_MINUTES));
+    const crosses = beforeMin < OVERTIME_MINUTES && afterMin > OVERTIME_MINUTES;
+    w.min = afterMin;
+    w.confirmed = w.confirmed && e.status === "approved";
+    weeks.set(week, w);
+    out.set(e.id, {
+      week,
+      beforeMin,
+      afterMin,
+      overMin,
+      crosses,
+      crossedAt: crosses ? new Date(Date.parse(e.clockIn) + (OVERTIME_MINUTES - beforeMin) * 60000) : null,
+      confirmed: w.confirmed,
+    });
+  }
+  return out;
+};
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 const COLS = "*, shift:shifts(shift_date, start_time, end_time)";

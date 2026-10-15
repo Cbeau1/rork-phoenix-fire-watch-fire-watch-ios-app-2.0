@@ -108,6 +108,7 @@ const weekEntries = [
   entry(6, "Robert Bradley", 19, 15, 12, "approved"),
   entry(7, "Robert Bradley", 19, 16, 12, "approved"),
   entry(8, "Justin D'SO", 7, 15, 8, "approved"),
+  entry(9, "Robert Bradley", 19, 17, 8, "pending"),
 ].filter((e) => new Date(e.clockIn) < addDays(period.start, period.days));
 const people = summarize(weekEntries, period, (_id, fb) => fb);
 const pay = new Map<string, PayEstimate>(people.map((p) => [p.key, estimatePay(p, period, rates.get(rateKey(p.profileId, p.name)))]));

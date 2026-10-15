@@ -6,6 +6,7 @@ import {
   fmtHours,
   periodEnd,
   periodLabel,
+  shiftOvertime,
   ENTRY_STATUS,
   type PayEstimate,
   type PayPeriod,
@@ -162,24 +163,35 @@ export const buildPayrollPdf = async (opts: PayrollPdfOpts): Promise<Blob> => {
     },
     ...people.map<PdfSection>((p) => {
       const est = pay?.get(p.key);
+      const ot = shiftOvertime(p.entries);
+      const otCell = (id: string) => {
+        const s = ot.get(id);
+        if (!s || s.overMin === 0) return "";
+        return `${s.crosses ? "Hits OT · " : "OT · "}${fmtHours(s.overMin)}${s.confirmed ? "" : "*"}`;
+      };
+      const highlightRows = p.entries.map((e, i) => ((ot.get(e.id)?.overMin ?? 0) > 0 ? i : -1)).filter((i) => i >= 0);
+      const projected = p.entries.some((e) => {
+        const s = ot.get(e.id);
+        return !!s && s.overMin > 0 && !s.confirmed;
+      });
       const recordedMin = p.entries.reduce((s, e) => s + (e.clockOut ? entryMinutes(e) : 0), 0);
       const foot: PdfCell[][] = [
         [
           { content: `Total recorded — ${p.entries.length} ${p.entries.length === 1 ? "shift" : "shifts"}`, colSpan: 3 },
           fmtHours(recordedMin),
-          { content: "", colSpan: 2 },
+          { content: projected ? "* Overtime once pending hours are approved" : "", colSpan: 3 },
         ],
         [
           { content: "Approved hours (paid)", colSpan: 3 },
           fmtHours(p.approvedMin),
-          { content: `Regular ${fmtHours(p.regularMin)}  ·  Overtime ${fmtHours(p.overMin)}`, colSpan: 2 },
+          { content: `Regular ${fmtHours(p.regularMin)}  ·  Overtime ${fmtHours(p.overMin)}`, colSpan: 3 },
         ],
         ...(p.pendingMin > 0 || p.openCount > 0
           ? [
               [
                 { content: "Not yet approved (excluded)", colSpan: 3 },
                 fmtHours(p.pendingMin),
-                { content: p.openCount ? `${p.openCount} still clocked in` : "", colSpan: 2 },
+                { content: p.openCount ? `${p.openCount} still clocked in` : "", colSpan: 3 },
               ] as PdfCell[],
             ]
           : []),
@@ -190,7 +202,7 @@ export const buildPayrollPdf = async (opts: PayrollPdfOpts): Promise<Blob> => {
                 fmtCents(est.grossCents),
                 {
                   content: `${est.rate !== null ? `$${est.rate.toFixed(2)}/hr` : "No rate on file"}${est.overtimePremiumCents > 0 ? `  ·  incl. ${fmtCents(est.overtimePremiumCents)} OT premium` : ""}`,
-                  colSpan: 2,
+                  colSpan: 3,
                 },
               ] as PdfCell[],
             ]
@@ -199,24 +211,27 @@ export const buildPayrollPdf = async (opts: PayrollPdfOpts): Promise<Blob> => {
       return {
         title: `${p.name}${typeOf ? ` (${typeLabel(p)})` : ""} — ${fmtHours(p.approvedMin)} approved hrs`,
         table: {
-          head: ["Date", "Clock in", "Clock out", "Hours", "Site", "Status"],
+          head: ["Date", "Clock in", "Clock out", "Hours", "Week total", "Overtime", "Site", "Status"],
           body: p.entries.map((e) => [
             format(new Date(e.clockIn), "EEE MMM d"),
             t(e.clockIn),
             t(e.clockOut),
             e.clockOut ? fmtHours(entryMinutes(e)) : "open",
+            e.status === "rejected" ? "—" : fmtHours(ot.get(e.id)?.afterMin ?? 0),
+            otCell(e.id),
             opts.siteName(e.propertyId),
             `${ENTRY_STATUS[e.status].label}${e.edited ? " (edited)" : ""}`,
           ]),
           foot,
-          numeric: [3],
+          highlightRows,
+          numeric: [3, 4],
         },
       };
     }),
     {
       title: "Approval",
       text: [
-        "Overtime is calculated on approved hours over 40 per Monday–Sunday workweek. Times are recorded by the server when each employee clocks in and out; admin corrections are logged with a reason.",
+        "Overtime is calculated on approved hours over 40 per Monday–Sunday workweek. Shifts that reach overtime are highlighted; \"Hits OT\" marks the shift that crosses 40 hours. Times are recorded by the server when each employee clocks in and out; admin corrections are logged with a reason.",
         ...(pay
           ? [
               "Gross pay is an estimate: approved hours × the hourly rate in effect each day, plus a half-time premium on overtime hours. It is before taxes and deductions and is not a paycheck.",
@@ -254,7 +269,9 @@ export const downloadPayrollCsv = (
   const ordered = typeOf ? groups.flatMap((g) => g.people) : people;
   for (const p of ordered) {
     const est = pay?.get(p.key);
+    const ot = shiftOvertime(p.entries);
     for (const e of p.entries) {
+      const s = ot.get(e.id);
       rows.push([
         p.name,
         typeCell(p),
@@ -262,6 +279,8 @@ export const downloadPayrollCsv = (
         t(e.clockIn),
         t(e.clockOut),
         e.clockOut ? fmtHours(entryMinutes(e)) : "",
+        s ? fmtHours(s.afterMin) : "",
+        s && s.overMin > 0 ? fmtHours(s.overMin) : "",
         siteName(e.propertyId),
         ENTRY_STATUS[e.status].label,
         e.edited ? "yes" : "no",
@@ -270,15 +289,15 @@ export const downloadPayrollCsv = (
       ]);
     }
     if (pay && est) {
-      rows.push([`${p.name} — estimated gross pay`, typeCell(p), "", "", "", fmtHours(p.approvedMin), "", "", "", "", (est.grossCents / 100).toFixed(2)]);
+      rows.push([`${p.name} — estimated gross pay`, typeCell(p), "", "", "", fmtHours(p.approvedMin), "", fmtHours(p.overMin), "", "", "", "", (est.grossCents / 100).toFixed(2)]);
     }
   }
   if (pay) {
-    for (const g of groups) rows.push([`${GROUP_LABEL[g.group]} — total gross pay`, "", "", "", "", fmtHours(g.approvedMin), "", "", "", "", (g.grossCents / 100).toFixed(2)]);
+    for (const g of groups) rows.push([`${GROUP_LABEL[g.group]} — total gross pay`, "", "", "", "", fmtHours(g.approvedMin), "", fmtHours(g.overMin), "", "", "", "", (g.grossCents / 100).toFixed(2)]);
   }
   downloadCsv(
     `${fileStem(period)}.csv`,
-    ["Employee", "Type", "Date", "Clock in", "Clock out", "Hours", "Site", "Status", "Edited", "Admin note", ...(pay ? ["Hourly rate / gross"] : [])],
+    ["Employee", "Type", "Date", "Clock in", "Clock out", "Hours", "Week running total", "Overtime hours", "Site", "Status", "Edited", "Admin note", ...(pay ? ["Hourly rate / gross"] : [])],
     rows,
   );
 };
