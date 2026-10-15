@@ -103,6 +103,46 @@ export const INVOICE_STATUS: Record<string, { label: string; tone: Tone }> = {
   paid: { label: "Paid", tone: "slate" },
 };
 
+/** Weekly invoices the app builds from approved temp-agency hours. */
+export const AUTO_INVOICE_STATUS: Record<string, { label: string; tone: Tone }> = {
+  draft: { label: "Week in progress", tone: "blue" },
+  received: { label: "Ready to pay", tone: "amber" },
+  under_review: { label: "Under review", tone: "amber" },
+  approved: { label: "Approved to pay", tone: "green" },
+  disputed: { label: "Disputed", tone: "red" },
+  paid: { label: "Paid", tone: "slate" },
+};
+
+export const invoiceStatusMeta = (i: Pick<Invoice, "auto_generated">): Record<string, { label: string; tone: Tone }> =>
+  i.auto_generated ? AUTO_INVOICE_STATUS : INVOICE_STATUS;
+
+/** Totals the server stores on each weekly agency invoice. */
+export interface AutoInvoiceSummary {
+  regularMin: number;
+  overtimeMin: number;
+  unpricedMin: number;
+  shifts: number;
+  workers: number;
+  pendingShifts: number;
+  pendingMin: number;
+  weekClosed: boolean;
+}
+
+export const autoSummary = (i: Pick<Invoice, "auto_summary">): AutoInvoiceSummary => {
+  const s = (i.auto_summary ?? {}) as Record<string, unknown>;
+  const n = (k: string): number => (typeof s[k] === "number" ? (s[k] as number) : 0);
+  return {
+    regularMin: n("regular_min"),
+    overtimeMin: n("overtime_min"),
+    unpricedMin: n("unpriced_min"),
+    shifts: n("shifts"),
+    workers: n("workers"),
+    pendingShifts: n("pending_shifts"),
+    pendingMin: n("pending_min"),
+    weekClosed: s.week_closed === true,
+  };
+};
+
 export const REVIEW_STATUS: Record<string, { label: string; tone: Tone }> = {
   pending: { label: "Pending review", tone: "amber" },
   approved: { label: "Approved", tone: "green" },

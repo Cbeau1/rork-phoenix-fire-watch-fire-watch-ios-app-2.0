@@ -390,6 +390,12 @@ export const saveInvoiceLine = async (id: string | null, row: TablesInsert<"wf_i
 export const deleteInvoiceLine = async (id: string) => {
   unwrap(await supabase.from("wf_invoice_lines").delete().eq("id", id).select("id"));
 };
+/** Rebuilds the weekly agency invoices from approved temp hours (server-side; paid weeks are never changed). */
+export const syncAgencyInvoices = async (): Promise<number> => {
+  const { data, error } = await supabase.rpc("wf_sync_agency_invoices");
+  if (error) throw wfError(error);
+  return data ?? 0;
+};
 
 /* ---------------- Reminders, settings, audit, permissions ---------------- */
 

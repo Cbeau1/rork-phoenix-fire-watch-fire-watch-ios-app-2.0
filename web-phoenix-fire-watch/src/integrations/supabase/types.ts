@@ -1971,6 +1971,7 @@ export type Database = {
           rate: number | null
           service_end: string | null
           service_start: string | null
+          time_entry_id: string | null
           worker_id: string | null
         }
         Insert: {
@@ -1986,6 +1987,7 @@ export type Database = {
           rate?: number | null
           service_end?: string | null
           service_start?: string | null
+          time_entry_id?: string | null
           worker_id?: string | null
         }
         Update: {
@@ -2001,6 +2003,7 @@ export type Database = {
           rate?: number | null
           service_end?: string | null
           service_start?: string | null
+          time_entry_id?: string | null
           worker_id?: string | null
         }
         Relationships: [
@@ -2026,6 +2029,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "wf_invoice_lines_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "wf_invoice_lines_worker_id_fkey"
             columns: ["worker_id"]
             isOneToOne: false
@@ -2038,9 +2048,12 @@ export type Database = {
         Row: {
           agency_id: string
           archived_at: string | null
+          auto_generated: boolean
+          auto_summary: Json
           created_at: string
           created_by: string | null
           due_date: string | null
+          generated_at: string | null
           id: string
           invoice_date: string | null
           invoice_number: string
@@ -2057,9 +2070,12 @@ export type Database = {
         Insert: {
           agency_id: string
           archived_at?: string | null
+          auto_generated?: boolean
+          auto_summary?: Json
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          generated_at?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number: string
@@ -2076,9 +2092,12 @@ export type Database = {
         Update: {
           agency_id?: string
           archived_at?: string | null
+          auto_generated?: boolean
+          auto_summary?: Json
           created_at?: string
           created_by?: string | null
           due_date?: string | null
+          generated_at?: string | null
           id?: string
           invoice_date?: string | null
           invoice_number?: string
@@ -3838,6 +3857,7 @@ export type Database = {
         Args: { p: Json; p_profile: string }
         Returns: undefined
       }
+      wf_sync_agency_invoices: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

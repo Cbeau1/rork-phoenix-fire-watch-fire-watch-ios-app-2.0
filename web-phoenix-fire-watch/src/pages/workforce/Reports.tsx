@@ -13,6 +13,7 @@ import {
   EQUIP_TYPE,
   fullName,
   INVOICE_STATUS,
+  invoiceStatusMeta,
   money,
   OWNERSHIP,
   PERSONNEL_TYPE,
@@ -174,7 +175,7 @@ const Reports = () => {
           r.expectedTotal === null ? "Incomplete" : money(r.expectedTotal),
           String(r.differences),
           String(r.unverified),
-          INVOICE_STATUS[i.status]?.label ?? i.status,
+          invoiceStatusMeta(i)[i.status]?.label ?? i.status,
           i.paid_on ? `${i.paid_on} ${i.payment_ref}` : "",
         ];
       });

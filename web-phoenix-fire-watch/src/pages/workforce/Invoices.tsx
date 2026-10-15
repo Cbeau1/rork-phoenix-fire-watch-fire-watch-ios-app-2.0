@@ -24,9 +24,11 @@ import {
   toNum,
 } from "@/components/workforce/kit";
 import { placementPropertyName } from "@/components/workforce/placements";
+import { AgencyPayables, useAgencyInvoiceSync, WeeklyInvoiceDetail, weekRange } from "@/components/workforce/WeeklyInvoice";
+import { fmtHours } from "@/lib/timeclock";
 import * as api from "@/lib/workforce/api";
 import { duplicateInvoices, reconcileInvoice } from "@/lib/workforce/calc";
-import { fullName, INVOICE_LINE_TYPE, INVOICE_STATUS, money, type Invoice, type InvoiceLine } from "@/lib/workforce/constants";
+import { autoSummary, fullName, INVOICE_LINE_TYPE, INVOICE_STATUS, invoiceStatusMeta, money, type Invoice, type InvoiceLine } from "@/lib/workforce/constants";
 import { buildPdf, downloadBlob, stamp } from "@/lib/workforce/exports";
 import { todayKey } from "@/lib/workforce/derive";
 import { cn } from "@/lib/utils";
@@ -255,6 +257,7 @@ export const InvoiceList = () => {
   const [addOpen, setAddOpen] = useState<boolean>(false);
   const status = params.get("status") ?? "";
   const agency = params.get("agency") ?? "";
+  const sync = useAgencyInvoiceSync();
   if (!wf.perms.finance) return <Restricted what="Agency invoice reconciliation" />;
   const list = wf.invoices.filter(
     (i) => !i.archived_at && (!agency || i.agency_id === agency) && (status === "open" ? i.status !== "paid" : !status || i.status === status),
@@ -269,14 +272,21 @@ export const InvoiceList = () => {
     <div>
       <PageHeader
         title="Agency invoices"
-        subtitle="Reconcile agency invoices against approved hours and agency bill rates. Client invoices are never touched."
+        subtitle="A weekly invoice for each temp agency is built automatically from approved hours and pay rates (Monday–Sunday). You can still record an agency's own invoice to reconcile."
         actions={
-          <Button onClick={() => setAddOpen(true)} disabled={wf.agencies.length === 0}>
+          <Button variant="outline" onClick={() => setAddOpen(true)} disabled={wf.agencies.length === 0}>
             <Plus />
-            Record invoice
+            Record agency's invoice
           </Button>
         }
       />
+      {sync.isError && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-status-follow/50 bg-status-follow/10 px-4 py-3 text-sm text-ink" role="alert">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-follow" />
+          Couldn't refresh this week's invoices just now — showing the last saved totals.
+        </div>
+      )}
+      <AgencyPayables invoices={wf.invoices} />
       <div className="mb-4 grid grid-cols-1 gap-3 rounded-xl border border-line bg-surface shadow-card p-3 sm:grid-cols-2 sm:p-4">
         <SelectField
           label="Status"
@@ -295,6 +305,33 @@ export const InvoiceList = () => {
       ) : (
         <ul className="space-y-2.5">
           {list.map((i) => {
+            if (i.auto_generated) {
+              const s = autoSummary(i);
+              const overdue = i.status !== "paid" && s.weekClosed && !!i.due_date && i.due_date < todayKey();
+              return (
+                <li key={i.id}>
+                  <Link to={`/workforce/invoices/${i.id}`} className="focus-ring block rounded-xl border border-line bg-surface shadow-card p-3 transition-colors hover:border-line-strong">
+                    <div className="flex flex-col gap-2 rounded-lg border border-line bg-raised px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-ink">{wf.agencyById.get(i.agency_id)?.name} · Week of {weekRange(i)}</span>
+                          <MetaPill meta={invoiceStatusMeta(i)} value={i.status} />
+                          {s.overtimeMin > 0 && <Pill tone="amber">{fmtHours(s.overtimeMin)} OT hrs</Pill>}
+                          {s.pendingShifts > 0 && i.status !== "paid" && <Pill tone="amber">{s.pendingShifts} awaiting approval</Pill>}
+                          {overdue && <Pill tone="red">Overdue</Pill>}
+                        </div>
+                        <div className="mt-0.5 text-xs text-ink-3">
+                          <span className="font-mono">{i.invoice_number}</span> · Auto · {s.shifts} {s.shifts === 1 ? "shift" : "shifts"} · {s.workers}{" "}
+                          {s.workers === 1 ? "worker" : "workers"} · {fmtHours(s.regularMin + s.overtimeMin)} hrs
+                          {i.status === "paid" ? ` · paid ${fmtDate(i.paid_on)}` : i.due_date && ` · due ${fmtDate(i.due_date)}`}
+                        </div>
+                      </div>
+                      <span className="font-display text-xl font-bold tabular-nums text-ink">{money(Number(i.total))}</span>
+                    </div>
+                  </Link>
+                </li>
+              );
+            }
             const rec = reconcileInvoice(i, wf.lines, wf.hours, wf.rates);
             const dup = duplicateInvoices(i, wf.invoices).length > 0;
             const overdue = i.due_date && i.due_date < todayKey() && i.status !== "paid";
@@ -355,6 +392,7 @@ export const InvoiceDetail = () => {
   });
   if (!wf.perms.finance) return <Restricted what="Agency invoice reconciliation" />;
   if (!invoice) return <NotFound embedded />;
+  if (invoice.auto_generated) return <WeeklyInvoiceDetail invoice={invoice} />;
   const rec = reconcileInvoice(invoice, wf.lines, wf.hours, wf.rates);
   const dupes = duplicateInvoices(invoice, wf.invoices);
   const agency = wf.agencyById.get(invoice.agency_id);

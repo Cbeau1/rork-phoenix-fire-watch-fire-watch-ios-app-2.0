@@ -24,7 +24,7 @@ import {
 } from "@/components/workforce/kit";
 import { PlacementCard } from "@/components/workforce/placements";
 import * as api from "@/lib/workforce/api";
-import { fullName, INVOICE_STATUS, money, WORKER_STATUS, type Agency } from "@/lib/workforce/constants";
+import { fullName, invoiceStatusMeta, money, WORKER_STATUS, type Agency } from "@/lib/workforce/constants";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/NotFound";
 import { useWorkforce } from "@/state/WorkforceProvider";
@@ -279,7 +279,7 @@ export const AgencyProfile = () => {
                           #{i.invoice_number} · {money(Number(i.total))}
                           {i.due_date && <span className="text-xs text-ink-3"> · due {fmtDate(i.due_date)}</span>}
                         </span>
-                        <MetaPill meta={INVOICE_STATUS} value={i.status} />
+                        <MetaPill meta={invoiceStatusMeta(i)} value={i.status} />
                       </Link>
                     </li>
                   ))}
