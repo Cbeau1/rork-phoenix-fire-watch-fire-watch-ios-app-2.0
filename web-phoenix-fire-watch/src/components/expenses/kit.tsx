@@ -23,6 +23,7 @@ export const ExNav = () => {
   const items = [
     { to: "/expenditures", label: "Overview", match: (p: string) => p === "/expenditures" },
     { to: "/expenditures/records", label: "Records", match: (p: string) => p.startsWith("/expenditures/records") },
+    { to: "/expenditures/recurring", label: "Monthly recurring", match: (p: string) => p.startsWith("/expenditures/recurring") },
     { to: "/expenditures/reimbursements", label: "Reimbursements", match: (p: string) => p.startsWith("/expenditures/reimbursements") },
     { to: "/expenditures/reports", label: "Reports", match: (p: string) => p.startsWith("/expenditures/reports") },
     { to: "/expenditures/settings", label: "Categories & history", match: (p: string) => p.startsWith("/expenditures/settings") },

@@ -10,6 +10,7 @@ export type Reversal = Tables<"ex_payment_reversals">;
 export type Attachment = Tables<"ex_attachments">;
 export type ShiftLink = Tables<"ex_shift_links">;
 export type HistoryEntry = Tables<"ex_history">;
+export type Recurring = Tables<"ex_recurring">;
 
 export type PaidBy = "business" | "owner" | "employee" | "other";
 export type Direction = "to_person" | "from_client";

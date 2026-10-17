@@ -247,6 +247,8 @@ export type Database = {
           property_id: string | null
           property_name: string
           purpose: string
+          recurring_id: string | null
+          recurring_period: string | null
           spent_on: string
           tax_amount: number | null
           updated_at: string
@@ -284,6 +286,8 @@ export type Database = {
           property_id?: string | null
           property_name?: string
           purpose?: string
+          recurring_id?: string | null
+          recurring_period?: string | null
           spent_on: string
           tax_amount?: number | null
           updated_at?: string
@@ -321,6 +325,8 @@ export type Database = {
           property_id?: string | null
           property_name?: string
           purpose?: string
+          recurring_id?: string | null
+          recurring_period?: string | null
           spent_on?: string
           tax_amount?: number | null
           updated_at?: string
@@ -396,6 +402,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_expenditures_recurring_id_fkey"
+            columns: ["recurring_id"]
+            isOneToOne: false
+            referencedRelation: "ex_recurring"
             referencedColumns: ["id"]
           },
           {
@@ -566,6 +579,126 @@ export type Database = {
           {
             foreignKeyName: "ex_payments_recorded_by_fkey"
             columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ex_recurring: {
+        Row: {
+          account_label: string
+          amount: number
+          archived_at: string | null
+          category_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          day_of_month: number
+          description: string
+          end_on: string | null
+          id: string
+          last_run_on: string | null
+          notes: string
+          org_id: string
+          paid_by: string
+          paused_at: string | null
+          payer_name: string
+          payment_method: string
+          property_id: string | null
+          property_name: string
+          skip_before: string | null
+          start_on: string
+          updated_at: string
+          updated_by: string | null
+          vendor: string
+        }
+        Insert: {
+          account_label?: string
+          amount: number
+          archived_at?: string | null
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          day_of_month: number
+          description: string
+          end_on?: string | null
+          id?: string
+          last_run_on?: string | null
+          notes?: string
+          org_id: string
+          paid_by: string
+          paused_at?: string | null
+          payer_name?: string
+          payment_method: string
+          property_id?: string | null
+          property_name?: string
+          skip_before?: string | null
+          start_on: string
+          updated_at?: string
+          updated_by?: string | null
+          vendor: string
+        }
+        Update: {
+          account_label?: string
+          amount?: number
+          archived_at?: string | null
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          day_of_month?: number
+          description?: string
+          end_on?: string | null
+          id?: string
+          last_run_on?: string | null
+          notes?: string
+          org_id?: string
+          paid_by?: string
+          paused_at?: string | null
+          payer_name?: string
+          payment_method?: string
+          property_id?: string | null
+          property_name?: string
+          skip_before?: string | null
+          start_on?: string
+          updated_at?: string
+          updated_by?: string | null
+          vendor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ex_recurring_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ex_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_recurring_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_recurring_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_recurring_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ex_recurring_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -3294,7 +3427,13 @@ export type Database = {
         Returns: string
       }
       ex_save_expenditure: { Args: { p: Json; p_id: string }; Returns: Json }
+      ex_save_recurring: { Args: { p: Json; p_id: string }; Returns: Json }
       ex_save_reimbursement: { Args: { p: Json; p_id: string }; Returns: Json }
+      ex_set_recurring_state: {
+        Args: { p_action: string; p_id: string }
+        Returns: Json
+      }
+      ex_sync_recurring: { Args: never; Returns: number }
       fw_distance_m: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number

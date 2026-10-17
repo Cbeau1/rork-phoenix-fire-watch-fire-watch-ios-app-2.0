@@ -39,6 +39,7 @@ import ExDetail from "./pages/expenditures/ExDetail";
 import ExLayout from "./pages/expenditures/ExLayout";
 import ExOverview from "./pages/expenditures/ExOverview";
 import ExRecords from "./pages/expenditures/ExRecords";
+import ExRecurring from "./pages/expenditures/ExRecurring";
 import ExReimbursements from "./pages/expenditures/ExReimbursements";
 import ExReports from "./pages/expenditures/ExReports";
 import ExSettings from "./pages/expenditures/ExSettings";
@@ -167,6 +168,7 @@ const AppRoutes = () => {
           <Route index element={<ExOverview />} />
           <Route path="records" element={<ExRecords />} />
           <Route path="records/:id" element={<ExDetail />} />
+          <Route path="recurring" element={<ExRecurring />} />
           <Route path="reimbursements" element={<ExReimbursements />} />
           <Route path="reports" element={<ExReports />} />
           <Route path="settings" element={<ExSettings />} />

@@ -8,6 +8,7 @@ import type {
   Expenditure,
   HistoryEntry,
   Payment,
+  Recurring,
   Reimbursement,
   Reversal,
   ShiftLink,
@@ -32,11 +33,15 @@ export interface ExData {
   reversals: Reversal[];
   attachments: Attachment[];
   shiftLinks: ShiftLink[];
+  recurring: Recurring[];
 }
 
 /** Every Expenditures table is RLS-protected (org + Expenditures permission). */
 export async function loadAll(): Promise<ExData> {
-  const [expenditures, categories, reimbursements, payments, allocations, reversals, attachments, shiftLinks] = await Promise.all([
+  // Add any monthly recurring entries that came due since the last hourly run. Fail-soft: the cron job is the backstop.
+  const sync = await supabase.rpc("ex_sync_recurring");
+  if (sync.error) console.warn("[Expenditures] recurring sync skipped", sync.error.message);
+  const [expenditures, categories, reimbursements, payments, allocations, reversals, attachments, shiftLinks, recurring] = await Promise.all([
     supabase.from("ex_expenditures").select("*").order("spent_on", { ascending: false }).order("created_at", { ascending: false }).limit(LIMIT),
     supabase.from("ex_categories").select("*").order("sort").order("name"),
     supabase.from("ex_reimbursements").select("*").order("requested_on", { ascending: false }).limit(LIMIT),
@@ -45,6 +50,7 @@ export async function loadAll(): Promise<ExData> {
     supabase.from("ex_payment_reversals").select("*").limit(LIMIT),
     supabase.from("ex_attachments").select("*").order("uploaded_at").limit(LIMIT),
     supabase.from("ex_shift_links").select("*").limit(LIMIT),
+    supabase.from("ex_recurring").select("*").is("archived_at", null).order("day_of_month").order("vendor"),
   ]);
   return {
     expenditures: unwrap(expenditures),
@@ -55,6 +61,7 @@ export async function loadAll(): Promise<ExData> {
     reversals: unwrap(reversals),
     attachments: unwrap(attachments),
     shiftLinks: unwrap(shiftLinks),
+    recurring: unwrap(recurring),
   };
 }
 
@@ -231,6 +238,31 @@ export const possibleDuplicates = async (vendor: string, date: string, amount: s
 
 export const saveCategory = async (id: string | null, name: string, kind: string, active: boolean, sort: number) =>
   unwrap(await supabase.rpc("ex_save_category", { p_id: id as string, p_name: name, p_kind: kind, p_active: active, p_sort: sort }));
+
+export type RecurringPayload = {
+  vendor: string;
+  description: string;
+  category_id: string;
+  amount: string;
+  currency: string;
+  paid_by: string;
+  payer_name: string;
+  payment_method: string;
+  account_label: string;
+  property_id: string;
+  client_name: string;
+  notes: string;
+  day_of_month: number;
+  start_on: string;
+  end_on: string;
+};
+
+/** Saves a monthly template; the server immediately adds any entries already due. */
+export const saveRecurring = async (id: string | null, p: RecurringPayload) =>
+  unwrap(await supabase.rpc("ex_save_recurring", { p_id: id as string, p: p as never })) as unknown as { id: string; created: number };
+
+export const setRecurringState = async (id: string, action: "pause" | "resume" | "delete") =>
+  unwrap(await supabase.rpc("ex_set_recurring_state", { p_id: id, p_action: action })) as unknown as { created: number };
 
 export type ReimbursementPayload = {
   expenditure_id?: string;

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Copy, FileSpreadsheet, FileText, Filter, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Copy, FileSpreadsheet, FileText, Filter, Plus, Repeat, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -102,6 +102,12 @@ const ExRecords = () => {
             <Button variant="outline" disabled={busy || rows.length === 0} onClick={() => void doExport("pdf")}>
               <FileText />
               PDF
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/expenditures/recurring">
+                <Repeat />
+                Monthly recurring
+              </Link>
             </Button>
             <Button onClick={() => setAddOpen(true)}>
               <Plus />
@@ -220,6 +226,7 @@ const ExRecords = () => {
                         <div className="truncate font-medium text-ink">{r.e.vendor}</div>
                         <div className="truncate text-xs text-ink-3">
                           {fmtDate(r.e.spent_on)} · {r.category?.name} · <span className="font-mono">{r.e.code}</span>
+                          {r.e.recurring_id && <Repeat className="ml-1 inline h-3 w-3 text-link" aria-label="Monthly recurring" />}
                         </div>
                       </div>
                       <span className="font-mono font-semibold tabular-nums text-ink">{fmtMoney(r.amount, r.e.currency)}</span>
@@ -272,8 +279,14 @@ const TableRow = ({ row: r, onOpen }: { row: ExpRow; onOpen: () => void }) => {
         <Link to={`/expenditures/records/${r.e.id}`} className="focus-ring block truncate font-medium text-ink hover:text-link" onClick={(e) => e.stopPropagation()}>
           {r.e.vendor}
         </Link>
-        <span className="flex items-center gap-1.5 font-mono text-[11px] text-ink-3">
-          {r.e.code}
+        <span className="flex flex-wrap items-center gap-x-1.5 font-mono text-[11px] text-ink-3">
+          <span className="whitespace-nowrap">{r.e.code}</span>
+          {r.e.recurring_id && (
+            <span className="inline-flex items-center gap-0.5 whitespace-nowrap text-link" title="Added automatically from a monthly recurring expense">
+              <Repeat className="h-3 w-3" aria-hidden />
+              Monthly
+            </span>
+          )}
           {r.duplicates.length > 0 && <Copy className="h-3 w-3 text-status-follow" aria-label="Possible duplicate" />}
         </span>
       </td>

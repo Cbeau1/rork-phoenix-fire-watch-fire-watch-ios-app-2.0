@@ -10,6 +10,7 @@ import {
   HandCoins,
   Pencil,
   Plus,
+  Repeat,
   RotateCcw,
   Send,
   Undo2,
@@ -367,6 +368,14 @@ const ExDetail = () => {
             <span>{fmtDate(e.spent_on)}</span>
             <span>· {row.category?.name}</span>
             {archived && <Pill tone="slate">Archived</Pill>}
+            {e.recurring_id && (
+              <Link to="/expenditures/recurring" className="focus-ring rounded">
+                <Pill tone="blue">
+                  <Repeat className="h-3 w-3" />
+                  Monthly recurring
+                </Pill>
+              </Link>
+            )}
             {!row.hasReceipt && <Pill tone="amber">Missing receipt</Pill>}
           </span>
         }

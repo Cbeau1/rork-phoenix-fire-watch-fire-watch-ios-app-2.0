@@ -19,6 +19,7 @@ const EMPTY: api.ExData = {
   reversals: [],
   attachments: [],
   shiftLinks: [],
+  recurring: [],
 };
 
 /**
