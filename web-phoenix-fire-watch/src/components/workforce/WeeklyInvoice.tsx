@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { AlertTriangle, Archive, ArchiveRestore, BadgeCheck, CalendarClock, Download, Flame, Info, Paperclip, Receipt, Wallet } from "lucide-react";
+import { AlertTriangle, Archive, ArchiveRestore, BadgeCheck, CalendarClock, Download, FileStack, Flame, Info, Paperclip, Receipt, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/fw/primitives";
 import { Button } from "@/components/ui/button";
 import { DocumentsPanel } from "@/components/workforce/DocumentsPanel";
 import { AreaField, fmtDate, FormDialog, isDate, MetaPill, Pill, SelectField, TextField } from "@/components/workforce/kit";
+import { TimeCardPacketDialog } from "@/components/workforce/TimeCardPacket";
 import { ShiftTicketsDialog, useEntryTickets } from "@/components/workforce/TimeTickets";
 import { timeOfDay } from "@/lib/format";
 import { fmtHours, loadEntriesByIds, type TimeEntry } from "@/lib/timeclock";
@@ -317,6 +318,7 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
   const [payOpen, setPayOpen] = useState<"pay" | "edit" | null>(null);
   const [ticketsFor, setTicketsFor] = useState<{ entry: TimeEntry; name: string } | null>(null);
   const [exporting, setExporting] = useState<boolean>(false);
+  const [packetOpen, setPacketOpen] = useState<boolean>(false);
   const sum = autoSummary(invoice);
   const agency = wf.agencyById.get(invoice.agency_id);
   const lines = useMemo(() => wf.lines.filter((l) => l.invoice_id === invoice.id), [wf.lines, invoice.id]);
@@ -387,6 +389,10 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
             <Button variant="outline" onClick={() => void exportPdf()} disabled={exporting || groups.length === 0}>
               <Download />
               {exporting ? "Preparing…" : "Invoice PDF"}
+            </Button>
+            <Button variant="outline" onClick={() => setPacketOpen(true)} disabled={!invoice.period_start}>
+              <FileStack />
+              Time cards
             </Button>
             {!paid ? (
               <Button onClick={() => setPayOpen("pay")}>
@@ -589,6 +595,13 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
       </div>
 
       <PaymentDialog open={payOpen !== null} onOpenChange={(o) => !o && setPayOpen(null)} invoice={invoice} markPaid={payOpen === "pay"} />
+      <TimeCardPacketDialog
+        open={packetOpen}
+        onOpenChange={setPacketOpen}
+        initialFrom={invoice.period_start ?? undefined}
+        initialTo={invoice.period_end ?? undefined}
+        initialAgencyId={invoice.agency_id}
+      />
       <ShiftTicketsDialog entry={ticketsFor?.entry ?? null} personName={ticketsFor?.name ?? ""} tickets={ticketsFor ? (tickets.get(ticketsFor.entry.id) ?? []) : []} onClose={() => setTicketsFor(null)} />
     </div>
   );

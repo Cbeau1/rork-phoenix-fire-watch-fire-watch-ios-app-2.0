@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Clock,
   FileDown,
+  FileStack,
   Flame,
   History,
   Paperclip,
@@ -41,6 +42,7 @@ import {
   SelectField,
   TextField,
 } from "@/components/workforce/kit";
+import { TimeCardPacketDialog } from "@/components/workforce/TimeCardPacket";
 import { ShiftTicketsDialog, useEntryTickets, type Ticket } from "@/components/workforce/TimeTickets";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useNow } from "@/hooks/use-now";
@@ -110,6 +112,7 @@ const Payroll = () => {
   const [historyFor, setHistoryFor] = useState<TimeEntry | null>(null);
   const [exportWarn, setExportWarn] = useState<boolean>(false);
   const [ticketsFor, setTicketsFor] = useState<TimeEntry | null>(null);
+  const [packetOpen, setPacketOpen] = useState<boolean>(false);
 
   const key = ["tc", "payroll", user?.orgId ?? "", period.start.toISOString(), period.days];
   const entriesQ = useQuery({ queryKey: key, enabled: isAdmin, queryFn: () => loadEntries(period) });
@@ -237,6 +240,10 @@ const Payroll = () => {
             <Button variant="outline" onClick={() => setEditing("new")}>
               <Plus />
               Add entry
+            </Button>
+            <Button variant="outline" onClick={() => setPacketOpen(true)}>
+              <FileStack />
+              Temp time cards
             </Button>
             <Button variant="outline" onClick={() => downloadPayrollCsv(period, people, siteName, showPay ? pay : undefined, typeOf)} disabled={entries.length === 0}>
               <Sheet />
@@ -597,6 +604,12 @@ const Payroll = () => {
 
       <HistoryDialog entry={historyFor} onClose={() => setHistoryFor(null)} />
 
+      <TimeCardPacketDialog
+        open={packetOpen}
+        onOpenChange={setPacketOpen}
+        initialFrom={format(period.start, "yyyy-MM-dd")}
+        initialTo={format(addDays(period.start, period.days - 1), "yyyy-MM-dd")}
+      />
       <ShiftTicketsDialog
         entry={ticketsFor}
         personName={ticketsFor ? nameFor(ticketsFor.profileId, ticketsFor.workerName) : ""}

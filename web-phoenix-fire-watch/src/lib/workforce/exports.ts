@@ -83,6 +83,11 @@ export const buildPdf = async (opts: {
   heading?: string;
   /** Footer disclaimer on every page. */
   footer?: string;
+  /**
+   * Adds extra pages (e.g. scanned attachments) after the sections. Content must sit between `top` and
+   * `bottom`; the running header and footer are drawn on every page afterwards.
+   */
+  appendix?: (doc: jsPDF, frame: { W: number; H: number; M: number; top: number; bottom: number }) => Promise<void>;
 }): Promise<Blob> => {
   const doc = new jsPDF({ unit: "pt", format: "letter", orientation: opts.landscape ? "landscape" : "portrait", compress: true });
   const W = doc.internal.pageSize.getWidth();
@@ -279,6 +284,8 @@ export const buildPdf = async (opts: {
     }
     y += 6;
   }
+
+  if (opts.appendix) await opts.appendix(doc, { W, H, M, top: 62, bottom: H - 48 });
 
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
