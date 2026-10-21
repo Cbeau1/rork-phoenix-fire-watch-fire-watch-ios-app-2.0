@@ -3335,6 +3335,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_export_data: { Args: never; Returns: Json }
       ex__date: {
         Args: { allow_null?: boolean; label: string; v: string }
         Returns: string

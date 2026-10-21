@@ -1,4 +1,4 @@
-import { Check, Database, ExternalLink, KeyRound, Loader2, ShieldAlert, Trash2, UserCog } from "lucide-react";
+import { Check, Database, Download, ExternalLink, KeyRound, Loader2, ShieldAlert, Trash2, UserCog } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { downloadFullExport } from "@/lib/dataExport";
 import { LEGAL, RETENTION_OPTIONS, retentionLabel } from "@/lib/legal";
 import { friendlyError } from "@/lib/supabase";
 import { ROLE_LABEL } from "@/lib/types";
@@ -40,6 +41,7 @@ const Account = () => {
   const [savingPw, setSavingPw] = useState<boolean>(false);
 
   const [savingRetention, setSavingRetention] = useState<boolean>(false);
+  const [exporting, setExporting] = useState<boolean>(false);
 
   const [deleteScope, setDeleteScope] = useState<DeleteScope | null>(null);
   const [confirmText, setConfirmText] = useState<string>("");
@@ -51,6 +53,19 @@ const Account = () => {
     if (online) return false;
     toast.error("You're offline", { description: "Account changes need a connection." });
     return true;
+  };
+
+  const runExport = async () => {
+    if (offlineGuard()) return;
+    setExporting(true);
+    try {
+      const r = await downloadFullExport(user.orgName);
+      toast.success("Export downloaded", { description: `${r.tables} tables · ${r.rows.toLocaleString()} rows` });
+    } catch (e) {
+      toast.error("Couldn't export", { description: friendlyError(e) });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const saveName = async (e: FormEvent) => {
@@ -217,6 +232,21 @@ const Account = () => {
               </span>
             )}
           </div>
+          {isAdmin && (
+            <div className="flex flex-col gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="text-sm font-medium text-ink">Download all data</div>
+                <p className="mt-1 max-w-md text-sm text-ink-2">
+                  Every table for {user.orgName} in one ZIP: a spreadsheet per table plus a complete JSON copy. Contains
+                  personal and pay details.
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => void runExport()} disabled={exporting || !online}>
+                {exporting ? <Loader2 className="animate-spin" /> : <Download />}
+                {exporting ? "Preparing…" : "Download ZIP"}
+              </Button>
+            </div>
+          )}
           <div className="rounded-lg border border-line bg-raised/50 p-4 text-sm leading-relaxed text-ink-2">
             Records are stored securely and are only visible to members of {user.orgName}. Offline changes are kept on
             this device only until they upload
