@@ -15,7 +15,7 @@ import { timeOfDay } from "@/lib/format";
 import { fmtHours, loadEntriesByIds, type TimeEntry } from "@/lib/timeclock";
 import { cn } from "@/lib/utils";
 import * as api from "@/lib/workforce/api";
-import { AUTO_INVOICE_STATUS, autoSummary, fullName, money, type Agency, type Invoice, type InvoiceLine } from "@/lib/workforce/constants";
+import { AUTO_INVOICE_STATUS, autoSummary, fullName, invoiceSchedule, money, type Agency, type Invoice, type InvoiceLine } from "@/lib/workforce/constants";
 import { todayKey } from "@/lib/workforce/derive";
 import { buildPdf, downloadBlob, type PdfCell, type PdfSection } from "@/lib/workforce/exports";
 import { useWorkforce } from "@/state/WorkforceProvider";
@@ -176,7 +176,7 @@ const exportInvoicePdf = async (invoice: Invoice, agency: Agency | undefined, gr
     orgName,
     preparedBy,
     confidential: false,
-    footer: "Built from approved timesheets · OT = over 40 hrs per Mon–Sun week at 1.5×",
+    footer: `Built from approved timesheets · OT = over 40 hrs per ${invoiceSchedule(invoice).weekLabelShort} week at 1.5×`,
     sections: [
       {
         title: "Amount due",
@@ -190,7 +190,7 @@ const exportInvoicePdf = async (invoice: Invoice, agency: Agency | undefined, gr
           ["Payable to", agency?.name ?? ""],
           ["Billing contact", [agency?.billing_contact, agency?.billing_email, agency?.billing_phone].filter(Boolean).join(" · ")],
           ["Terms", agency?.payment_terms ?? ""],
-          ["Service week", weekRange(invoice)],
+          ["Service week", `${weekRange(invoice)} (${invoiceSchedule(invoice).weekLabel})`],
           ["Invoice date", fmtDate(invoice.invoice_date)],
           ["Status", AUTO_INVOICE_STATUS[invoice.status]?.label ?? invoice.status],
           ...(invoice.paid_on ? ([["Paid", `${fmtDate(invoice.paid_on)}${invoice.payment_ref ? ` · ${invoice.payment_ref}` : ""}`]] as [string, string][]) : []),
@@ -368,6 +368,9 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
   const overtimeAmt = round2(groups.reduce((s, g) => s + g.rows.reduce((t, r) => t + r.otH * (r.otRate ?? 0), 0), 0));
   const regularAmt = round2(Number(invoice.total) - overtimeAmt);
   const overdue = !paid && sum.weekClosed && !!invoice.due_date && invoice.due_date < todayKey();
+  const sched = invoiceSchedule(invoice);
+  const endLabel = invoice.period_end ? format(parseISO(invoice.period_end), "MMM d") : "";
+  const invLabel = invoice.invoice_date ? format(parseISO(invoice.invoice_date), "EEEE, MMM d") : sched.invoiceDay;
 
   return (
     <div>
@@ -439,6 +442,7 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
                 <span className="inline-flex items-center gap-1.5 text-ink-2">
                   <CalendarClock className="h-4 w-4 text-ink-3" />
                   Service week <span className="text-ink">{weekRange(invoice)}</span>
+                  <span className="text-ink-3">· {sched.weekLabelShort}</span>
                 </span>
                 {agency?.payment_terms && (
                   <span className="text-ink-2">
@@ -460,7 +464,11 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
               { label: "Regular hours", value: fmtHours(sum.regularMin), sub: money(regularAmt) },
               { label: "Overtime hours", value: fmtHours(sum.overtimeMin), sub: sum.overtimeMin > 0 ? `${money(overtimeAmt)} at 1.5×` : "None this week", ot: sum.overtimeMin > 0 },
               { label: "Shifts", value: String(sum.shifts), sub: `${sum.workers} ${sum.workers === 1 ? "worker" : "workers"}` },
-              { label: "Invoice date", value: fmtDate(invoice.invoice_date, "MMM d"), sub: sum.weekClosed ? "Week closed" : "Closes Sunday night" },
+              {
+                label: "Invoice date",
+                value: fmtDate(invoice.invoice_date, "MMM d"),
+                sub: sum.ready ? `${sched.invoiceDay} · invoiced` : sum.weekClosed ? `Week closed · invoices ${sched.invoiceDay}` : `Week closes ${sched.closesAfter} night`,
+              },
             ].map((t) => (
               <div key={t.label} className="bg-surface px-5 py-4">
                 <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">
@@ -476,8 +484,13 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
 
         {!sum.weekClosed && !paid && (
           <Banner tone="info" icon={<Info className="mt-0.5 h-4 w-4 shrink-0 text-info-ink" />}>
-            This week is still in progress. The invoice updates on its own as shifts are approved, and becomes <strong>Ready to pay</strong> after Sunday,{" "}
-            {invoice.period_end ? format(parseISO(invoice.period_end), "MMM d") : ""}.
+            This week is still in progress. The invoice updates on its own as shifts are approved, closes after {sched.closesAfter}, {endLabel}, and becomes{" "}
+            <strong>Ready to pay</strong> on {invLabel}.
+          </Banner>
+        )}
+        {sum.weekClosed && !sum.ready && !paid && (
+          <Banner tone="info" icon={<Info className="mt-0.5 h-4 w-4 shrink-0 text-info-ink" />}>
+            This week closed {sched.closesAfter} night. Shifts approved before {invLabel} are still added, and it becomes <strong>Ready to pay</strong> that morning.
           </Banner>
         )}
         {sum.pendingShifts > 0 && !paid && (
@@ -587,7 +600,7 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
             </div>
           </dl>
           <p className="mt-3 text-xs text-ink-3">
-            Built from approved shifts using each worker's pay rate on file. Hours over 40 in a Monday–Sunday week bill at 1.5×. Compare with {agency?.name ?? "the agency"}'s own invoice and attach it below.
+            Built from approved shifts using each worker's pay rate on file. Hours over 40 in a {sched.weekLabel} billing week bill at 1.5×. Compare with {agency?.name ?? "the agency"}'s own invoice and attach it below.
           </p>
         </section>
 
@@ -611,12 +624,13 @@ export const WeeklyInvoiceDetail = ({ invoice }: { invoice: Invoice }) => {
 export const AgencyPayables = ({ invoices }: { invoices: Invoice[] }) => {
   const wf = useWorkforce();
   const rows = useMemo(() => {
-    const m = new Map<string, { agencyId: string; ready: Invoice[]; current: Invoice | null }>();
+    const m = new Map<string, { agencyId: string; ready: Invoice[]; current: Invoice | null; closing: Invoice | null }>();
     for (const i of invoices) {
       if (!i.auto_generated || i.archived_at || i.status === "paid") continue;
-      const r = m.get(i.agency_id) ?? { agencyId: i.agency_id, ready: [], current: null };
-      if (i.status === "draft") r.current = i;
-      else r.ready.push(i);
+      const r = m.get(i.agency_id) ?? { agencyId: i.agency_id, ready: [], current: null, closing: null };
+      if (i.status !== "draft") r.ready.push(i);
+      else if (autoSummary(i).weekClosed) r.closing = i;
+      else r.current = i;
       m.set(i.agency_id, r);
     }
     return [...m.values()];
@@ -652,6 +666,17 @@ export const AgencyPayables = ({ invoices }: { invoices: Invoice[] }) => {
                 </Button>
               )}
             </div>
+            {r.closing && (
+              <Link
+                to={`/workforce/invoices/${r.closing.id}`}
+                className="focus-ring flex items-center justify-between gap-3 border-t border-line bg-raised px-5 py-3 text-sm transition-colors hover:bg-surface-hover"
+              >
+                <span className="text-ink-2">
+                  Closed · <span className="text-ink">{weekRange(r.closing)}</span> · invoices {r.closing.invoice_date ? format(parseISO(r.closing.invoice_date), "EEE MMM d") : ""}
+                </span>
+                <span className="font-mono font-semibold tabular-nums text-ink">{money(Number(r.closing.total))}</span>
+              </Link>
+            )}
             {r.current && (
               <Link
                 to={`/workforce/invoices/${r.current.id}`}

@@ -454,7 +454,7 @@ export const InvoiceList = () => {
     <div>
       <PageHeader
         title="Agency invoices"
-        subtitle="A weekly invoice for each temp agency is built automatically from approved hours and pay rates (Monday–Sunday). You can still record an agency's own invoice to reconcile."
+        subtitle="A weekly invoice for each temp agency is built automatically from approved hours and pay rates, on that agency's billing week (Tuesday–Monday, invoiced Wednesday, unless changed on the agency). You can still record an agency's own invoice to reconcile."
         actions={
           <>
             <Button variant="outline" onClick={() => { setPrefill(null); setAddOpen(true); }} disabled={wf.agencies.length === 0}>

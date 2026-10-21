@@ -1478,6 +1478,7 @@ export type Database = {
           after_hours_phone: string
           archived_at: string | null
           archived_by: string | null
+          bill_week_start: number
           billing_contact: string
           billing_email: string
           billing_phone: string
@@ -1485,6 +1486,7 @@ export type Database = {
           created_by: string | null
           email: string
           id: string
+          invoice_weekday: number
           name: string
           notes: string
           org_id: string
@@ -1501,6 +1503,7 @@ export type Database = {
           after_hours_phone?: string
           archived_at?: string | null
           archived_by?: string | null
+          bill_week_start?: number
           billing_contact?: string
           billing_email?: string
           billing_phone?: string
@@ -1508,6 +1511,7 @@ export type Database = {
           created_by?: string | null
           email?: string
           id?: string
+          invoice_weekday?: number
           name: string
           notes?: string
           org_id?: string
@@ -1524,6 +1528,7 @@ export type Database = {
           after_hours_phone?: string
           archived_at?: string | null
           archived_by?: string | null
+          bill_week_start?: number
           billing_contact?: string
           billing_email?: string
           billing_phone?: string
@@ -1531,6 +1536,7 @@ export type Database = {
           created_by?: string | null
           email?: string
           id?: string
+          invoice_weekday?: number
           name?: string
           notes?: string
           org_id?: string

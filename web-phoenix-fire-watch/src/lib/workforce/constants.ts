@@ -126,7 +126,34 @@ export interface AutoInvoiceSummary {
   pendingShifts: number;
   pendingMin: number;
   weekClosed: boolean;
+  /** Past the agency's invoice day — the week is invoiced and payable. */
+  ready: boolean;
 }
+
+/** ISO weekday order (1 = Monday … 7 = Sunday), matching the agency billing-week settings. */
+export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] as const;
+export const weekdayName = (iso: number): string => WEEKDAYS[(((iso - 1) % 7) + 7) % 7];
+/** "Tuesday–Monday" for a billing week starting on Tuesday. */
+export const billWeekLabel = (startIso: number, short = false): string => {
+  const a = weekdayName(startIso);
+  const b = weekdayName(startIso + 6);
+  return short ? `${a.slice(0, 3)}–${b.slice(0, 3)}` : `${a}–${b}`;
+};
+const isoDow = (key: string): number => {
+  const [y, m, d] = key.slice(0, 10).split("-").map(Number);
+  const js = new Date(y, m - 1, d).getDay();
+  return js === 0 ? 7 : js;
+};
+/** Billing schedule as laid out on a specific weekly invoice (so older invoices describe themselves correctly). */
+export const invoiceSchedule = (i: Pick<Invoice, "period_start" | "invoice_date">) => {
+  const start = i.period_start ? isoDow(i.period_start) : 2;
+  return {
+    weekLabel: billWeekLabel(start),
+    weekLabelShort: billWeekLabel(start, true),
+    closesAfter: weekdayName(start + 6),
+    invoiceDay: i.invoice_date ? weekdayName(isoDow(i.invoice_date)) : "Wednesday",
+  };
+};
 
 export const autoSummary = (i: Pick<Invoice, "auto_summary">): AutoInvoiceSummary => {
   const s = (i.auto_summary ?? {}) as Record<string, unknown>;
@@ -140,6 +167,7 @@ export const autoSummary = (i: Pick<Invoice, "auto_summary">): AutoInvoiceSummar
     pendingShifts: n("pending_shifts"),
     pendingMin: n("pending_min"),
     weekClosed: s.week_closed === true,
+    ready: s.ready === true || (s.ready === undefined && s.week_closed === true),
   };
 };
 

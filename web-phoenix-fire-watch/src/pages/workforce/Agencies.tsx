@@ -20,11 +20,12 @@ import {
   Pill,
   Restricted,
   SectionCard,
+  SelectField,
   TextField,
 } from "@/components/workforce/kit";
 import { PlacementCard } from "@/components/workforce/placements";
 import * as api from "@/lib/workforce/api";
-import { fullName, invoiceStatusMeta, money, WORKER_STATUS, type Agency } from "@/lib/workforce/constants";
+import { billWeekLabel, fullName, invoiceStatusMeta, money, WEEKDAYS, weekdayName, WORKER_STATUS, type Agency } from "@/lib/workforce/constants";
 import { cn } from "@/lib/utils";
 import NotFound from "@/pages/NotFound";
 import { useWorkforce } from "@/state/WorkforceProvider";
@@ -53,7 +54,7 @@ export const AgencyDialog = ({ open, onOpenChange, agency }: { open: boolean; on
   const navigate = useNavigate();
   const init = useMemo(() => {
     const o = Object.fromEntries(FIELDS.map((f) => [f, (agency?.[f] as string | undefined) ?? ""])) as Record<Field, string>;
-    return { ...o, active: agency?.active ?? true };
+    return { ...o, active: agency?.active ?? true, bill_week_start: String(agency?.bill_week_start ?? 2), invoice_weekday: String(agency?.invoice_weekday ?? 3) };
   }, [agency]);
   const [d, setD] = useState(init);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,10 +68,20 @@ export const AgencyDialog = ({ open, onOpenChange, agency }: { open: boolean; on
   const save = useMutation({
     mutationFn: () => {
       const row = Object.fromEntries(FIELDS.map((f) => [f, d[f].trim()])) as Record<Field, string>;
-      return api.saveAgency(agency?.id ?? null, { ...row, active: d.active, org_id: wf.orgId });
+      return api.saveAgency(agency?.id ?? null, {
+        ...row,
+        active: d.active,
+        org_id: wf.orgId,
+        bill_week_start: Number(d.bill_week_start),
+        invoice_weekday: Number(d.invoice_weekday),
+      });
     },
     onSuccess: (a) => {
       wf.invalidate("agencies");
+      // A changed billing week re-lays unpaid weekly invoices on the server.
+      if (agency && (agency.bill_week_start !== a.bill_week_start || agency.invoice_weekday !== a.invoice_weekday)) {
+        void api.syncAgencyInvoices().then(() => wf.invalidate("invoices", "lines")).catch(() => undefined);
+      }
       toast.success(agency ? "Agency saved" : "Agency added");
       onOpenChange(false);
       if (!agency) navigate(`/workforce/agencies/${a.id}`);
@@ -111,6 +122,20 @@ export const AgencyDialog = ({ open, onOpenChange, agency }: { open: boolean; on
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField label="Account / customer number" value={d.account_number} onChange={set("account_number")} />
         <TextField label="Payment terms" value={d.payment_terms} onChange={set("payment_terms")} placeholder="e.g. Net 30" />
+        <SelectField
+          label="Billing week starts"
+          value={d.bill_week_start}
+          onChange={(v) => setD((p) => ({ ...p, bill_week_start: v }))}
+          options={WEEKDAYS.map((w, i) => ({ value: String(i + 1), label: `${w} (${billWeekLabel(i + 1, true)})` }))}
+          hint={`Each weekly invoice covers ${billWeekLabel(Number(d.bill_week_start))}, 12:00 AM to 12:00 AM. Overtime counts over 40 hrs in that week.`}
+        />
+        <SelectField
+          label="Invoiced on"
+          value={d.invoice_weekday}
+          onChange={(v) => setD((p) => ({ ...p, invoice_weekday: v }))}
+          options={WEEKDAYS.map((w, i) => ({ value: String(i + 1), label: w }))}
+          hint={`The first ${weekdayName(Number(d.invoice_weekday))} after the week ends — that's the invoice date, and it's ready to pay that morning.`}
+        />
       </div>
       <AreaField label="Administrative notes" value={d.notes} onChange={set("notes")} rows={3} />
       <CheckField label="Active agency" checked={d.active} onChange={(v) => setD((p) => ({ ...p, active: v }))} hint="Inactive agencies can't be chosen for new workers." />
@@ -241,6 +266,9 @@ export const AgencyProfile = () => {
             <DataTile label="Business address">{agency.address && <span className="whitespace-pre-line">{agency.address}</span>}</DataTile>
             <DataTile label="Account / customer #">{agency.account_number}</DataTile>
             <DataTile label="Payment terms">{agency.payment_terms}</DataTile>
+            <DataTile label="Billing week">
+              {billWeekLabel(agency.bill_week_start)} · invoiced {weekdayName(agency.invoice_weekday)}
+            </DataTile>
             <DataTile label="Administrative notes" className="sm:col-span-2 lg:col-span-3">{agency.notes && <span className="whitespace-pre-line">{agency.notes}</span>}</DataTile>
           </div>
         </SectionCard>
