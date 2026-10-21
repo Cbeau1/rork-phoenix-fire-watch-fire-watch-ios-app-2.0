@@ -1,4 +1,4 @@
-import { Check, Database, Download, ExternalLink, KeyRound, Loader2, ShieldAlert, Trash2, UserCog } from "lucide-react";
+import { Check, Database, Download, ExternalLink, FileSpreadsheet, KeyRound, Loader2, ShieldAlert, Trash2, UserCog } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import { downloadFullExport } from "@/lib/dataExport";
+import { downloadExcelReport, downloadFullExport } from "@/lib/dataExport";
 import { LEGAL, RETENTION_OPTIONS, retentionLabel } from "@/lib/legal";
 import { friendlyError } from "@/lib/supabase";
 import { ROLE_LABEL } from "@/lib/types";
@@ -41,7 +41,7 @@ const Account = () => {
   const [savingPw, setSavingPw] = useState<boolean>(false);
 
   const [savingRetention, setSavingRetention] = useState<boolean>(false);
-  const [exporting, setExporting] = useState<boolean>(false);
+  const [exporting, setExporting] = useState<"zip" | "xlsx" | null>(null);
 
   const [deleteScope, setDeleteScope] = useState<DeleteScope | null>(null);
   const [confirmText, setConfirmText] = useState<string>("");
@@ -55,16 +55,21 @@ const Account = () => {
     return true;
   };
 
-  const runExport = async () => {
+  const runExport = async (kind: "zip" | "xlsx") => {
     if (offlineGuard()) return;
-    setExporting(true);
+    setExporting(kind);
     try {
-      const r = await downloadFullExport(user.orgName);
-      toast.success("Export downloaded", { description: `${r.tables} tables · ${r.rows.toLocaleString()} rows` });
+      if (kind === "xlsx") {
+        const r = await downloadExcelReport(user.orgName);
+        toast.success("Excel workbook downloaded", { description: `${r.sheets} sheets · ${r.rows.toLocaleString()} rows` });
+      } else {
+        const r = await downloadFullExport(user.orgName);
+        toast.success("Export downloaded", { description: `${r.tables} tables · ${r.rows.toLocaleString()} rows` });
+      }
     } catch (e) {
       toast.error("Couldn't export", { description: friendlyError(e) });
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
   };
 
@@ -237,14 +242,21 @@ const Account = () => {
               <div>
                 <div className="text-sm font-medium text-ink">Download all data</div>
                 <p className="mt-1 max-w-md text-sm text-ink-2">
-                  Every table for {user.orgName} in one ZIP: a spreadsheet per table plus a complete JSON copy. Contains
+                  An Excel workbook for {user.orgName} with a tab for properties, employees, schedule, timesheets,
+                  payroll, invoices, expenditures and more, in local time. The ZIP has every raw table. Contains
                   personal and pay details.
                 </p>
               </div>
-              <Button variant="outline" onClick={() => void runExport()} disabled={exporting || !online}>
-                {exporting ? <Loader2 className="animate-spin" /> : <Download />}
-                {exporting ? "Preparing…" : "Download ZIP"}
-              </Button>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button onClick={() => void runExport("xlsx")} disabled={exporting !== null || !online}>
+                  {exporting === "xlsx" ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}
+                  {exporting === "xlsx" ? "Preparing…" : "Download Excel"}
+                </Button>
+                <Button variant="outline" onClick={() => void runExport("zip")} disabled={exporting !== null || !online}>
+                  {exporting === "zip" ? <Loader2 className="animate-spin" /> : <Download />}
+                  {exporting === "zip" ? "Preparing…" : "Raw ZIP"}
+                </Button>
+              </div>
             </div>
           )}
           <div className="rounded-lg border border-line bg-raised/50 p-4 text-sm leading-relaxed text-ink-2">

@@ -57,3 +57,118 @@ export const downloadFullExport = async (orgName: string): Promise<{ tables: num
   downloadBlob(new Blob([zip], { type: "application/zip" }), `${safe}_data_export_${stamp}.zip`);
   return { tables: p.tables.length, rows: totalRows };
 };
+
+interface ReportSheet {
+  name: string;
+  rows: Record<string, unknown>[];
+}
+interface ReportPayload {
+  org_name: string;
+  timezone: string;
+  exported_at: string;
+  sheets: ReportSheet[];
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DATETIME_RE = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+const MONEY_COL = /(pay|rate|amount|total|tax|requested|approved$|premium|monthly)/i;
+const HOURS_COL = /hours/i;
+
+/** Local wall-clock strings become Excel dates without any time zone shift. */
+const toExcelDate = (s: string): Date => {
+  const [d, t] = s.split(" ");
+  const [y, m, day] = d.split("-").map(Number);
+  const [hh, mm] = (t ?? "00:00").split(":").map(Number);
+  return new Date(Date.UTC(y, m - 1, day, hh, mm));
+};
+
+/**
+ * Downloads a readable Excel workbook for the admin's organization: one sheet per area
+ * (properties, employees, schedule, timesheets, payroll, invoices, expenditures…), with names
+ * instead of ids and times in the organization's local time zone.
+ */
+export const downloadExcelReport = async (orgName: string): Promise<{ sheets: number; rows: number }> => {
+  const [{ data, error }, ExcelJS] = await Promise.all([supabase.rpc("admin_export_report"), import("exceljs")]);
+  if (error) throw new Error(error.message);
+  const p = data as unknown as ReportPayload;
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Phoenix Fire Watch";
+  wb.created = new Date(p.exported_at);
+
+  const sheets = p.sheets.map((s) => {
+    const columns = Object.keys(s.rows[0] ?? {}).filter((c) => c !== "__n");
+    const rows = s.rows.filter((r) => r.__n !== null && r.__n !== undefined);
+    return { name: s.name, columns, rows };
+  });
+  const total = sheets.reduce((n, s) => n + s.rows.length, 0);
+
+  const navy = "FF0F1E36";
+  const styleHeader = (ws: import("exceljs").Worksheet) => {
+    const h = ws.getRow(1);
+    h.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    h.fill = { type: "pattern", pattern: "solid", fgColor: { argb: navy } };
+    h.alignment = { vertical: "middle" };
+    h.height = 20;
+    ws.views = [{ state: "frozen", ySplit: 1 }];
+  };
+
+  // Summary sheet first
+  const sum = wb.addWorksheet("Summary");
+  sum.columns = [{ width: 28 }, { width: 48 }];
+  sum.addRow([`${orgName} — data export`]).font = { bold: true, size: 14 };
+  sum.addRow(["Exported", new Date(p.exported_at).toLocaleString()]);
+  sum.addRow(["Times shown in", p.timezone]);
+  sum.addRow(["Total rows", total]);
+  sum.addRow([]);
+  const sh = sum.addRow(["Sheet", "Rows"]);
+  sh.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  sh.fill = { type: "pattern", pattern: "solid", fgColor: { argb: navy } };
+  for (const s of sheets) sum.addRow([s.name, s.rows.length]);
+  sum.addRow([]);
+  sum.addRow(["Notes", "Payroll by week uses approved, clocked-out hours; weeks run Monday–Sunday; overtime is hours over 40 per week at time-and-a-half."]);
+  sum.addRow(["", "Uploaded files (photos, documents, receipts) are not included — only their records."]);
+  sum.addRow(["", "This file contains personal and pay information. Store it securely."]);
+  sum.getColumn(2).alignment = { wrapText: true, vertical: "top" };
+
+  for (const s of sheets) {
+    const ws = wb.addWorksheet(s.name.slice(0, 31));
+    ws.addRow(s.columns);
+    styleHeader(ws);
+    const widths = s.columns.map((c) => Math.max(10, c.length + 2));
+    for (const r of s.rows) {
+      const values = s.columns.map((c, i) => {
+        const v = r[c];
+        if (v === null || v === undefined || v === "") return null;
+        if (typeof v === "string") {
+          widths[i] = Math.min(60, Math.max(widths[i], v.length + 2));
+          if (DATE_RE.test(v) || DATETIME_RE.test(v)) return toExcelDate(v);
+          return v;
+        }
+        if (typeof v === "object") return JSON.stringify(v);
+        widths[i] = Math.max(widths[i], String(v).length + 4);
+        return v as number | boolean;
+      });
+      ws.addRow(values);
+    }
+    s.columns.forEach((c, i) => {
+      const col = ws.getColumn(i + 1);
+      col.width = widths[i];
+      const sample = s.rows.find((r) => typeof r[c] === "string" && r[c] !== "")?.[c] as string | undefined;
+      const firstNum = s.rows.find((r) => typeof r[c] === "number")?.[c];
+      if (sample && DATETIME_RE.test(sample)) { col.numFmt = "yyyy-mm-dd h:mm AM/PM"; col.width = Math.max(col.width ?? 10, 20); }
+      else if (sample && DATE_RE.test(sample)) { col.numFmt = "yyyy-mm-dd"; col.width = Math.max(col.width ?? 10, 12); }
+      else if (firstNum !== undefined && HOURS_COL.test(c)) col.numFmt = "0.00";
+      else if (firstNum !== undefined && MONEY_COL.test(c)) col.numFmt = '"$"#,##0.00';
+      col.eachCell((cl, rowNo) => { if (rowNo === 1) cl.numFmt = "@"; });
+    });
+    if (s.rows.length) ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: s.columns.length } };
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const safe = orgName.replace(/[^\w-]+/g, "_").replace(/^_|_$/g, "") || "Organization";
+  downloadBlob(
+    new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+    `${safe}_report_${p.exported_at.slice(0, 10)}.xlsx`,
+  );
+  return { sheets: sheets.length, rows: total };
+};
