@@ -2075,6 +2075,35 @@ export type Database = {
           },
         ]
       }
+      profit_settings: {
+        Row: {
+          direct_burden_pct: number
+          org_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          direct_burden_pct?: number
+          org_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          direct_burden_pct?: number
+          org_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profit_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       properties: {
         Row: {
           access_instructions: string
@@ -2165,6 +2194,67 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_bill_rates: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          hourly_rate: number
+          id: string
+          note: string
+          org_id: string
+          property_id: string
+          source: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date: string
+          hourly_rate: number
+          id?: string
+          note?: string
+          org_id: string
+          property_id: string
+          source?: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          hourly_rate?: number
+          id?: string
+          note?: string
+          org_id?: string
+          property_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_bill_rates_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_bill_rates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_bill_rates_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -4735,6 +4825,52 @@ export type Database = {
       org_set_timezone: {
         Args: { p_force?: boolean; p_tz: string }
         Returns: string
+      }
+      profit_add_bill_rate: {
+        Args: {
+          p_effective: string
+          p_note?: string
+          p_property: string
+          p_rate: number
+        }
+        Returns: {
+          contract_id: string | null
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          hourly_rate: number
+          id: string
+          note: string
+          org_id: string
+          property_id: string
+          source: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "property_bill_rates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      profit_dashboard: {
+        Args: { p_end?: string; p_period?: string; p_start?: string }
+        Returns: Json
+      }
+      profit_delete_bill_rate: { Args: { p_id: string }; Returns: undefined }
+      profit_save_settings: {
+        Args: { p_burden: number }
+        Returns: {
+          direct_burden_pct: number
+          org_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profit_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       shift__window: {
         Args: { p_tz: string; s: Database["public"]["Tables"]["shifts"]["Row"] }

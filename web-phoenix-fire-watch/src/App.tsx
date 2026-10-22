@@ -24,6 +24,7 @@ import Dashboard from "./pages/Dashboard";
 import LogPatrol from "./pages/LogPatrol";
 import MyHours from "./pages/MyHours";
 import Payroll from "./pages/Payroll";
+import Profit from "./pages/Profit";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Properties from "./pages/Properties";
@@ -158,6 +159,7 @@ const AppRoutes = () => {
         <Route path="/team" element={<Team />} />
         <Route path="/hours" element={<MyHours />} />
         <Route path="/payroll" element={<Payroll />} />
+        <Route path="/profit" element={<Profit />} />
         <Route path="/account" element={<Account />} />
         <Route path="/settings" element={<Account />} />
         <Route path="/workforce" element={<WorkforceLayout />}>

@@ -17,6 +17,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { ClientRateCard } from "@/components/fw/ClientRateCard";
 import { DailyReportCard } from "@/components/fw/DailyReportCard";
 import { GeofenceCard } from "@/components/fw/GeofenceCard";
 import { PatrolRow } from "@/components/fw/PatrolRow";
@@ -275,6 +276,8 @@ const PropertyDetail = () => {
       <PatrolTimerCard property={property} />
 
       <GeofenceCard property={property} isAdmin={isAdmin} />
+
+      {isAdmin && <ClientRateCard propertyId={property.id} />}
 
       {isAdmin && <DailyReportCard propertyId={property.id} />}
 
