@@ -1,11 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { addDays, endOfMonth, format, parseISO, startOfMonth } from "date-fns";
-import { AlertTriangle, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, Info, Loader2, ScanText, Sparkles, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ScanInvoiceDialog, type InvoicePrefill } from "@/components/workforce/InvoiceScan";
 import { AreaField, CheckField, FormDialog, SelectField, TextField } from "@/components/workforce/kit";
 import * as api from "@/lib/expenses/api";
 import { CURRENCIES, METHOD, METHODS_FOR, PAID_BY, type Expenditure, type PaidBy } from "@/lib/expenses/constants";
@@ -91,12 +92,59 @@ const initDraft = (e: Expenditure | null, preset?: Partial<Draft>): Draft => ({
 
 const isPersonal = (paidBy: string) => paidBy !== "business";
 
+/** "BRADLEY, ROBERT" and "Robert Bradley" both become ["bradley","robert"]. */
+const nameTokens = (s: string) => {
+  const flipped = s.includes(",") ? s.split(",").reverse().join(" ") : s;
+  return flipped.toLowerCase().replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean);
+};
+/** Same person if every word of the shorter name appears in the longer one (handles middle names). */
+const sameName = (a: string, b: string) => {
+  const ta = nameTokens(a);
+  const tb = nameTokens(b);
+  if (ta.length === 0 || tb.length === 0) return false;
+  const [short, long] = ta.length <= tb.length ? [ta, new Set(tb)] : [tb, new Set(ta)];
+  return short.length >= 2 ? short.every((t) => long.has(t)) : false;
+};
+const isDate = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+interface ScanSummary {
+  fileName: string;
+  read: boolean;
+  total: string | null;
+  hours: number;
+  period: string | null;
+  shiftsLinked: number;
+  shiftsTaken: number;
+  matched: string[];
+  unmatched: string[];
+  notes: string | null;
+}
+
 /** Shift picker for payroll expenditures — links existing schedule shifts instead of duplicating them. */
-const ShiftPicker = ({ expenditureId, anchor, selected, onChange, agency = false }: { expenditureId: string | null; anchor: string; selected: string[]; onChange: (ids: string[]) => void; agency?: boolean }) => {
+const ShiftPicker = ({
+  expenditureId,
+  anchor,
+  selected,
+  onChange,
+  agency = false,
+  range,
+}: {
+  expenditureId: string | null;
+  anchor: string;
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  agency?: boolean;
+  range?: { from: string; to: string } | null;
+}) => {
   const ex = useExpenses();
   const base = /^\d{4}-\d{2}-\d{2}$/.test(anchor) ? parseISO(anchor) : new Date();
-  const [from, setFrom] = useState<string>(format(startOfMonth(addDays(base, -14)), "yyyy-MM-dd"));
-  const [to, setTo] = useState<string>(format(endOfMonth(base), "yyyy-MM-dd"));
+  const [from, setFrom] = useState<string>(range?.from ?? format(startOfMonth(addDays(base, -14)), "yyyy-MM-dd"));
+  const [to, setTo] = useState<string>(range?.to ?? format(endOfMonth(base), "yyyy-MM-dd"));
+  useEffect(() => {
+    if (!range) return;
+    setFrom(range.from);
+    setTo(range.to);
+  }, [range]);
   const q = useQuery({ queryKey: ["ex", "shifts", from, to], enabled: !!from && !!to && from <= to, queryFn: () => api.loadShifts(from, to) });
   const taken = useMemo(() => {
     const m = new Map<string, string>();
@@ -184,6 +232,11 @@ export const ExpenditureForm = ({
   const [dupes, setDupes] = useState<Awaited<ReturnType<typeof api.possibleDuplicates>>>([]);
   const [dupConfirm, setDupConfirm] = useState<boolean>(false);
   const [dupNote, setDupNote] = useState<string>("");
+  const [scanOpen, setScanOpen] = useState<boolean>(false);
+  const [scanFile, setScanFile] = useState<File | null>(null);
+  const [scanRange, setScanRange] = useState<{ from: string; to: string } | null>(null);
+  const [scanSummary, setScanSummary] = useState<ScanSummary | null>(null);
+  const [matching, setMatching] = useState<boolean>(false);
 
   useEffect(() => {
     if (open) {
@@ -193,6 +246,9 @@ export const ExpenditureForm = ({
       setDupes([]);
       setDupConfirm(false);
       setDupNote("");
+      setScanFile(null);
+      setScanRange(null);
+      setScanSummary(null);
     }
   }, [open, init, initShifts]);
 
@@ -201,7 +257,7 @@ export const ExpenditureForm = ({
     (v: Draft[K]) =>
       setD((p) => ({ ...p, [k]: v }));
 
-  const dirty = JSON.stringify(d) !== JSON.stringify(init) || JSON.stringify(shiftIds) !== JSON.stringify(initShifts);
+  const dirty = JSON.stringify(d) !== JSON.stringify(init) || JSON.stringify(shiftIds) !== JSON.stringify(initShifts) || !!scanFile;
   const category = ex.index.categoryById.get(d.category_id);
   const personal = isPersonal(d.paid_by);
   const methods = METHODS_FOR[personal ? "personal" : "business"];
@@ -265,6 +321,108 @@ export const ExpenditureForm = ({
         invoice_ref: p.invoice_ref || inv.number,
         spent_on: isNew && inv.paidOn ? inv.paidOn : isNew && inv.invoiceDate ? inv.invoiceDate : p.spent_on,
       };
+    });
+  };
+
+  /** Fills the form from an uploaded agency invoice and ticks the matching schedule shifts. Nothing is saved yet. */
+  const applyScan = async (p: InvoicePrefill) => {
+    setScanOpen(false);
+    setScanFile(p.file);
+    const s = p.scan;
+    if (!s) {
+      setScanSummary({ fileName: p.file.name, read: false, total: null, hours: 0, period: null, shiftsLinked: 0, shiftsTaken: 0, matched: [], unmatched: [], notes: null });
+      return;
+    }
+    const agencyCat = category?.kind === "agency" ? category : ex.categories.find((c) => c.active && c.kind === "agency");
+    const agency = p.agencyId ? ex.agencyById.get(p.agencyId) : undefined;
+    const total = s.total ?? s.subtotal;
+    const lineDates = s.lines.flatMap((l) => [l.service_start, l.service_end]).filter(isDate).sort();
+    const from = isDate(s.period_start) ? s.period_start : (lineDates[0] ?? null);
+    const to = isDate(s.period_end) ? s.period_end : (lineDates[lineDates.length - 1] ?? null);
+    const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+    const serviceDate = [to, s.invoice_date].find((x): x is string => isDate(x) && x <= tomorrow);
+    const period = from && to ? `${format(parseISO(from), "MMM d")}–${format(parseISO(to), "MMM d")}` : null;
+    const hours = s.lines.filter((l) => l.line_type !== "fee").reduce((a, l) => a + (l.hours ?? 0), 0);
+    const vendor = agency?.name || s.vendor_name || "";
+    const existingInv = s.invoice_number
+      ? ex.lookups.invoices.find(
+          (i) => i.number.trim() === s.invoice_number?.trim() && (!p.agencyId || i.agencyId === p.agencyId) && !linkedInvoiceIds.has(i.id) && !i.archived,
+        )
+      : undefined;
+
+    // Match invoice lines to schedule shifts by worker name and service dates.
+    const workers = new Map<string, { name: string; start: string | null; end: string | null }[]>();
+    for (const l of s.lines) {
+      if (!l.worker_name || l.line_type === "fee") continue;
+      const key = nameTokens(l.worker_name).sort().join(" ");
+      const arr = workers.get(key) ?? [];
+      arr.push({ name: l.worker_name, start: isDate(l.service_start) ? l.service_start : from, end: isDate(l.service_end) ? l.service_end : to });
+      workers.set(key, arr);
+    }
+    let picked: string[] = [];
+    let takenCount = 0;
+    const matched = new Set<string>();
+    const props = new Set<string>();
+    if (from && to && workers.size > 0) {
+      setMatching(true);
+      try {
+        const shifts = await api.loadShifts(from, to);
+        const active = new Set(ex.data.expenditures.filter((e) => !e.archived_at && e.id !== expenditure?.id).map((e) => e.id));
+        const taken = new Set(ex.data.shiftLinks.filter((l) => active.has(l.expenditure_id)).map((l) => l.shift_id));
+        for (const sh of shifts) {
+          for (const [key, ranges] of workers) {
+            const hit = ranges.find((r) => sameName(r.name, sh.staffName) && (!r.start || sh.date >= r.start) && (!r.end || sh.date <= r.end));
+            if (!hit) continue;
+            matched.add(key);
+            if (taken.has(sh.id)) takenCount++;
+            else {
+              picked.push(sh.id);
+              if (sh.propertyId) props.add(sh.propertyId);
+            }
+            break;
+          }
+        }
+      } catch {
+        picked = [];
+      } finally {
+        setMatching(false);
+      }
+    }
+    const display = (key: string) => {
+      const raw = workers.get(key)?.[0]?.name ?? key;
+      const flipped = raw.includes(",") ? raw.split(",").reverse().join(" ") : raw;
+      return flipped.trim().toLowerCase().replace(/\s+/g, " ").replace(/\b[a-z]/g, (c) => c.toUpperCase());
+    };
+
+    setD((prev) => ({
+      ...prev,
+      category_id: agencyCat?.id ?? prev.category_id,
+      vendor: vendor || prev.vendor,
+      amount: total != null && total > 0 ? centsToInput(Math.round(total * 100)) : prev.amount,
+      spent_on: serviceDate ?? prev.spent_on,
+      invoice_ref: s.invoice_number?.trim() || prev.invoice_ref,
+      description:
+        prev.description ||
+        [`${vendor || "Agency"} staffing invoice${s.invoice_number ? ` #${s.invoice_number.trim()}` : ""}`, period && `week ${period}`, hours > 0 && `${hours.toFixed(2).replace(/\.?0+$/, "")} h`]
+          .filter(Boolean)
+          .join(" · "),
+      agency_id: p.agencyId ?? prev.agency_id,
+      agency_invoice_id: existingInv?.id ?? prev.agency_invoice_id,
+      property_id: props.size === 1 && !prev.property_id ? [...props][0] : prev.property_id,
+    }));
+    if (from && to) setScanRange({ from, to });
+    if (picked.length > 0) setShiftIds((prev) => Array.from(new Set([...prev, ...picked])));
+    setScanSummary({
+      fileName: p.file.name,
+      read: true,
+      total: total != null ? fmtMoney(Math.round(total * 100)) : null,
+      hours,
+      period,
+      shiftsLinked: picked.length,
+      shiftsTaken: takenCount,
+      matched: [...matched].map(display),
+      unmatched: [...workers.keys()].filter((k) => !matched.has(k)).map(display),
+      notes: s.notes,
     });
   };
 
@@ -394,6 +552,13 @@ export const ExpenditureForm = ({
           warnings.push(`Client/agency recovery wasn't created: ${err instanceof Error ? err.message : "unknown error"}`);
         }
       }
+      if (scanFile) {
+        try {
+          await api.uploadFile(scanFile, { expenditureId: res.id });
+        } catch (err) {
+          warnings.push(`Saved, but the invoice file didn't attach (${err instanceof Error ? err.message : "upload failed"}). Upload it from the record page.`);
+        }
+      }
       return { ...res, warnings };
     },
     onSuccess: (res) => {
@@ -427,7 +592,10 @@ export const ExpenditureForm = ({
   const propertyOptions = ex.properties.map((p) => ({ value: p.id, label: p.name }));
   const agencyOptions = ex.lookups.agencies.filter((a) => !a.archived || a.id === d.agency_id).map((a) => ({ value: a.id, label: a.name }));
 
+  const showScan = isNew || category?.kind === "agency";
+
   return (
+    <>
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
@@ -441,6 +609,75 @@ export const ExpenditureForm = ({
     >
       <fieldset className="grid gap-4">
         <legend className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-link">Purchase</legend>
+        {showScan && !scanSummary && (
+          <button
+            type="button"
+            onClick={() => setScanOpen(true)}
+            disabled={matching}
+            className="focus-ring group flex w-full items-center gap-3 rounded-lg border border-dashed border-line-strong bg-raised px-3.5 py-3 text-left transition-colors hover:border-primary/60 hover:bg-raised-hover"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 transition-transform group-hover:scale-105">
+              <ScanText className="h-4 w-4 text-primary" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-ink">Upload an agency invoice (e.g. HireQuest)</span>
+              <span className="block text-xs text-ink-3">We'll fill in the amount, dates, invoice number and the matching shifts. You check and finish the rest.</span>
+            </span>
+            <Upload className="h-4 w-4 shrink-0 text-ink-3" />
+          </button>
+        )}
+        {matching && (
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-raised px-3.5 py-3 text-sm text-ink-2" role="status">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Matching invoice lines to schedule shifts…
+          </div>
+        )}
+        {scanSummary && !matching && (
+          <div className="rounded-lg border border-primary/40 bg-primary/5 p-3.5 text-sm" role="status">
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-ink">{scanSummary.read ? "Filled in from the invoice — check before saving" : "Invoice file attached — enter the details below"}</div>
+                <div className="truncate text-xs text-ink-3">{scanSummary.fileName} · attaches to this record when you save</div>
+                {scanSummary.read && (
+                  <ul className="mt-2 space-y-1 text-xs text-ink-2">
+                    <li>
+                      {[scanSummary.total && `Total ${scanSummary.total}`, scanSummary.period && `week ${scanSummary.period}`, scanSummary.hours > 0 && `${scanSummary.hours.toFixed(2).replace(/\.?0+$/, "")} hours`]
+                        .filter(Boolean)
+                        .join(" · ") || "No totals found"}
+                    </li>
+                    <li>
+                      {scanSummary.shiftsLinked > 0
+                        ? `${scanSummary.shiftsLinked} schedule shift${scanSummary.shiftsLinked === 1 ? "" : "s"} ticked for ${scanSummary.matched.join(", ")}.`
+                        : "No matching schedule shifts were found — tick them below if they exist."}
+                      {scanSummary.shiftsTaken > 0 && ` ${scanSummary.shiftsTaken} already belong to another expense and were skipped.`}
+                    </li>
+                    {scanSummary.unmatched.length > 0 && (
+                      <li className="text-status-follow">Not on the schedule: {scanSummary.unmatched.join(", ")} — their hours stay on the invoice total but can't be ticked.</li>
+                    )}
+                    {scanSummary.notes && <li className="text-ink-3">Reader note: {scanSummary.notes}</li>}
+                    <li className="text-ink-3">Still yours to fill: who paid, payment method, and property if the shifts span more than one.</li>
+                  </ul>
+                )}
+                <div className="mt-2 flex gap-3 text-xs">
+                  <button type="button" className="text-link hover:underline" onClick={() => setScanOpen(true)}>
+                    Upload a different file
+                  </button>
+                  <button
+                    type="button"
+                    className="text-ink-3 hover:underline"
+                    onClick={() => {
+                      setScanFile(null);
+                      setScanSummary(null);
+                    }}
+                  >
+                    Don't attach the file
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <TextField label="Purchase / service date" type="date" required value={d.spent_on} onChange={set("spent_on")} error={errors.spent_on} />
           <TextField label="Vendor / payee" required value={d.vendor} onChange={set("vendor")} error={errors.vendor} className="sm:col-span-2" maxLength={200} />
@@ -513,7 +750,7 @@ export const ExpenditureForm = ({
           </div>
         )}
         {(category?.kind === "payroll" || category?.kind === "agency") && (
-          <ShiftPicker expenditureId={expenditure?.id ?? null} anchor={d.spent_on} selected={shiftIds} onChange={setShiftIds} agency={category.kind === "agency"} />
+          <ShiftPicker expenditureId={expenditure?.id ?? null} anchor={d.spent_on} selected={shiftIds} onChange={setShiftIds} agency={category.kind === "agency"} range={scanRange} />
         )}
       </fieldset>
 
@@ -591,7 +828,7 @@ export const ExpenditureForm = ({
       )}
 
       <AreaField label="Notes" rows={2} value={d.notes} onChange={set("notes")} />
-      {isNew && <p className="-mt-2 text-xs text-ink-3">Upload receipts from the record page after saving. Expenses without receipts are allowed and flagged “Missing receipt”.</p>}
+      {isNew && !scanFile && <p className="-mt-2 text-xs text-ink-3">Upload receipts from the record page after saving. Expenses without receipts are allowed and flagged “Missing receipt”.</p>}
 
       {dupes.length > 0 && (
         <div className="rounded-lg border border-status-follow/50 bg-status-follow/10 p-3.5" role="alert">
@@ -625,5 +862,7 @@ export const ExpenditureForm = ({
         </div>
       )}
     </FormDialog>
+    <ScanInvoiceDialog open={scanOpen} onOpenChange={setScanOpen} onReady={(p) => void applyScan(p)} />
+    </>
   );
 };
