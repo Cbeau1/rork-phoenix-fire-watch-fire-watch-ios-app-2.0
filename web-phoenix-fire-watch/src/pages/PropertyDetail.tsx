@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { ClientRateCard } from "@/components/fw/ClientRateCard";
 import { DailyReportCard } from "@/components/fw/DailyReportCard";
 import { GeofenceCard } from "@/components/fw/GeofenceCard";
+import { WatchEmailCard } from "@/components/fw/WatchEmailCard";
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { PatrolTimerCard } from "@/components/fw/PatrolTimerCard";
 import { ReportViewer, type GeneratedReport } from "@/components/fw/ReportViewer";
@@ -280,6 +281,7 @@ const PropertyDetail = () => {
       {isAdmin && <ClientRateCard propertyId={property.id} />}
 
       {isAdmin && <DailyReportCard propertyId={property.id} />}
+      {isAdmin && <WatchEmailCard propertyId={property.id} />}
 
       <div className="mt-5 grid grid-cols-2 gap-4 lg:gap-5 xl:grid-cols-4">
         <DetailStat label="Total Patrols" value={stats.total} icon={PersonStanding} iconClass="text-link" />

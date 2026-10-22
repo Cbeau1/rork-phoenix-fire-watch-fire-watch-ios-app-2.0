@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { AlertTriangle, CalendarX2, CheckCircle2, Flame, Info, Loader2, Play, Square } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { AlertTriangle, CalendarX2, CheckCircle2, Flame, Info, Loader2, Mail, Play, Square } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -9,8 +9,9 @@ import { Card, FieldLabel } from "@/components/fw/primitives";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ErrorBlock, isDate } from "@/components/workforce/kit";
+import { CheckField, ErrorBlock, isDate } from "@/components/workforce/kit";
 import { money } from "@/lib/crm/types";
+import { fetchWatchEmailStatus, runWatchEmails, skipWatchEmail } from "@/lib/fw/watchEmails";
 import {
   type ActiveWatch,
   endWatch,
@@ -232,9 +233,36 @@ const EndWatchDialog = ({ watch, today, onClose }: { watch: ActiveWatch; today: 
     placeholderData: (prev) => prev,
   });
 
+  const emailCfg = useQuery({ queryKey: ["watch-emails", watch.property_id], queryFn: () => fetchWatchEmailStatus(watch.property_id), staleTime: 60_000 });
+  const [notify, setNotify] = useState<boolean>(true);
+  const ec = emailCfg.data;
+  useEffect(() => {
+    if (ec) setNotify(ec.property.send_end);
+  }, [ec]);
+  const notifyTo = ec ? (ec.property.recipients.length ? ec.property.recipients.join(", ") : ec.auto?.recipient || "") : "";
+
+  const afterEnd = async () => {
+    try {
+      if (!notify) {
+        await skipWatchEmail(watch.id, "end");
+        return;
+      }
+      const r = await runWatchEmails(watch.id);
+      const sent = r.results.find((x) => x.kind === "end");
+      if (sent?.status === "sent") toast.success(sent.test_mode ? "Completion notice sent to the test email" : "Completion notice emailed to the client");
+      else if (sent?.status === "failed" || sent?.status === "skipped") toast.error("The completion notice didn't go out", { description: sent.error });
+      else toast.message("Completion notice scheduled", { description: "It goes out automatically once the last shift is over." });
+    } catch (e) {
+      toast.error("Couldn't send the completion notice", { description: friendlyError(e) });
+    } finally {
+      void qc.invalidateQueries({ queryKey: ["watch-emails"] });
+    }
+  };
+
   const save = useMutation({
     mutationFn: () => endWatch(watch.id, start, end),
     onSuccess: (r) => {
+      if (ec) void afterEnd();
       toast.success(`${watch.name} watch ended`, {
         description: `${signed(r.totals.profit)} profit on ${whole(r.totals.revenue)} revenue${
           r.shifts_cleared > 0 ? ` · ${r.shifts_cleared} scheduled ${r.shifts_cleared === 1 ? "shift" : "shifts"} cleared` : ""
@@ -354,6 +382,23 @@ const EndWatchDialog = ({ watch, today, onClose }: { watch: ActiveWatch; today: 
           </ul>
         )}
 
+        {ec && (
+          <div className="rounded-lg border border-line bg-surface px-3 py-2.5">
+            <CheckField
+              label="Email the client the completion notice"
+              checked={notify}
+              onChange={setNotify}
+              hint={
+                ec.test_mode
+                  ? `Test mode is on — it goes to ${ec.test_email || "the test email"} only. Sent once the last shift is over, with the real end time.`
+                  : notifyTo
+                    ? `To ${notifyTo}, once the last shift is over, with the real end time.`
+                    : "No client email on file — add one under the property's Watch start & end emails."
+              }
+            />
+          </div>
+        )}
+
         <div className="mt-1 flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:justify-end">
           <Button type="button" variant="ghost" onClick={onClose} disabled={save.isPending}>
             Cancel
@@ -421,6 +466,10 @@ const StartWatchDialog = ({ property, today, onClose }: { property: IdleProperty
             Starts a new fire watch here. Shifts can be scheduled at this property again from the start date on.
           </DialogDescription>
         </DialogHeader>
+        <p className="flex items-start gap-2 rounded-lg border border-line bg-raised/40 px-3 py-2.5 text-sm text-ink-2">
+          <Mail className="mt-0.5 h-4 w-4 shrink-0 text-link" />
+          The client's start confirmation goes out automatically 24 hours before the first scheduled shift, with its real date and time.
+        </p>
         <div>
           <FieldLabel htmlFor="watch-new-start">Start date</FieldLabel>
           <Input id="watch-new-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
