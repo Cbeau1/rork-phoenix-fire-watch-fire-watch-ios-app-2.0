@@ -2,6 +2,7 @@ import { ArrowRight, Building2, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { DispatchBanner } from "@/components/fw/DispatchBanner";
 import { FieldGuideCard } from "@/components/fw/FieldGuide";
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { Card, CardHeader, EmptyState, PageHeader } from "@/components/fw/primitives";
@@ -54,6 +55,8 @@ const Dashboard = () => {
           </>
         }
       />
+
+      <DispatchBanner />
 
       <div className="mb-6">
         <TimeClockCard />

@@ -18,6 +18,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      checkin_requests: {
+        Row: {
+          accuracy_m: number | null
+          decided_at: string | null
+          decided_by: string | null
+          decided_by_name: string
+          distance_m: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          org_id: string
+          requested_at: string
+          shift_id: string
+          status: string
+          used_at: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string
+          distance_m?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          org_id: string
+          requested_at?: string
+          shift_id: string
+          status?: string
+          used_at?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_by_name?: string
+          distance_m?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          org_id?: string
+          requested_at?: string
+          shift_id?: string
+          status?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkin_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkin_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkin_requests_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activity: {
         Row: {
           actor_id: string | null
@@ -576,6 +646,107 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "crm_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispatch_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by_name: string
+          created_at: string
+          due_at: string
+          id: string
+          kind: string
+          notified_at: string | null
+          notify_error: string
+          org_id: string
+          resolved_at: string | null
+          shift_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by_name?: string
+          created_at?: string
+          due_at: string
+          id?: string
+          kind: string
+          notified_at?: string | null
+          notify_error?: string
+          org_id: string
+          resolved_at?: string | null
+          shift_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by_name?: string
+          created_at?: string
+          due_at?: string
+          id?: string
+          kind?: string
+          notified_at?: string | null
+          notify_error?: string
+          org_id?: string
+          resolved_at?: string | null
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_alerts_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispatch_settings: {
+        Row: {
+          alert_phones: string[]
+          grace_minutes: number
+          late_minutes: number
+          org_id: string
+          sms_alerts: boolean
+          test_email: string
+          test_mode: boolean
+          test_phone: string
+          updated_at: string
+        }
+        Insert: {
+          alert_phones?: string[]
+          grace_minutes?: number
+          late_minutes?: number
+          org_id: string
+          sms_alerts?: boolean
+          test_email?: string
+          test_mode?: boolean
+          test_phone?: string
+          updated_at?: string
+        }
+        Update: {
+          alert_phones?: string[]
+          grace_minutes?: number
+          late_minutes?: number
+          org_id?: string
+          sms_alerts?: boolean
+          test_email?: string
+          test_mode?: boolean
+          test_phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "organizations"
@@ -1461,6 +1632,104 @@ export type Database = {
           },
         ]
       }
+      incidents: {
+        Row: {
+          accuracy_m: number | null
+          category: string
+          client_op_id: string | null
+          created_at: string
+          description: string
+          distance_m: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          occurred_at: string
+          org_id: string
+          photos: string[]
+          property_id: string
+          reported_by: string
+          resolution_note: string
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_by_name: string
+          severity: string
+          shift_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          category: string
+          client_op_id?: string | null
+          created_at?: string
+          description: string
+          distance_m?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          occurred_at: string
+          org_id: string
+          photos?: string[]
+          property_id: string
+          reported_by?: string
+          resolution_note?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_by_name?: string
+          severity?: string
+          shift_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          category?: string
+          client_op_id?: string | null
+          created_at?: string
+          description?: string
+          distance_m?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          occurred_at?: string
+          org_id?: string
+          photos?: string[]
+          property_id?: string
+          reported_by?: string
+          resolution_note?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_by_name?: string
+          severity?: string
+          shift_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -1506,6 +1775,7 @@ export type Database = {
       patrols: {
         Row: {
           areas: string[]
+          client_op_id: string | null
           created_at: string
           date_time: string
           geofence_distance_m: number | null
@@ -1517,12 +1787,16 @@ export type Database = {
           notes: string
           officer_name: string
           org_id: string
+          outside_fence: boolean
           photos: string[]
           property_id: string
+          shift_id: string | null
+          source: string
           status: string
         }
         Insert: {
           areas?: string[]
+          client_op_id?: string | null
           created_at?: string
           date_time: string
           geofence_distance_m?: number | null
@@ -1534,12 +1808,16 @@ export type Database = {
           notes?: string
           officer_name: string
           org_id?: string
+          outside_fence?: boolean
           photos?: string[]
           property_id: string
+          shift_id?: string | null
+          source?: string
           status?: string
         }
         Update: {
           areas?: string[]
+          client_op_id?: string | null
           created_at?: string
           date_time?: string
           geofence_distance_m?: number | null
@@ -1551,8 +1829,11 @@ export type Database = {
           notes?: string
           officer_name?: string
           org_id?: string
+          outside_fence?: boolean
           photos?: string[]
           property_id?: string
+          shift_id?: string | null
+          source?: string
           status?: string
         }
         Relationships: [
@@ -1575,6 +1856,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patrols_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -1717,6 +2005,152 @@ export type Database = {
           },
         ]
       }
+      shift_events: {
+        Row: {
+          accuracy_m: number | null
+          actor_name: string
+          at: string
+          client_op_id: string | null
+          distance_m: number | null
+          id: string
+          kind: string
+          lat: number | null
+          lng: number | null
+          note: string
+          org_id: string
+          overridden: boolean
+          received_at: string
+          shift_id: string
+          time_entry_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          actor_name?: string
+          at?: string
+          client_op_id?: string | null
+          distance_m?: number | null
+          id?: string
+          kind: string
+          lat?: number | null
+          lng?: number | null
+          note?: string
+          org_id: string
+          overridden?: boolean
+          received_at?: string
+          shift_id: string
+          time_entry_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          actor_name?: string
+          at?: string
+          client_op_id?: string | null
+          distance_m?: number | null
+          id?: string
+          kind?: string
+          lat?: number | null
+          lng?: number | null
+          note?: string
+          org_id?: string
+          overridden?: boolean
+          received_at?: string
+          shift_id?: string
+          time_entry_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_events_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_events_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          last_seen_at: string | null
+          opened_at: string | null
+          org_id: string
+          revoked_at: string | null
+          send_error: string
+          sent_at: string | null
+          sent_to: string
+          shift_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          last_seen_at?: string | null
+          opened_at?: string | null
+          org_id: string
+          revoked_at?: string | null
+          send_error?: string
+          sent_at?: string | null
+          sent_to?: string
+          shift_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          last_seen_at?: string | null
+          opened_at?: string | null
+          org_id?: string
+          revoked_at?: string | null
+          send_error?: string
+          sent_at?: string | null
+          sent_to?: string
+          shift_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_links_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_links_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_payments: {
         Row: {
           org_id: string
@@ -1834,6 +2268,7 @@ export type Database = {
           id: string
           name: string
           org_id: string
+          phone: string
           profile_id: string | null
         }
         Insert: {
@@ -1841,6 +2276,7 @@ export type Database = {
           id?: string
           name: string
           org_id?: string
+          phone?: string
           profile_id?: string | null
         }
         Update: {
@@ -1848,6 +2284,7 @@ export type Database = {
           id?: string
           name?: string
           org_id?: string
+          phone?: string
           profile_id?: string | null
         }
         Relationships: [
@@ -3934,6 +4371,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      dispatch__scan: { Args: never; Returns: Json }
+      dispatch_ack_alert: { Args: { p_id: string }; Returns: undefined }
+      dispatch_board: { Args: never; Returns: Json }
+      dispatch_decide_request: {
+        Args: { p_approve: boolean; p_id: string }
+        Returns: undefined
+      }
+      dispatch_resolve_incident: {
+        Args: { p_id: string; p_note: string }
+        Returns: undefined
+      }
       ex__date: {
         Args: { allow_null?: boolean; label: string; v: string }
         Returns: string
@@ -4097,6 +4545,137 @@ export type Database = {
         }
       }
       shift_reopen: { Args: { p_shift_id: string }; Returns: number }
+      sl__clamp_at: {
+        Args: {
+          e: Database["public"]["Tables"]["time_entries"]["Row"]
+          p_at: string
+        }
+        Returns: string
+      }
+      sl__ctx: { Args: { p_hash: string }; Returns: Json }
+      sl__entry: {
+        Args: { p_shift: string }
+        Returns: {
+          admin_note: string
+          approved_at: string | null
+          approved_by: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          edited: boolean
+          employee_note: string
+          id: string
+          org_id: string
+          profile_id: string | null
+          property_id: string | null
+          shift_id: string | null
+          source: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "time_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sl__entry_at: {
+        Args: { p_at: string; p_shift: string }
+        Returns: {
+          admin_note: string
+          approved_at: string | null
+          approved_by: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          edited: boolean
+          employee_note: string
+          id: string
+          org_id: string
+          profile_id: string | null
+          property_id: string | null
+          shift_id: string | null
+          source: string
+          status: string
+          updated_at: string
+          worker_name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "time_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sl__fence: {
+        Args: {
+          p: Database["public"]["Tables"]["properties"]["Row"]
+          p_acc: number
+          p_lat: number
+          p_lng: number
+        }
+        Returns: Json
+      }
+      sl_check_in: {
+        Args: {
+          p_acc: number
+          p_hash: string
+          p_lat: number
+          p_lng: number
+          p_note?: string
+        }
+        Returns: Json
+      }
+      sl_check_out: {
+        Args: {
+          p_acc: number
+          p_at: string
+          p_client_id: string
+          p_handoff: string
+          p_hash: string
+          p_lat: number
+          p_lng: number
+        }
+        Returns: Json
+      }
+      sl_incident: {
+        Args: {
+          p_acc: number
+          p_at: string
+          p_category: string
+          p_client_id: string
+          p_description: string
+          p_hash: string
+          p_lat: number
+          p_lng: number
+          p_photos: string[]
+          p_severity: string
+        }
+        Returns: Json
+      }
+      sl_issue: {
+        Args: { p_admin: string; p_hash: string; p_shift: string }
+        Returns: Json
+      }
+      sl_patrol: {
+        Args: {
+          p_acc: number
+          p_areas: string[]
+          p_at: string
+          p_client_id: string
+          p_hash: string
+          p_lat: number
+          p_lng: number
+          p_notes: string
+          p_photos: string[]
+          p_queued: boolean
+          p_status: string
+        }
+        Returns: Json
+      }
+      sl_view: { Args: { p_hash: string }; Returns: Json }
       tc__admin: {
         Args: never
         Returns: {

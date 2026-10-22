@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   LogOut,
   Menu,
+  RadioTower,
   ReceiptText,
   Settings,
   Users,
@@ -42,6 +43,7 @@ const NAV: NavItem[] = [
 ];
 
 const CLIENTS_NAV: NavItem = { to: "/clients", label: "Clients", short: "Clients", icon: Handshake, match: (p: string) => p.startsWith("/clients") };
+const DISPATCH_NAV: NavItem = { to: "/dispatch", label: "Dispatch", short: "Dispatch", icon: RadioTower, match: (p: string) => p.startsWith("/dispatch") };
 const HOURS_NAV: NavItem = { to: "/hours", label: "My Hours", short: "Hours", icon: Clock, match: (p: string) => p.startsWith("/hours") };
 const PAYROLL_NAV: NavItem = { to: "/payroll", label: "Payroll", short: "Payroll", icon: Wallet, match: (p: string) => p.startsWith("/payroll") };
 const TEAM_NAV: NavItem = { to: "/team", label: "Team", short: "Team", icon: Users, match: (p: string) => p.startsWith("/team") };
@@ -71,7 +73,7 @@ const useNavItems = (): NavItem[] => {
   const { isAdmin } = useAuth();
   const exAccess = useExAccess();
   return isAdmin
-    ? [...NAV.slice(0, 2), CLIENTS_NAV, ...NAV.slice(2), HOURS_NAV, TEAM_NAV, PAYROLL_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
+    ? [NAV[0], DISPATCH_NAV, NAV[1], CLIENTS_NAV, ...NAV.slice(2), HOURS_NAV, TEAM_NAV, PAYROLL_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
     : [...NAV, HOURS_NAV, ACCOUNT_NAV];
 };
 

@@ -1,4 +1,4 @@
-import { Building2, Check, CheckCircle2, CircleDollarSign, Clock3, Moon, Pencil, XCircle } from "lucide-react";
+import { Building2, Check, CheckCircle2, CircleDollarSign, Clock3, Link2, Moon, Pencil, XCircle } from "lucide-react";
 import { memo } from "react";
 
 import { timeOfDay } from "@/lib/format";
@@ -27,15 +27,19 @@ interface ShiftCardProps {
   /** Clock / payroll hours attached to this shift, if any. */
   work?: ShiftWork;
   onComplete?: (shift: Shift) => void;
+  /** Admin: text / copy the guard's no-login shift link. */
+  onLink?: (shift: Shift) => void;
 }
 
 /** One shift on the weekly schedule. Admins see pay status: paid shifts turn green. */
 export const ShiftCard = memo(
-  ({ shift, staffName, propertyName, showProperty, isAdmin, mine, onEdit, onTogglePaid, work, onComplete }: ShiftCardProps) => {
+  ({ shift, staffName, propertyName, showProperty, isAdmin, mine, onEdit, onTogglePaid, work, onComplete, onLink }: ShiftCardProps) => {
     const paid = isAdmin && !!shift.paidAt;
     const overnight = isOvernight(shift);
     const started = scheduledWindow(shift).start.getTime() <= Date.now();
     const canComplete = isAdmin && !!onComplete && started && (!work || work.status === "open" || work.status === "rejected");
+    const canLink =
+      isAdmin && !!onLink && scheduledWindow(shift).end.getTime() > Date.now() && (!work || work.status === "open");
 
     return (
       <li
@@ -88,8 +92,19 @@ export const ShiftCard = memo(
           </div>
         )}
 
-        {isAdmin && (onTogglePaid || canComplete) && (
+        {isAdmin && (onTogglePaid || canComplete || canLink) && (
           <div className="flex gap-1.5 px-2 pb-2 pl-3 lg:flex-col">
+            {canLink && (
+              <button
+                type="button"
+                onClick={() => onLink?.(shift)}
+                title="Text or copy this guard's no-login shift link"
+                className="focus-ring flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border border-line-strong text-xs font-semibold text-ink-2 transition-all duration-200 hover:border-primary/50 hover:bg-primary/10 hover:text-link active:scale-[0.97] lg:flex-none"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Link
+              </button>
+            )}
             {canComplete && (
               <button
                 type="button"

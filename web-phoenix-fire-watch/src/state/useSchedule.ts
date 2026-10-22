@@ -27,7 +27,7 @@ const requireOnline = () => {
   if (typeof navigator !== "undefined" && !navigator.onLine) throw new Error(OFFLINE);
 };
 
-const toStaff = (r: StaffRow): Staff => ({ id: r.id, name: r.name, profileId: r.profile_id, createdAt: r.created_at });
+const toStaff = (r: StaffRow): Staff => ({ id: r.id, name: r.name, profileId: r.profile_id, createdAt: r.created_at, phone: r.phone ?? "" });
 
 const toShift = (r: ShiftRow & { shift_payments?: unknown }): Shift => {
   const raw = r.shift_payments as { paid_at: string } | { paid_at: string }[] | null | undefined;

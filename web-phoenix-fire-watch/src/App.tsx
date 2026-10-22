@@ -31,6 +31,8 @@ import Schedule from "./pages/Schedule";
 import PropertyDetail from "./pages/PropertyDetail";
 import PropertyForm from "./pages/PropertyForm";
 import SignContract from "./pages/SignContract";
+import ShiftLink from "./pages/ShiftLink";
+import Dispatch from "./pages/Dispatch";
 import SignIn from "./pages/SignIn";
 import ClientDetail from "./pages/clients/ClientDetail";
 import ClientList from "./pages/clients/ClientList";
@@ -152,6 +154,7 @@ const AppRoutes = () => {
         <Route path="/properties/:id/log" element={<LogPatrol />} />
         <Route path="/notes" element={<WatchNotes />} />
         <Route path="/schedule" element={<Schedule />} />
+        <Route path="/dispatch" element={<Dispatch />} />
         <Route path="/team" element={<Team />} />
         <Route path="/hours" element={<MyHours />} />
         <Route path="/payroll" element={<Payroll />} />
@@ -230,6 +233,7 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/support" element={<Support />} />
               <Route path="/sign/:token" element={<SignContract />} />
+              <Route path="/shift/:token" element={<ShiftLink />} />
               <Route path="*" element={<Gate />} />
             </Routes>
           </BrowserRouter>

@@ -1,4 +1,4 @@
-import { addWeeks, format, isToday } from "date-fns";
+import { addWeeks, format, isToday, parseISO } from "date-fns";
 import {
   Building2,
   CalendarDays,
@@ -19,6 +19,7 @@ import { CompleteShiftDialog } from "@/components/fw/CompleteShiftDialog";
 import { Card, EmptyState, PageHeader } from "@/components/fw/primitives";
 import { ShiftCard } from "@/components/fw/ShiftCard";
 import { ShiftDialog, type ShiftDraft } from "@/components/fw/ShiftDialog";
+import { ShiftLinkDialog, type ShiftLinkTarget } from "@/components/fw/ShiftLinkDialog";
 import { StaffDialog } from "@/components/fw/StaffDialog";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -26,6 +27,7 @@ import { initials } from "@/lib/format";
 import {
   byShiftStart,
   formatHours,
+  formatShiftRange,
   shiftMinutes,
   toDateKey,
   weekDays,
@@ -65,6 +67,7 @@ const Schedule = () => {
   const [staffOpen, setStaffOpen] = useState<boolean>(false);
   const [draft, setDraft] = useState<ShiftDraft>({});
   const [completing, setCompleting] = useState<Shift | null>(null);
+  const [linkTarget, setLinkTarget] = useState<ShiftLinkTarget | null>(null);
 
   const schedule = useSchedule(weekStart);
   const { isAdmin, shifts, staffById, staff, setPaid, workByShift } = schedule;
@@ -131,6 +134,22 @@ const Schedule = () => {
     setDraft({ shift });
     setShiftOpen(true);
   }, []);
+
+  const openLink = useCallback(
+    (shift: Shift) => {
+      const st = staffById.get(shift.staffId);
+      setLinkTarget({
+        shiftId: shift.id,
+        staffId: shift.staffId,
+        staffName: st?.name ?? "Removed staff",
+        phone: st?.phone ?? "",
+        propertyName: propertyById.get(shift.propertyId)?.name ?? "Removed property",
+        whenLabel: `${format(parseISO(shift.date), "EEE, MMM d")} · ${formatShiftRange(shift)}`,
+        hasLink: false,
+      });
+    },
+    [staffById, propertyById],
+  );
 
   const togglePaid = useCallback(
     (shift: Shift) => {
@@ -389,6 +408,7 @@ const Schedule = () => {
                             onTogglePaid={isAdmin ? togglePaid : undefined}
                             work={workByShift.get(s.id)}
                             onComplete={isAdmin ? setCompleting : undefined}
+                            onLink={isAdmin ? openLink : undefined}
                           />
                         ))}
                       </ul>
@@ -493,6 +513,7 @@ const Schedule = () => {
             schedule={schedule}
             onClose={() => setCompleting(null)}
           />
+          <ShiftLinkDialog target={linkTarget} onClose={() => setLinkTarget(null)} />
         </>
       )}
     </>

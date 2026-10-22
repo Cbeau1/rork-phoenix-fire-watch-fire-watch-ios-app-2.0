@@ -6,6 +6,8 @@ export interface Staff {
   name: string;
   profileId: string | null;
   createdAt: string;
+  /** Mobile number for no-login shift links (may be empty). */
+  phone?: string;
 }
 
 /** One scheduled shift at a property. `start`/`end` are "HH:mm"; an end at or before the start ends the next day. */
