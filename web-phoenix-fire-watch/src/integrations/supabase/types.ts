@@ -4593,6 +4593,8 @@ export type Database = {
           agency_worker_ref: string
           archived_at: string | null
           archived_by: string | null
+          auto_link_email: boolean
+          auto_link_text: boolean
           availability: string
           created_at: string
           created_by: string | null
@@ -4623,6 +4625,8 @@ export type Database = {
           agency_worker_ref?: string
           archived_at?: string | null
           archived_by?: string | null
+          auto_link_email?: boolean
+          auto_link_text?: boolean
           availability?: string
           created_at?: string
           created_by?: string | null
@@ -4653,6 +4657,8 @@ export type Database = {
           agency_worker_ref?: string
           archived_at?: string | null
           archived_by?: string | null
+          auto_link_email?: boolean
+          auto_link_text?: boolean
           availability?: string
           created_at?: string
           created_by?: string | null

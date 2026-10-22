@@ -18,7 +18,9 @@ export const LIVE_WINDOW_MS = 3 * 60_000;
 /** One status for a shift's no-login link, shared by the dispatch board row and the link dialog. */
 export const linkState = (s: BoardShift, now: number, tz: string, settings?: DispatchSettings | null): LinkState => {
   const l = s.link;
-  const auto = !!(settings?.auto_link_text || settings?.auto_link_email);
+  const autoText = !!s.staff.auto_text;
+  const autoEmail = !!s.staff.auto_email;
+  const auto = !!settings && (autoText || autoEmail);
   const start = new Date(s.starts_at).getTime();
   const ago = (iso: string) => fmtAgo(Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000)));
 
@@ -28,7 +30,7 @@ export const linkState = (s: BoardShift, now: number, tz: string, settings?: Dis
     if (s.revoked_at) return { phase: "revoked", label: "Revoked", tone: "slate", detail: `Turned off ${fmtZoned(s.revoked_at, tz, true)}` };
     if (auto && start > now && !s.auto_attempt) {
       const at = new Date(start - 60 * 60_000).toISOString();
-      const how = settings?.auto_link_text && settings?.auto_link_email ? "Auto-text & email" : settings?.auto_link_text ? "Auto-text" : "Auto-email";
+      const how = autoText && autoEmail ? "Auto-text & email" : autoText ? "Auto-text" : "Auto-email";
       return { phase: "auto_pending", label: `${how} at ${fmtZoned(at, tz)}`, tone: "blue", detail: "Sent automatically 1 hour before the shift." };
     }
     return { phase: "none", label: "No link", tone: "slate", detail: "No link sent for this shift yet." };

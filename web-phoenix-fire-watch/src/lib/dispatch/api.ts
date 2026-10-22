@@ -27,7 +27,8 @@ export interface BoardShift {
   ends_at: string;
   notes: string;
   property: { id: string; name: string; interval: number; geofence: boolean; lat?: number | null; lng?: number | null; radius?: number | null };
-  staff: { id: string; name: string; profile_id: string | null; phone: string };
+  /** auto_text / auto_email: this employee's shift-link auto-send switches (set on their profile). */
+  staff: { id: string; name: string; profile_id: string | null; phone: string; auto_text?: boolean; auto_email?: boolean };
   entry: { id: string; clock_in: string; clock_out: string | null; source: string } | null;
   check_in: { distance_m: number | null; overridden: boolean; at: string } | null;
   handoff: string | null;

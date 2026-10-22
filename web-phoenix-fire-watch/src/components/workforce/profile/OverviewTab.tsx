@@ -1,8 +1,11 @@
+import { useMutation } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
-import { DataTile, fmtDate, MetaPill, Pill, SectionCard } from "@/components/workforce/kit";
+import { CheckField, DataTile, fmtDate, MetaPill, Pill, SectionCard } from "@/components/workforce/kit";
+import * as api from "@/lib/workforce/api";
 import {
   PERSONNEL_TYPE,
   PLACEMENT_STATUS,
@@ -14,6 +17,50 @@ import {
 } from "@/lib/workforce/constants";
 import { awaitingReturn, missingItems, todayKey } from "@/lib/workforce/derive";
 import { useWorkforce } from "@/state/WorkforceProvider";
+
+/** Per-employee switches for the automatic shift link (sent 1 hour before each of their shifts). Both start off. */
+const ShiftMessages = ({ worker, hasStaff, accountEmail }: { worker: Worker; hasStaff: boolean; accountEmail: string }) => {
+  const wf = useWorkforce();
+  const save = useMutation({
+    mutationFn: (patch: { auto_link_text?: boolean; auto_link_email?: boolean }) => api.updateWorker(worker.id, patch),
+    onSuccess: (w, patch) => {
+      wf.invalidate("workers");
+      const on = patch.auto_link_text ?? patch.auto_link_email;
+      const what = patch.auto_link_text !== undefined ? "Auto-text" : "Auto-email";
+      toast.success(`${what} ${on ? "on" : "off"} for ${w.first_name}`);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save."),
+  });
+  const pending = save.isPending ? save.variables : undefined;
+  const text = pending?.auto_link_text ?? worker.auto_link_text;
+  const email = pending?.auto_link_email ?? worker.auto_link_email;
+  const emailOnFile = worker.email || accountEmail;
+  const disabled = save.isPending || !!worker.archived_at;
+
+  return (
+    <SectionCard title="Shift messages" subtitle="Sends their shift link 1 hour before each shift, if they don't already have one. One try per shift.">
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <CheckField
+          label="Auto-text shift link"
+          checked={text}
+          disabled={disabled}
+          onChange={(v) => save.mutate({ auto_link_text: v })}
+          hint={worker.phone ? `To ${worker.phone}` : "No phone on file — add one to text."}
+        />
+        <CheckField
+          label="Auto-email shift link"
+          checked={email}
+          disabled={disabled}
+          onChange={(v) => save.mutate({ auto_link_email: v })}
+          hint={emailOnFile ? `To ${emailOnFile}` : "No email on file — add one to email."}
+        />
+      </div>
+      {!hasStaff && (text || email) && (
+        <p className="mt-2.5 px-1 text-xs font-medium text-status-follow">Not linked to the schedule yet, so nothing will send until they are.</p>
+      )}
+    </SectionCard>
+  );
+};
 
 export const OverviewTab = ({ worker }: { worker: Worker }) => {
   const wf = useWorkforce();
@@ -77,6 +124,8 @@ export const OverviewTab = ({ worker }: { worker: Worker }) => {
             <DataTile label="Schedule name">{staff ? staff.name : <span className="text-ink-3">Not linked to the schedule</span>}</DataTile>
           </div>
         </SectionCard>
+
+        <ShiftMessages worker={worker} hasStaff={!!staff} accountEmail={account?.email ?? ""} />
 
         <SectionCard title="Emergency contact">
           {worker.emergency_name || worker.emergency_phone ? (

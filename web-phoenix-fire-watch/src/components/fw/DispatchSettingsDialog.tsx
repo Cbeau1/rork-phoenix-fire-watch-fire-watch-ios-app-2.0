@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, MessageSquareText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,8 +17,6 @@ interface Draft {
   testMode: boolean;
   testPhone: string;
   testEmail: string;
-  autoText: boolean;
-  autoEmail: boolean;
 }
 
 const toDraft = (s: DispatchSettings | null): Draft => ({
@@ -28,8 +27,6 @@ const toDraft = (s: DispatchSettings | null): Draft => ({
   testMode: s?.test_mode ?? true,
   testPhone: s?.test_phone ?? "",
   testEmail: s?.test_email ?? "",
-  autoText: s?.auto_link_text ?? false,
-  autoEmail: s?.auto_link_email ?? false,
 });
 
 const digits = (s: string): string => s.replace(/\D/g, "");
@@ -93,8 +90,6 @@ export const DispatchSettingsDialog = ({
         test_mode: draft.testMode,
         test_phone: draft.testPhone.trim(),
         test_email: draft.testEmail.trim(),
-        auto_link_text: draft.autoText,
-        auto_link_email: draft.autoEmail,
         link_origin: window.location.origin,
       });
     },
@@ -164,14 +159,14 @@ export const DispatchSettingsDialog = ({
             1 hour before each shift starts, if the guard doesn't already have a link. One try per shift; you can still send or reissue by hand.
           </p>
         </div>
-        <CheckField label="Auto-text link 1 hr before shift" checked={draft.autoText} onChange={(v) => set("autoText", v)} />
-        <CheckField
-          label="Auto-email link 1 hr before shift"
-          checked={draft.autoEmail}
-          onChange={(v) => set("autoEmail", v)}
-          hint="Uses the email on their worker record or app login."
-        />
-        {(draft.autoText || draft.autoEmail) && draft.testMode && (
+        <p className="text-sm text-ink-2">
+          Turn auto-text and auto-email on for each employee in their profile under{" "}
+          <Link to="/workforce/directory" className="font-medium text-link hover:underline" onClick={() => onOpenChange(false)}>
+            Workforce → Overview → Shift messages
+          </Link>
+          .
+        </p>
+        {draft.testMode && (
           <p className="text-xs font-medium text-status-follow">Test mode is on, so automatic links go only to the test contacts.</p>
         )}
       </div>

@@ -324,7 +324,7 @@ async function rememberOrigin(admin: Admin, orgId: string, raw: unknown): Promis
 
 const SHIFT_COLS = "id, org_id, staff_id, property_id, shift_date, start_time, end_time";
 
-/** Cron: sends links for shifts starting within the hour when the org switched auto-send on. One attempt per shift. */
+/** Cron: sends links for shifts starting within the hour, by text and/or email as switched on in each employee's profile. One attempt per shift. */
 async function autoSend(req: Request, admin: Admin): Promise<Response> {
   const secret = req.headers.get("x-cron-secret") ?? "";
   const { data: valid } = await admin.rpc("verify_cron_secret", { p_secret: secret });
@@ -346,9 +346,20 @@ async function autoSend(req: Request, admin: Admin): Promise<Response> {
     try {
       const settings = await loadDispatchSettings(admin, row.org_id);
       const origin = (settings?.link_origin ?? "").replace(/\/+$/, "");
-      const wantText = !!settings?.auto_link_text;
-      const wantEmail = !!settings?.auto_link_email;
-      if (!settings || (!wantText && !wantEmail)) note = "Auto-send is off.";
+      const { data: shiftStaff } = await admin.from("shifts").select("staff_id").eq("id", row.shift_id).maybeSingle();
+      const { data: worker } = shiftStaff?.staff_id
+        ? await admin
+            .from("wf_workers")
+            .select("auto_link_text, auto_link_email")
+            .eq("org_id", row.org_id)
+            .eq("staff_id", shiftStaff.staff_id)
+            .is("archived_at", null)
+            .limit(1)
+            .maybeSingle()
+        : { data: null };
+      const wantText = !!worker?.auto_link_text;
+      const wantEmail = !!worker?.auto_link_email;
+      if (!settings || (!wantText && !wantEmail)) note = "Auto-send is off for this employee.";
       else if (!origin || !isSafeOrigin(origin)) note = "Open the Dispatch board once so links know the site address.";
       else {
         const { data: shift } = await admin.from("shifts").select(SHIFT_COLS).eq("id", row.shift_id).maybeSingle();
