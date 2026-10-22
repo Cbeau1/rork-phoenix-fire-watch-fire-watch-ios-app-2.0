@@ -14,9 +14,12 @@ export const randomToken = (): string => {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
-export const emailFrom = (): string => Deno.env.get("RESET_EMAIL_FROM") || "Phoenix Fire Watch <onboarding@resend.dev>";
+// Pasted secrets sometimes carry invisible characters (e.g. U+2028), which break HTTP headers.
+const cleanSecret = (v: string | undefined): string => (v ?? "").replace(/[^\x21-\x7e]/g, "");
 
-export const emailConfigured = (): boolean => !!Deno.env.get("RESEND_API_KEY");
+export const emailFrom = (): string => (Deno.env.get("RESET_EMAIL_FROM") ?? "").trim() || "Phoenix Fire Watch <onboarding@resend.dev>";
+
+export const emailConfigured = (): boolean => !!cleanSecret(Deno.env.get("RESEND_API_KEY"));
 
 export interface Attachment {
   filename: string;
@@ -33,14 +36,16 @@ export async function sendEmail(opts: {
   fromName?: string;
   attachments?: Attachment[];
 }): Promise<string | null> {
-  const apiKey = Deno.env.get("RESEND_API_KEY");
+  const apiKey = cleanSecret(Deno.env.get("RESEND_API_KEY"));
   if (!apiKey) return "Email sending isn't set up yet.";
   let from = emailFrom();
   if (opts.fromName) {
     const addr = from.match(/<([^>]+)>/)?.[1] ?? from;
     from = `${opts.fromName.replace(/[<>"]/g, "")} <${addr}>`;
   }
-  const res = await fetch("https://api.resend.com/emails", {
+  let res: Response;
+  try {
+    res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -52,7 +57,11 @@ export async function sendEmail(opts: {
       ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
       ...(opts.attachments?.length ? { attachments: opts.attachments } : {}),
     }),
-  });
+    });
+  } catch (e) {
+    console.error("resend network error", e instanceof Error ? e.message : "unknown");
+    return "Couldn't reach the email service.";
+  }
   if (!res.ok) {
     const detail = (await res.text()).slice(0, 300);
     console.error("resend failed", res.status, detail);

@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const email = readString(body.email, 200).toLowerCase();
     if (!EMAIL_RE.test(email)) throw new HttpError(400, "Enter a valid email address.");
 
-    const apiKey = Deno.env.get("RESEND_API_KEY");
+    const apiKey = (Deno.env.get("RESEND_API_KEY") ?? "").replace(/[^\x21-\x7e]/g, "");
     if (!apiKey) return json({ ok: false, reason: "not-configured" });
 
     const admin = createAdminClient();

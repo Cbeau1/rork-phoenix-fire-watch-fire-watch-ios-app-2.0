@@ -24,6 +24,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import { DispatchSettingsDialog } from "@/components/fw/DispatchSettingsDialog";
+import { ReportFailuresCard } from "@/components/fw/ReportFailuresCard";
 import { Card, PageHeader } from "@/components/fw/primitives";
 import { ShiftLinkDialog, type ShiftLinkTarget } from "@/components/fw/ShiftLinkDialog";
 import { Button } from "@/components/ui/button";
@@ -247,6 +248,8 @@ const Dispatch = () => {
               </ul>
             </Card>
           )}
+
+          <ReportFailuresCard />
 
           {data.incidents.length > 0 && (
             <Card className="overflow-hidden">

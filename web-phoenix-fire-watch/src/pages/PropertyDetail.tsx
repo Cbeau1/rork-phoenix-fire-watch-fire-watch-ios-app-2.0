@@ -17,6 +17,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { DailyReportCard } from "@/components/fw/DailyReportCard";
 import { GeofenceCard } from "@/components/fw/GeofenceCard";
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { PatrolTimerCard } from "@/components/fw/PatrolTimerCard";
@@ -274,6 +275,8 @@ const PropertyDetail = () => {
       <PatrolTimerCard property={property} />
 
       <GeofenceCard property={property} isAdmin={isAdmin} />
+
+      {isAdmin && <DailyReportCard propertyId={property.id} />}
 
       <div className="mt-5 grid grid-cols-2 gap-4 lg:gap-5 xl:grid-cols-4">
         <DetailStat label="Total Patrols" value={stats.total} icon={PersonStanding} iconClass="text-link" />

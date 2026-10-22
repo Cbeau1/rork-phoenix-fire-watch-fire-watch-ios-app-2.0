@@ -653,6 +653,170 @@ export type Database = {
           },
         ]
       }
+      daily_report_runs: {
+        Row: {
+          attempts: number
+          created_at: string
+          email_id: string
+          error: string
+          id: string
+          incident_count: number
+          intended_to: string[]
+          last_attempt_at: string | null
+          next_retry_at: string | null
+          note: string
+          org_id: string
+          patrol_count: number
+          pdf_path: string
+          photo_count: number
+          property_id: string
+          report_date: string
+          requested_by: string | null
+          sent_at: string | null
+          sent_to: string[]
+          status: string
+          test_mode: boolean
+          trigger: string
+          tz: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email_id?: string
+          error?: string
+          id?: string
+          incident_count?: number
+          intended_to?: string[]
+          last_attempt_at?: string | null
+          next_retry_at?: string | null
+          note?: string
+          org_id: string
+          patrol_count?: number
+          pdf_path?: string
+          photo_count?: number
+          property_id: string
+          report_date: string
+          requested_by?: string | null
+          sent_at?: string | null
+          sent_to?: string[]
+          status?: string
+          test_mode?: boolean
+          trigger?: string
+          tz: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email_id?: string
+          error?: string
+          id?: string
+          incident_count?: number
+          intended_to?: string[]
+          last_attempt_at?: string | null
+          next_retry_at?: string | null
+          note?: string
+          org_id?: string
+          patrol_count?: number
+          pdf_path?: string
+          photo_count?: number
+          property_id?: string
+          report_date?: string
+          requested_by?: string | null
+          sent_at?: string | null
+          sent_to?: string[]
+          status?: string
+          test_mode?: boolean
+          trigger?: string
+          tz?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_report_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_report_runs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_report_runs_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_report_settings: {
+        Row: {
+          enabled: boolean
+          include_photos: boolean
+          org_id: string
+          property_id: string
+          recipients: string[]
+          send_when_empty: boolean
+          timezone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          include_photos?: boolean
+          org_id: string
+          property_id: string
+          recipients?: string[]
+          send_when_empty?: boolean
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          include_photos?: boolean
+          org_id?: string
+          property_id?: string
+          recipients?: string[]
+          send_when_empty?: boolean
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_report_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_report_settings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_report_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispatch_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -4370,6 +4534,74 @@ export type Database = {
           p_source?: string
         }
         Returns: undefined
+      }
+      daily_report__claim: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          email_id: string
+          error: string
+          id: string
+          incident_count: number
+          intended_to: string[]
+          last_attempt_at: string | null
+          next_retry_at: string | null
+          note: string
+          org_id: string
+          patrol_count: number
+          pdf_path: string
+          photo_count: number
+          property_id: string
+          report_date: string
+          requested_by: string | null
+          sent_at: string | null
+          sent_to: string[]
+          status: string
+          test_mode: boolean
+          trigger: string
+          tz: string
+          window_end: string
+          window_start: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "daily_report_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      daily_report__data: {
+        Args: { p_end: string; p_property: string; p_start: string }
+        Returns: Json
+      }
+      daily_report__tz: { Args: { p_property: string }; Returns: string }
+      daily_report_upsert_settings: {
+        Args: {
+          p_enabled: boolean
+          p_include_photos: boolean
+          p_property: string
+          p_recipients: string[]
+          p_send_when_empty: boolean
+          p_timezone: string
+        }
+        Returns: {
+          enabled: boolean
+          include_photos: boolean
+          org_id: string
+          property_id: string
+          recipients: string[]
+          send_when_empty: boolean
+          timezone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_report_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       dispatch__scan: { Args: never; Returns: Json }
       dispatch_ack_alert: { Args: { p_id: string }; Returns: undefined }
