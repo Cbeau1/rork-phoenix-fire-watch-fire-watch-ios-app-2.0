@@ -54,6 +54,9 @@ const KNOWN: Record<string, { label: string; group: FieldGroup; hint?: string; p
 /** Completed by the signer (or automatically) at signing — never typed in by the admin. */
 export const SIGN_TIME_FIELDS = new Set(["client_sig_name", "client_sig_title", "client_sig_date", "pfw_date"]);
 
+/** Leftover e-sign signature boxes (e.g. "Signature5_es_:signer:signature"): the app stamps the real signature there. */
+export const isSignatureBox = (name: string): boolean => /_es_:|(^|[_:\s])signature\d*$/i.test(name);
+
 /** Calculated from the schedule and rate, so they're shown read-only. */
 export const COMPUTED_FIELDS = new Set(["est_daily", "est_weekly", "est_30day"]);
 
@@ -77,7 +80,7 @@ export interface EditableField {
 
 export const editableFields = (layout: AgreementLayout): EditableField[] =>
   layout.fields
-    .filter((f: AgreementField) => !SIGN_TIME_FIELDS.has(f.name))
+    .filter((f: AgreementField) => !SIGN_TIME_FIELDS.has(f.name) && !isSignatureBox(f.name))
     .map((f) => {
       const k = KNOWN[f.name];
       return {
@@ -208,7 +211,7 @@ export const serializeAgreement = (values: Record<string, string>): string => {
   const fields: Record<string, string> = {};
   for (const k of Object.keys(values).sort()) {
     const v = values[k].trim();
-    if (v && !SIGN_TIME_FIELDS.has(k)) fields[k] = v;
+    if (v && !SIGN_TIME_FIELDS.has(k) && !isSignatureBox(k)) fields[k] = v;
   }
   return JSON.stringify({ v: 1, fields });
 };

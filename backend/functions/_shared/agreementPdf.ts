@@ -95,7 +95,8 @@ export async function fillAgreement(template: Uint8Array, values: Record<string,
   const form = pdf.getForm();
   for (const field of form.getFields()) {
     if (!(field instanceof PDFTextField)) continue;
-    const v = values[field.getName()];
+    // Leftover e-sign signature boxes stay blank; the signature is stamped on the line instead.
+    const v = /_es_:|(^|[_:\s])signature\d*$/i.test(field.getName()) ? null : values[field.getName()];
     const text = v == null ? "" : winAnsi(v).replace(/\n+/g, field.isMultiline() ? "\n" : " ");
     const max = field.getMaxLength();
     field.setText(max ? text.slice(0, max) : text);
