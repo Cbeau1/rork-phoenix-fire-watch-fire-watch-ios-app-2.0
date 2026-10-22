@@ -92,7 +92,7 @@ const initDraft = (e: Expenditure | null, preset?: Partial<Draft>): Draft => ({
 const isPersonal = (paidBy: string) => paidBy !== "business";
 
 /** Shift picker for payroll expenditures — links existing schedule shifts instead of duplicating them. */
-const ShiftPicker = ({ expenditureId, anchor, selected, onChange }: { expenditureId: string | null; anchor: string; selected: string[]; onChange: (ids: string[]) => void }) => {
+const ShiftPicker = ({ expenditureId, anchor, selected, onChange, agency = false }: { expenditureId: string | null; anchor: string; selected: string[]; onChange: (ids: string[]) => void; agency?: boolean }) => {
   const ex = useExpenses();
   const base = /^\d{4}-\d{2}-\d{2}$/.test(anchor) ? parseISO(anchor) : new Date();
   const [from, setFrom] = useState<string>(format(startOfMonth(addDays(base, -14)), "yyyy-MM-dd"));
@@ -114,8 +114,9 @@ const ShiftPicker = ({ expenditureId, anchor, selected, onChange }: { expenditur
     <div className="rounded-lg border border-line bg-raised p-3.5">
       <div className="text-sm font-medium text-ink">Link schedule shifts (optional)</div>
       <p className="mt-0.5 text-xs text-ink-3">
-        Links the payroll expense to existing shifts so wages aren't recorded twice. A shift can belong to only one payroll expenditure. Wages are
-        never treated as reimbursements.
+        {agency
+          ? "Tick the agency workers' shifts this invoice covers. Profit then uses this invoice amount for those shifts instead of the hourly agency rate, so labor isn't counted twice. A shift can belong to only one labor expenditure."
+          : "Links the payroll expense to existing shifts so wages aren't recorded twice. A shift can belong to only one labor expenditure. Wages are never treated as reimbursements."}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <TextField label="From" type="date" value={from} onChange={setFrom} />
@@ -338,7 +339,7 @@ export const ExpenditureForm = ({
         notes: d.notes,
         person_reimb_flag: personal ? (d.person === "not_applicable" ? "not_applicable" : "not_requested") : "not_applicable",
         client_recovery_flag: d.recovery === "not_requested" ? "not_requested" : "not_applicable",
-        shift_ids: category?.kind === "payroll" ? shiftIds : [],
+        shift_ids: category?.kind === "payroll" || category?.kind === "agency" ? shiftIds : [],
         confirm_duplicate: dupConfirm,
         duplicate_note: dupNote,
       });
@@ -511,7 +512,9 @@ export const ExpenditureForm = ({
             />
           </div>
         )}
-        {category?.kind === "payroll" && <ShiftPicker expenditureId={expenditure?.id ?? null} anchor={d.spent_on} selected={shiftIds} onChange={setShiftIds} />}
+        {(category?.kind === "payroll" || category?.kind === "agency") && (
+          <ShiftPicker expenditureId={expenditure?.id ?? null} anchor={d.spent_on} selected={shiftIds} onChange={setShiftIds} agency={category.kind === "agency"} />
+        )}
       </fieldset>
 
       {isNew ? (

@@ -97,7 +97,7 @@ const ExSettings = () => {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-ink">{c.name}</span>
-                      {c.kind !== "general" && <Pill tone="blue">{c.kind === "payroll" ? "Links shifts" : "Links agency invoices"}</Pill>}
+                      {c.kind !== "general" && <Pill tone="blue">{c.kind === "payroll" ? "Links shifts" : "Links agency invoices & shifts"}</Pill>}
                       {!c.active && <Pill tone="slate">Inactive</Pill>}
                     </div>
                     <div className="text-xs text-ink-3">{u ? `${u.count} record${u.count === 1 ? "" : "s"} · ${fmtTotals(u.totals)}` : "Not used yet"}</div>

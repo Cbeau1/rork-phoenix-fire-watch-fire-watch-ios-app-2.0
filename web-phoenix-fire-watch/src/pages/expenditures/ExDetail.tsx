@@ -494,7 +494,7 @@ const ExDetail = () => {
           </SectionCard>
 
           {shiftIds.length > 0 && (
-            <SectionCard title="Linked payroll shifts" subtitle="Existing schedule shifts this payroll expense covers. Wages are spending, not reimbursements.">
+            <SectionCard title="Linked shifts" subtitle="Schedule shifts this labor expense covers. Profit uses this amount for them instead of the calculated labor cost.">
               {shifts.isLoading ? (
                 <Loading />
               ) : shifts.error ? (
