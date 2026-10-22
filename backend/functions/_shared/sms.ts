@@ -13,8 +13,32 @@ export interface DispatchSettings {
   test_email: string;
 }
 
-export const smsConfigured = (): boolean =>
-  !!(Deno.env.get("TWILIO_ACCOUNT_SID") && Deno.env.get("TWILIO_AUTH_TOKEN") && Deno.env.get("TWILIO_FROM_NUMBER"));
+const firstEnv = (...names: string[]): string => {
+  for (const n of names) {
+    const v = Deno.env.get(n)?.trim();
+    if (v) return v;
+  }
+  return "";
+};
+
+/** Reads Twilio credentials, accepting the common names people store them under. */
+function twilioCreds(): { sid: string; token: string; from: string; service: string } {
+  return {
+    sid: firstEnv("TWILIO_ACCOUNT_SID", "TWILIO_SID", "TWILIO_ACCOUNT_ID"),
+    token: firstEnv("TWILIO_AUTH_TOKEN", "TWILIO_TOKEN", "TWILIO_AUTH"),
+    from: firstEnv("TWILIO_FROM_NUMBER", "TWILIO_PHONE_NUMBER", "TWILIO_FROM", "TWILIO_NUMBER", "TWILIO_PHONE", "TWILIO_SENDER"),
+    service: firstEnv("TWILIO_MESSAGING_SERVICE_SID", "TWILIO_MESSAGING_SID"),
+  };
+}
+
+export const smsConfigured = (): boolean => {
+  const c = twilioCreds();
+  return !!(c.sid && c.token && (c.from || c.service));
+};
+
+/** Names (never values) of Twilio-looking secrets present — helps diagnose naming mismatches. */
+export const twilioEnvNames = (): string[] =>
+  Object.keys(Deno.env.toObject()).filter((k) => /twilio|sms/i.test(k)).sort();
 
 /** Normalizes a US/E.164 phone number; returns "" when it can't be used. */
 export function toE164(raw: string): string {
@@ -50,10 +74,8 @@ export function routeSms(settings: DispatchSettings | null, intended: string[], 
 
 /** Sends one SMS. Returns null on success or a short, user-safe reason. Never logs credentials. */
 export async function sendSms(to: string, body: string): Promise<string | null> {
-  const sid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const token = Deno.env.get("TWILIO_AUTH_TOKEN");
-  const from = Deno.env.get("TWILIO_FROM_NUMBER");
-  if (!sid || !token || !from) return "Text messaging isn't set up yet (Twilio keys missing).";
+  const { sid, token, from, service } = twilioCreds();
+  if (!sid || !token || !(from || service)) return "Text messaging isn't set up yet (Twilio keys missing).";
   try {
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`, {
       method: "POST",
@@ -61,7 +83,11 @@ export async function sendSms(to: string, body: string): Promise<string | null> 
         Authorization: `Basic ${btoa(`${sid}:${token}`)}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({ To: to, From: toE164(from) || from, Body: body.slice(0, 1500) }),
+      body: new URLSearchParams(
+        service
+          ? { To: to, MessagingServiceSid: service, Body: body.slice(0, 1500) }
+          : { To: to, From: toE164(from) || from, Body: body.slice(0, 1500) },
+      ),
     });
     if (res.ok) return null;
     const detail = await res.text();

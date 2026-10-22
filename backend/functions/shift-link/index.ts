@@ -1,6 +1,6 @@
 import { corsHeaders, createAdminClient, handleError, HttpError, json, readString, requireAuth } from "../_shared/auth.ts";
 import { isSafeOrigin, orgIdentity, randomToken, sha256Hex } from "../_shared/crm.ts";
-import { fmtTime, loadDispatchSettings, maskPhone, routeSms, sendSms, smsConfigured, toE164 } from "../_shared/sms.ts";
+import { fmtTime, loadDispatchSettings, maskPhone, routeSms, sendSms, smsConfigured, toE164, twilioEnvNames } from "../_shared/sms.ts";
 
 /**
  * No-login shift links.
@@ -198,7 +198,8 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
 
   if (action === "status") {
     const settings = await loadDispatchSettings(admin, me.org_id);
-    return json({ sms_configured: smsConfigured(), test_mode: settings?.test_mode ?? true, test_phone: settings?.test_phone ? maskPhone(toE164(settings.test_phone)) : "" });
+    const configured = smsConfigured();
+    return json({ sms_configured: configured, sms_env_names: configured ? undefined : twilioEnvNames(), test_mode: settings?.test_mode ?? true, test_phone: settings?.test_phone ? maskPhone(toE164(settings.test_phone)) : "" });
   }
 
   if (action === "test_sms") {
