@@ -253,7 +253,6 @@ interface Form {
   billing_email: string;
   coverage: string;
   officers: string;
-  deposit_amount: string;
   your_phone: string;
   direct_line: string;
   office_line: string;
@@ -272,7 +271,6 @@ const toForm = (d: WatchEmailStatusResponse): Form => ({
   billing_email: d.property.billing_email,
   coverage: d.property.coverage,
   officers: d.property.officers == null ? "" : String(d.property.officers),
-  deposit_amount: d.property.deposit_amount == null ? "" : String(d.property.deposit_amount),
   your_phone: d.org.your_phone,
   direct_line: d.org.direct_line,
   office_line: d.org.office_line,
@@ -332,8 +330,6 @@ const EditDialog = ({
     if (form.billing_email.trim() && !EMAIL_RE.test(form.billing_email.trim())) return setErr("The billing email isn't valid.");
     const officers = form.officers.trim() ? toNum(form.officers) : null;
     if (form.officers.trim() && (officers == null || officers < 1 || officers > 50)) return setErr("Officers on duty must be between 1 and 50.");
-    const deposit = form.deposit_amount.trim() ? toNum(form.deposit_amount) : null;
-    if (form.deposit_amount.trim() && (deposit == null || deposit < 0)) return setErr("The deposit amount isn't valid.");
     const days = toNum(form.invoice_days);
     if (days == null || days < 1 || days > 60) return setErr("Invoice days must be between 1 and 60.");
     if (form.review_url.trim() && !/^https:\/\/\S+$/i.test(form.review_url.trim())) return setErr("The review link must start with https://");
@@ -347,7 +343,6 @@ const EditDialog = ({
         billing_email: form.billing_email.trim().toLowerCase(),
         coverage: form.coverage.trim(),
         officers: officers == null ? null : Math.round(officers),
-        deposit_amount: deposit,
       },
       org,
     });
@@ -386,15 +381,6 @@ const EditDialog = ({
           inputMode="numeric"
           maxLength={2}
           hint="Most guards scheduled at the same time."
-        />
-        <TextField
-          label="Deposit collected ($)"
-          value={form.deposit_amount}
-          onChange={set("deposit_amount")}
-          placeholder="None"
-          inputMode="decimal"
-          maxLength={12}
-          hint="Mentioned in the completion notice. Blank = no deposit line."
         />
       </div>
       <p className="text-xs text-ink-3">Patrol interval comes from the property's patrol settings{a?.patrol ? ` (${a.patrol.toLowerCase()})` : ""}.</p>

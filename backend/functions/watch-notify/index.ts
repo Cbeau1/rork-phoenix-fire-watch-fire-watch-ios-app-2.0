@@ -279,7 +279,6 @@ interface Fields {
   direct_line: string;
   office_line: string;
   invoice_days: number;
-  deposit: string;
   review_url: string;
   signer_name: string;
   signer_title: string;
@@ -340,10 +339,6 @@ function resolve(ctx: Ctx, override?: Partial<PropCfg>, org?: Partial<OrgCfg>): 
   const interval = p.patrol_interval_minutes ?? 0;
   const patrol = interval > 0 ? (interval % 60 === 0 ? `Every ${interval === 60 ? "hour" : `${interval / 60} hours`}` : `Every ${interval} minutes`) : "";
   const onsite = pc.onsite_contact || [p.contact_name, p.contact_phone].filter((x) => x && x.trim()).join(" · ");
-  const deposit =
-    pc.deposit_amount != null && pc.deposit_amount > 0
-      ? `Your deposit of ${pc.deposit_amount.toLocaleString("en-US", { style: "currency", currency: "USD" })} will be applied to this final invoice.`
-      : "";
 
   return {
     first_name: pc.client_first_name || contactFirst || "there",
@@ -361,7 +356,6 @@ function resolve(ctx: Ctx, override?: Partial<PropCfg>, org?: Partial<OrgCfg>): 
     direct_line: oc.direct_line,
     office_line: oc.office_line,
     invoice_days: oc.invoice_days,
-    deposit,
     review_url: oc.review_url,
     signer_name: oc.signer_name,
     signer_title: oc.signer_title,
@@ -426,7 +420,7 @@ function compose(kind: Kind, f: Fields, testFor?: string[]): { subject: string; 
       p: `This email confirms that fire watch service at ${f.property} has been completed as of ${at(f.end_date, f.end_time)}. Thank you for choosing ${f.company_legal || "us"}.`,
     });
     blocks.push({
-      p: `Your final invoice will be sent within ${f.invoice_days} business ${f.invoice_days === 1 ? "day" : "days"}${f.billing_email ? ` to ${f.billing_email}` : ""}.${f.deposit ? ` ${f.deposit}` : ""}`,
+      p: `Your final invoice will be sent within ${f.invoice_days} business ${f.invoice_days === 1 ? "day" : "days"}${f.billing_email ? ` to ${f.billing_email}` : ""}.`,
     });
     blocks.push({ p: "If you need copies of the patrol logs for your records, your insurer, or the fire marshal, just reply to this email and we'll send them over." });
     if (f.review_url) {
