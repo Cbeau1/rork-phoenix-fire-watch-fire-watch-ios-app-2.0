@@ -5022,6 +5022,19 @@ export type Database = {
         Returns: string
       }
       property_watches: { Args: never; Returns: Json }
+      client_billing: { Args: never; Returns: Json }
+      client_invoice_save: {
+        Args: { p: Json; p_void?: string[] }
+        Returns: string
+      }
+      client_invoice_status: {
+        Args: { p_id: string; p_status: string; p_paid_on?: string }
+        Returns: undefined
+      }
+      client_invoice_delete: {
+        Args: { p_id: string }
+        Returns: string
+      }
       shift__window: {
         Args: { p_tz: string; s: Database["public"]["Tables"]["shifts"]["Row"] }
         Returns: unknown

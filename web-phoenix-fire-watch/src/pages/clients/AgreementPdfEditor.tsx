@@ -23,6 +23,7 @@ export const PdfPreviewDialog = ({
   description,
   fileName,
   load,
+  loadingText = "Filling in your agreement…",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -30,6 +31,7 @@ export const PdfPreviewDialog = ({
   description?: string;
   fileName: string;
   load: () => Promise<Uint8Array>;
+  loadingText?: string;
 }) => {
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [error, setError] = useState("");
@@ -91,7 +93,7 @@ export const PdfPreviewDialog = ({
           ) : (
             <div className="flex flex-col items-center gap-3 py-24 text-sm text-ink-3">
               <Spinner />
-              Filling in your agreement…
+              {loadingText}
             </div>
           )}
         </div>

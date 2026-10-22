@@ -26,6 +26,7 @@ import { toast } from "sonner";
 
 import { AddRateDialog } from "@/components/fw/ClientRateCard";
 import { Card, PageHeader } from "@/components/fw/primitives";
+import { ClientBillingCard } from "@/components/fw/ClientBillingCard";
 import { WatchesCard } from "@/components/fw/WatchesCard";
 import { Button } from "@/components/ui/button";
 import { Empty, ErrorBlock, FormDialog, Loading, TextField, toNum } from "@/components/workforce/kit";
@@ -181,6 +182,8 @@ const Body = ({ d }: { d: ProfitDashboard }) => {
       )}
 
       <WatchesCard />
+
+      <ClientBillingCard />
 
       {nothing ? (
         <Card className="p-4">
