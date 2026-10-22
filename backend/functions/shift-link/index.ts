@@ -1,12 +1,14 @@
 import { corsHeaders, createAdminClient, handleError, HttpError, json, readString, requireAuth } from "../_shared/auth.ts";
-import { isSafeOrigin, orgIdentity, randomToken, sha256Hex } from "../_shared/crm.ts";
+import { emailConfigured, escapeHtml, isSafeOrigin, orgIdentity, randomToken, sendEmail, sha256Hex } from "../_shared/crm.ts";
+import { EMAIL_RE } from "../_shared/auth.ts";
 import { fmtTime, loadDispatchSettings, maskPhone, routeSms, sendSms, smsConfigured, toE164, twilioEnvNames } from "../_shared/sms.ts";
 
 /**
  * No-login shift links.
  * Public (token is the only credential; only its SHA-256 hash is stored):
  *   view, check_in, patrol, incident, check_out
- * Admin (signed-in admin JWT): status, send (new link, optionally texted), revoke
+ * Admin (signed-in admin JWT): status, contact, send (new link, texted and/or emailed), revoke
+ * Test mode (or no dispatch settings) sends texts ONLY to the test phone and emails ONLY to the test email.
  */
 
 const BUCKET = "patrol-photos";
@@ -191,6 +193,25 @@ async function staffPhone(admin: Admin, staffId: string): Promise<string> {
   return wk?.phone ?? "";
 }
 
+/** Best known email for a guard: their worker record, then their app login. */
+async function staffEmail(admin: Admin, staffId: string): Promise<string> {
+  const [{ data: wk }, { data: st }] = await Promise.all([
+    admin.from("wf_workers").select("email").eq("staff_id", staffId).is("archived_at", null).limit(1).maybeSingle(),
+    admin.from("staff").select("profile_id").eq("id", staffId).maybeSingle(),
+  ]);
+  if (wk?.email && EMAIL_RE.test(wk.email)) return wk.email.toLowerCase();
+  if (st?.profile_id) {
+    const { data: pr } = await admin.from("profiles").select("email").eq("id", st.profile_id).maybeSingle();
+    if (pr?.email && EMAIL_RE.test(pr.email)) return pr.email.toLowerCase();
+  }
+  return "";
+}
+
+const maskEmail = (e: string): string => {
+  const [u, d] = e.split("@");
+  return d ? `${u.slice(0, 1)}${"•".repeat(Math.max(1, Math.min(4, u.length - 1)))}@${d}` : e;
+};
+
 async function adminAction(req: Request, admin: Admin, action: string, body: Record<string, unknown>): Promise<Response> {
   const caller = await requireAuth(req);
   const { data: me } = await admin.from("profiles").select("id, org_id, role, active, full_name").eq("id", caller.id).single();
@@ -199,7 +220,14 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
   if (action === "status") {
     const settings = await loadDispatchSettings(admin, me.org_id);
     const configured = smsConfigured();
-    return json({ sms_configured: configured, sms_env_names: configured ? undefined : twilioEnvNames(), test_mode: settings?.test_mode ?? true, test_phone: settings?.test_phone ? maskPhone(toE164(settings.test_phone)) : "" });
+    return json({
+      sms_configured: configured,
+      sms_env_names: configured ? undefined : twilioEnvNames(),
+      email_configured: emailConfigured(),
+      test_mode: settings?.test_mode ?? true,
+      test_phone: settings?.test_phone ? maskPhone(toE164(settings.test_phone)) : "",
+      test_email: settings?.test_email ?? "",
+    });
   }
 
   if (action === "test_sms") {
@@ -224,6 +252,10 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
     .maybeSingle();
   if (!shift || shift.org_id !== me.org_id) throw new HttpError(404, "Shift not found.");
 
+  if (action === "contact") {
+    return json({ email: shift.staff_id ? await staffEmail(admin, shift.staff_id) : "" });
+  }
+
   if (action === "revoke") {
     await admin.from("shift_links").update({ revoked_at: new Date().toISOString() }).eq("shift_id", shiftId).is("revoked_at", null);
     return json({ ok: true });
@@ -241,7 +273,9 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
   });
   const url = `${origin}/shift/${token}`;
 
-  if (body.text !== true) return json({ url, expires_at: issued.expires_at, sent: false });
+  const wantText = body.text === true;
+  const wantEmail = body.email === true;
+  if (!wantText && !wantEmail) return json({ url, expires_at: issued.expires_at, sent: false });
 
   const [{ data: staff }, { data: prop }, identity, settings, phone, { data: tzRow }] = await Promise.all([
     admin.from("staff").select("name").eq("id", shift.staff_id).maybeSingle(),
@@ -254,37 +288,76 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
   const tz = (tzRow as string | null) || "America/New_York";
   const guard = staff?.name ?? "Guard";
   const intended = toE164(phone);
+  const testMode = !settings || settings.test_mode;
+  const when = shiftStartLabel(String(shift.shift_date), String(shift.start_time), tz);
+  const site = prop?.name ?? "your site";
   let error = "";
   let sentTo = "";
+  let emailError = "";
+  let emailedTo = "";
 
-  if (!intended && !settings?.test_mode) {
+  if (wantEmail) {
+    const typed = readString(body.email_to, 200).toLowerCase();
+    const target = typed || (await staffEmail(admin, shift.staff_id));
+    if (target && !EMAIL_RE.test(target)) emailError = "That email address isn't valid.";
+    else if (!emailConfigured()) emailError = "Email sending isn't set up yet.";
+    else {
+      let to = target;
+      if (testMode) {
+        const t = (settings?.test_email ?? "").trim().toLowerCase();
+        to = EMAIL_RE.test(t) ? t : "";
+        if (!to) emailError = "Emails are in test mode and no test email is set.";
+      } else if (!to) emailError = `${guard} has no email on file. Type one in, or text the link instead.`;
+      if (to) {
+        const note = testMode ? `[TEST MODE — would have gone to ${guard} at ${target || "no email on file"}]\n\n` : "";
+        const subject = `${testMode ? "[TEST] " : ""}Your shift at ${site} — ${when}`;
+        const text = `${note}Hi ${guard.split(/\s+/)[0]},\n\nYour shift at ${site} starts ${when}.\n\nUse this link to check in, log patrols and check out (no login needed):\n${url}\n\nThe link stops working 12 hours after the shift ends.\n\n${identity.name}`;
+        const html = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#16171a;max-width:520px;">${
+          testMode ? `<p style="padding:8px 10px;border:1px dashed #dc2626;border-radius:8px;font-size:12px;color:#991b1b;">Test mode — would have gone to ${escapeHtml(guard)} at ${escapeHtml(target || "no email on file")}</p>` : ""
+        }<p>Hi ${escapeHtml(guard.split(/\s+/)[0])},</p><p>Your shift at <strong>${escapeHtml(site)}</strong> starts <strong>${escapeHtml(when)}</strong>.</p><p><a href="${escapeHtml(url)}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-weight:bold;padding:11px 18px;border-radius:8px;">Open my shift</a></p><p style="font-size:13px;color:#45474d;">Check in, log patrols and check out — no login needed. The link stops working 12 hours after the shift ends.</p><p style="font-size:13px;color:#8a8d94;">${escapeHtml(identity.name)}</p></div>`;
+        const err = await sendEmail({ to: [to], subject, text, html, replyTo: identity.replyTo || undefined, fromName: identity.name });
+        if (err) emailError = err;
+        else emailedTo = testMode ? to : maskEmail(to);
+      }
+    }
+  }
+
+  if (!wantText) {
+    // email only
+  } else if (!intended && !testMode) {
     error = `${guard} has no valid mobile number. Add one in their profile, or copy the link instead.`;
   } else {
     const route = routeSms(settings, intended ? [intended] : [], `${guard} ${intended ? maskPhone(intended) : "(no phone)"}`);
     if (!route.to.length) error = route.reason;
     else {
-      const when = shiftStartLabel(String(shift.shift_date), String(shift.start_time), tz);
-      const msg = `${route.prefix}${identity.name}: Your shift at ${prop?.name ?? "your site"} starts ${when}. Check in, log patrols and check out here (no login needed): ${url}`;
+      const msg = `${route.prefix}${identity.name}: Your shift at ${site} starts ${when}. Check in, log patrols and check out here (no login needed): ${url}`;
       const err = await sendSms(route.to[0], msg);
       if (err) error = err;
       else sentTo = maskPhone(route.to[0]);
     }
   }
 
+  const delivered = [sentTo, emailedTo].filter(Boolean).join(", ");
   await admin
     .from("shift_links")
-    .update({ sent_to: sentTo, sent_at: sentTo ? new Date().toISOString() : null, send_error: error })
+    .update({ sent_to: delivered, sent_at: delivered ? new Date().toISOString() : null, send_error: [error, emailError].filter(Boolean).join(" ") })
     .eq("id", issued.id);
-  if (sentTo) {
-    await admin.from("shift_events").insert({
-      org_id: me.org_id,
-      shift_id: shiftId,
-      kind: "link_sent",
-      actor_name: me.full_name,
-      note: settings?.test_mode ? `Texted (test mode) to ${sentTo}` : `Texted to ${sentTo}`,
-    });
+  const tm = testMode ? " (test mode)" : "";
+  const events = [sentTo && `Texted${tm} to ${sentTo}`, emailedTo && `Emailed${tm} to ${emailedTo}`].filter(Boolean) as string[];
+  for (const note of events) {
+    await admin.from("shift_events").insert({ org_id: me.org_id, shift_id: shiftId, kind: "link_sent", actor_name: me.full_name, note });
   }
-  return json({ url, expires_at: issued.expires_at, sent: !!sentTo, sent_to: sentTo, test_mode: settings?.test_mode ?? true, error });
+  return json({
+    url,
+    expires_at: issued.expires_at,
+    sent: !!sentTo,
+    sent_to: sentTo,
+    emailed: !!emailedTo,
+    emailed_to: emailedTo,
+    email_error: emailError,
+    test_mode: testMode,
+    error,
+  });
 }
 
 Deno.serve(async (req) => {

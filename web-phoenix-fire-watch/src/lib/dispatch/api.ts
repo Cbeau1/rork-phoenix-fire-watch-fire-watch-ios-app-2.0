@@ -93,8 +93,10 @@ export interface DispatchSettings {
 
 export interface LinkStatus {
   sms_configured: boolean;
+  email_configured?: boolean;
   test_mode: boolean;
   test_phone: string;
+  test_email?: string;
 }
 
 export interface SendLinkResult {
@@ -102,6 +104,9 @@ export interface SendLinkResult {
   expires_at: string;
   sent: boolean;
   sent_to?: string;
+  emailed?: boolean;
+  emailed_to?: string;
+  email_error?: string;
   test_mode?: boolean;
   error?: string;
 }
@@ -144,8 +149,18 @@ export async function saveSettings(orgId: string, patch: Omit<DispatchSettings, 
 
 export const linkStatus = (): Promise<LinkStatus> => callFunction<LinkStatus>("shift-link", { action: "status" });
 
-export const sendShiftLink = (shiftId: string, text: boolean): Promise<SendLinkResult> =>
-  callFunction<SendLinkResult>("shift-link", { action: "send", shift_id: shiftId, text, origin: window.location.origin });
+export const sendShiftLink = (shiftId: string, opts: { text: boolean; email: boolean; emailTo?: string }): Promise<SendLinkResult> =>
+  callFunction<SendLinkResult>("shift-link", {
+    action: "send",
+    shift_id: shiftId,
+    text: opts.text,
+    email: opts.email,
+    email_to: opts.emailTo ?? "",
+    origin: window.location.origin,
+  });
+
+/** The guard's best known email (worker record, then app login). */
+export const shiftLinkContact = (shiftId: string): Promise<{ email: string }> => callFunction("shift-link", { action: "contact", shift_id: shiftId });
 
 export const revokeShiftLink = (shiftId: string): Promise<{ ok: true }> =>
   callFunction("shift-link", { action: "revoke", shift_id: shiftId });
