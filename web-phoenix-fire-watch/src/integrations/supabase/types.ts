@@ -2304,6 +2304,63 @@ export type Database = {
           },
         ]
       }
+      property_watches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ended_at: string | null
+          ended_by: string | null
+          ended_on: string | null
+          id: string
+          org_id: string
+          property_id: string
+          shifts_cleared: number
+          started_on: string
+          summary: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_on?: string | null
+          id?: string
+          org_id: string
+          property_id: string
+          shifts_cleared?: number
+          started_on: string
+          summary?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_on?: string | null
+          id?: string
+          org_id?: string
+          property_id?: string
+          shifts_cleared?: number
+          started_on?: string
+          summary?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_watches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_watches_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_events: {
         Row: {
           accuracy_m: number | null
@@ -4952,6 +5009,19 @@ export type Database = {
         Args: { p_agency: string; p_overtime?: number; p_regular: number }
         Returns: undefined
       }
+      property_watch_end: {
+        Args: { p_end: string; p_start: string; p_watch: string }
+        Returns: Json
+      }
+      property_watch_preview: {
+        Args: { p_end: string; p_start: string; p_watch: string }
+        Returns: Json
+      }
+      property_watch_start: {
+        Args: { p_property: string; p_start: string }
+        Returns: string
+      }
+      property_watches: { Args: never; Returns: Json }
       shift__window: {
         Args: { p_tz: string; s: Database["public"]["Tables"]["shifts"]["Row"] }
         Returns: unknown
