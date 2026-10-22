@@ -18,6 +18,547 @@ export type Database = {
   }
   public: {
     Tables: {
+      crm_activity: {
+        Row: {
+          actor_id: string | null
+          actor_name: string
+          client_id: string | null
+          created_at: string
+          deal_id: string | null
+          id: string
+          kind: string
+          org_id: string
+          summary: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string
+          client_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          kind: string
+          org_id: string
+          summary: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string
+          client_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          kind?: string
+          org_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activity_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activity_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activity_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_clients: {
+        Row: {
+          archived_at: string | null
+          billing_address: string
+          billing_email: string
+          billing_name: string
+          billing_phone: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          billing_address?: string
+          billing_email?: string
+          billing_name?: string
+          billing_phone?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          billing_address?: string
+          billing_email?: string
+          billing_name?: string
+          billing_phone?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_clients_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contacts: {
+        Row: {
+          client_id: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          notes: string
+          org_id: string
+          phone: string
+          receives_updates: boolean
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          email?: string
+          id?: string
+          name: string
+          notes?: string
+          org_id: string
+          phone?: string
+          receives_updates?: boolean
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          notes?: string
+          org_id?: string
+          phone?: string
+          receives_updates?: boolean
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contracts: {
+        Row: {
+          app_origin: string
+          body: string
+          body_sha256: string | null
+          coverage: string
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          end_date: string | null
+          hourly_rate: number | null
+          hours_per_week: number | null
+          id: string
+          number: number
+          org_id: string
+          payment_terms: string
+          quote_id: string | null
+          sent_at: string | null
+          sent_to: string
+          sent_to_name: string
+          sign_expires_at: string | null
+          sign_token_hash: string | null
+          signature_image: string | null
+          signature_method: string | null
+          signed_at: string | null
+          signed_pdf_path: string | null
+          signer_email: string | null
+          signer_ip: string | null
+          signer_name: string | null
+          signer_user_agent: string | null
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          viewed_at: string | null
+          void_reason: string
+        }
+        Insert: {
+          app_origin?: string
+          body: string
+          body_sha256?: string | null
+          coverage?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          end_date?: string | null
+          hourly_rate?: number | null
+          hours_per_week?: number | null
+          id?: string
+          number?: number
+          org_id: string
+          payment_terms?: string
+          quote_id?: string | null
+          sent_at?: string | null
+          sent_to?: string
+          sent_to_name?: string
+          sign_expires_at?: string | null
+          sign_token_hash?: string | null
+          signature_image?: string | null
+          signature_method?: string | null
+          signed_at?: string | null
+          signed_pdf_path?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          viewed_at?: string | null
+          void_reason?: string
+        }
+        Update: {
+          app_origin?: string
+          body?: string
+          body_sha256?: string | null
+          coverage?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          end_date?: string | null
+          hourly_rate?: number | null
+          hours_per_week?: number | null
+          id?: string
+          number?: number
+          org_id?: string
+          payment_terms?: string
+          quote_id?: string | null
+          sent_at?: string | null
+          sent_to?: string
+          sent_to_name?: string
+          sign_expires_at?: string | null
+          sign_token_hash?: string | null
+          signature_image?: string | null
+          signature_method?: string | null
+          signed_at?: string | null
+          signed_pdf_path?: string | null
+          signer_email?: string | null
+          signer_ip?: string | null
+          signer_name?: string | null
+          signer_user_agent?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          viewed_at?: string | null
+          void_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contracts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contracts_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "crm_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deals: {
+        Row: {
+          client_id: string
+          coverage: string
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          est_rate: number | null
+          hours_per_week: number | null
+          id: string
+          lost_reason: string
+          notes: string
+          org_id: string
+          patrol_interval_minutes: number | null
+          property_id: string | null
+          reason: string
+          requested_start_date: string | null
+          requested_start_time: string | null
+          source: string
+          stage: string
+          stage_changed_at: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          coverage?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          est_rate?: number | null
+          hours_per_week?: number | null
+          id?: string
+          lost_reason?: string
+          notes?: string
+          org_id: string
+          patrol_interval_minutes?: number | null
+          property_id?: string | null
+          reason?: string
+          requested_start_date?: string | null
+          requested_start_time?: string | null
+          source?: string
+          stage?: string
+          stage_changed_at?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          coverage?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          est_rate?: number | null
+          hours_per_week?: number | null
+          id?: string
+          lost_reason?: string
+          notes?: string
+          org_id?: string
+          patrol_interval_minutes?: number | null
+          property_id?: string | null
+          reason?: string
+          requested_start_date?: string | null
+          requested_start_time?: string | null
+          source?: string
+          stage?: string
+          stage_changed_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_quotes: {
+        Row: {
+          accept_note: string
+          accept_source: string
+          accepted_at: string | null
+          accepted_by: string
+          coverage: string
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          end_date: string | null
+          hourly_rate: number
+          hours_per_week: number
+          id: string
+          minimum_hours: number | null
+          notes: string
+          number: number
+          org_id: string
+          payment_terms: string
+          schedule: string
+          sent_at: string | null
+          sent_to: string
+          start_date: string | null
+          status: string
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          accept_note?: string
+          accept_source?: string
+          accepted_at?: string | null
+          accepted_by?: string
+          coverage?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          end_date?: string | null
+          hourly_rate: number
+          hours_per_week: number
+          id?: string
+          minimum_hours?: number | null
+          notes?: string
+          number?: number
+          org_id: string
+          payment_terms?: string
+          schedule?: string
+          sent_at?: string | null
+          sent_to?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          accept_note?: string
+          accept_source?: string
+          accepted_at?: string | null
+          accepted_by?: string
+          coverage?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          end_date?: string | null
+          hourly_rate?: number
+          hours_per_week?: number
+          id?: string
+          minimum_hours?: number | null
+          notes?: string
+          number?: number
+          org_id?: string
+          payment_terms?: string
+          schedule?: string
+          sent_at?: string | null
+          sent_to?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_quotes_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_quotes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_settings: {
+        Row: {
+          company_address: string
+          company_email: string
+          company_phone: string
+          contract_template: string
+          default_rate: number | null
+          org_id: string
+          payment_terms: string
+          quote_notes: string
+          quote_valid_days: number
+          sign_link_days: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_address?: string
+          company_email?: string
+          company_phone?: string
+          contract_template?: string
+          default_rate?: number | null
+          org_id: string
+          payment_terms?: string
+          quote_notes?: string
+          quote_valid_days?: number
+          sign_link_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_address?: string
+          company_email?: string
+          company_phone?: string
+          contract_template?: string
+          default_rate?: number | null
+          org_id?: string
+          payment_terms?: string
+          quote_notes?: string
+          quote_valid_days?: number
+          sign_link_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ex_allocations: {
         Row: {
           amount: number
@@ -1060,12 +1601,17 @@ export type Database = {
       }
       properties: {
         Row: {
+          access_instructions: string
           address: string
+          client_id: string | null
           contact_email: string
           contact_name: string
           contact_phone: string
           created_at: string
           created_by: string | null
+          fire_marshal_email: string
+          fire_marshal_name: string
+          fire_marshal_phone: string
           geofence_enabled: boolean
           geofence_lat: number | null
           geofence_lng: number | null
@@ -1078,12 +1624,17 @@ export type Database = {
           patrol_interval_minutes: number
         }
         Insert: {
+          access_instructions?: string
           address?: string
+          client_id?: string | null
           contact_email?: string
           contact_name?: string
           contact_phone?: string
           created_at?: string
           created_by?: string | null
+          fire_marshal_email?: string
+          fire_marshal_name?: string
+          fire_marshal_phone?: string
           geofence_enabled?: boolean
           geofence_lat?: number | null
           geofence_lng?: number | null
@@ -1096,12 +1647,17 @@ export type Database = {
           patrol_interval_minutes?: number
         }
         Update: {
+          access_instructions?: string
           address?: string
+          client_id?: string | null
           contact_email?: string
           contact_name?: string
           contact_phone?: string
           created_at?: string
           created_by?: string | null
+          fire_marshal_email?: string
+          fire_marshal_name?: string
+          fire_marshal_phone?: string
           geofence_enabled?: boolean
           geofence_lat?: number | null
           geofence_lng?: number | null
@@ -1114,6 +1670,13 @@ export type Database = {
           patrol_interval_minutes?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "properties_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "properties_created_by_fkey"
             columns: ["created_by"]
@@ -3336,6 +3899,17 @@ export type Database = {
     }
     Functions: {
       admin_export_data: { Args: never; Returns: Json }
+      admin_export_report: { Args: never; Returns: Json }
+      crm_intake: { Args: { p: Json }; Returns: Json }
+      crm_quote_accept: {
+        Args: {
+          p_by: string
+          p_note: string
+          p_quote: string
+          p_source?: string
+        }
+        Returns: undefined
+      }
       ex__date: {
         Args: { allow_null?: boolean; label: string; v: string }
         Returns: string

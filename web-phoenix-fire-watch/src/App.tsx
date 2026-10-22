@@ -30,7 +30,14 @@ import Properties from "./pages/Properties";
 import Schedule from "./pages/Schedule";
 import PropertyDetail from "./pages/PropertyDetail";
 import PropertyForm from "./pages/PropertyForm";
+import SignContract from "./pages/SignContract";
 import SignIn from "./pages/SignIn";
+import ClientDetail from "./pages/clients/ClientDetail";
+import ClientList from "./pages/clients/ClientList";
+import ClientsLayout from "./pages/clients/ClientsLayout";
+import CrmSettings from "./pages/clients/CrmSettings";
+import DealDetail from "./pages/clients/DealDetail";
+import Pipeline from "./pages/clients/Pipeline";
 import Support from "./pages/Support";
 import Team from "./pages/Team";
 import Terms from "./pages/Terms";
@@ -164,6 +171,14 @@ const AppRoutes = () => {
           <Route path="settings" element={<WorkforceSettings />} />
           <Route path="*" element={<NotFound embedded />} />
         </Route>
+        <Route path="/clients" element={<ClientsLayout />}>
+          <Route index element={<Pipeline />} />
+          <Route path="deals/:id" element={<DealDetail />} />
+          <Route path="list" element={<ClientList />} />
+          <Route path="c/:id" element={<ClientDetail />} />
+          <Route path="settings" element={<CrmSettings />} />
+          <Route path="*" element={<NotFound embedded />} />
+        </Route>
         <Route path="/expenditures" element={<ExLayout />}>
           <Route index element={<ExOverview />} />
           <Route path="records" element={<ExRecords />} />
@@ -214,6 +229,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/support" element={<Support />} />
+              <Route path="/sign/:token" element={<SignContract />} />
               <Route path="*" element={<Gate />} />
             </Routes>
           </BrowserRouter>

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock,
   FileText,
+  Handshake,
   LayoutGrid,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ const NAV: NavItem[] = [
   { to: "/notes", label: "Watch Notes", short: "Notes", icon: FileText, match: (p: string) => p.startsWith("/notes") },
 ];
 
+const CLIENTS_NAV: NavItem = { to: "/clients", label: "Clients", short: "Clients", icon: Handshake, match: (p: string) => p.startsWith("/clients") };
 const HOURS_NAV: NavItem = { to: "/hours", label: "My Hours", short: "Hours", icon: Clock, match: (p: string) => p.startsWith("/hours") };
 const PAYROLL_NAV: NavItem = { to: "/payroll", label: "Payroll", short: "Payroll", icon: Wallet, match: (p: string) => p.startsWith("/payroll") };
 const TEAM_NAV: NavItem = { to: "/team", label: "Team", short: "Team", icon: Users, match: (p: string) => p.startsWith("/team") };
@@ -69,7 +71,7 @@ const useNavItems = (): NavItem[] => {
   const { isAdmin } = useAuth();
   const exAccess = useExAccess();
   return isAdmin
-    ? [...NAV, HOURS_NAV, TEAM_NAV, PAYROLL_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
+    ? [...NAV.slice(0, 2), CLIENTS_NAV, ...NAV.slice(2), HOURS_NAV, TEAM_NAV, PAYROLL_NAV, WORKFORCE_NAV, ...(exAccess.data === true ? [EXPENSES_NAV] : []), ACCOUNT_NAV]
     : [...NAV, HOURS_NAV, ACCOUNT_NAV];
 };
 
