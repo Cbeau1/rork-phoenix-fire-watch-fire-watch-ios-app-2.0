@@ -26,6 +26,8 @@ export interface ProfitProperty {
   unbilled_hours: number;
   /** Estimated value of the unbilled hours at the client rate (not counted as revenue). */
   unbilled_revenue: number;
+  /** Labor for those unbilled hours — held back (like their revenue) until the invoice is uploaded. */
+  unbilled_cost: number;
   timecard_hours: number;
   timecard_revenue: number;
   /** Client invoices issued in this period (same as revenue). */
@@ -105,6 +107,7 @@ export async function fetchProfit(period: ProfitPeriod): Promise<ProfitDashboard
       revenue: n(p.revenue),
       unbilled_hours: n(p.unbilled_hours),
       unbilled_revenue: n(p.unbilled_revenue),
+      unbilled_cost: n(p.unbilled_cost),
       timecard_hours: n(p.timecard_hours ?? p.hours),
       timecard_revenue: n(p.timecard_revenue ?? p.revenue),
       billed: n(p.billed),
@@ -136,8 +139,13 @@ export async function fetchProfit(period: ProfitPeriod): Promise<ProfitDashboard
 }
 
 /** Labor cost for a property row (wages + payroll burden + agency charges). */
-export const laborCost = (p: Pick<ProfitProperty, "wages" | "burden" | "agency">): number => p.wages + p.burden + p.agency;
-export const totalCost = (p: ProfitProperty): number => laborCost(p) + p.expenses;
+/** Labor on billed work: timecard wages + payroll tax + agency charges + payroll/agency payments recorded as expenditures. */
+export const laborCost = (p: Pick<ProfitProperty, "wages" | "burden" | "agency" | "labor_expenses">): number =>
+  p.wages + p.burden + p.agency + p.labor_expenses;
+/** Property expenses other than recorded payroll/agency payments. */
+export const otherExpenses = (p: Pick<ProfitProperty, "expenses" | "labor_expenses">): number => p.expenses - p.labor_expenses;
+export const grossOf = (p: ProfitProperty): number => p.revenue - laborCost(p);
+export const totalCost = (p: ProfitProperty): number => laborCost(p) + otherExpenses(p);
 export const profitOf = (p: ProfitProperty): number => p.revenue - totalCost(p);
 /** Margin as a fraction, or null when there's no revenue to compare against. */
 export const marginOf = (revenue: number, profit: number): number | null => (revenue > 0 ? profit / revenue : null);
@@ -160,9 +168,15 @@ export interface ProfitTotals {
   /** Profit after federal tax. */
   net: number;
   netMargin: number | null;
+  /** Revenue minus labor, before any other expense. */
+  gross: number;
+  grossMargin: number | null;
+  /** Non-labor expenses: property expenses + company overhead. */
+  otherExpenses: number;
   billed: number;
   unbilledHours: number;
   unbilledRevenue: number;
+  unbilledCost: number;
   timecardHours: number;
   hours: number;
   pendingHours: number;
@@ -181,8 +195,10 @@ export const totalsOf = (d: ProfitDashboard): ProfitTotals => {
   const overhead = d.overhead.reduce((s, o) => s + o.amount, 0);
   const unassignedCost = n(d.unassigned?.cost);
   const revenue = sum((p) => p.revenue);
-  const labor = wages + burden + agency + unassignedCost;
-  const cost = labor + siteExpenses + overhead;
+  const laborExpenses = sum((p) => p.labor_expenses);
+  const labor = wages + burden + agency + unassignedCost + laborExpenses;
+  const cost = wages + burden + agency + unassignedCost + siteExpenses + overhead;
+  const gross = revenue - labor;
   const profit = revenue - cost;
   const tax = profit > 0 ? (profit * d.federal_tax_pct) / 100 : 0;
   const net = profit - tax;
@@ -201,7 +217,11 @@ export const totalsOf = (d: ProfitDashboard): ProfitTotals => {
     tax,
     net,
     netMargin: marginOf(revenue, net),
+    gross,
+    grossMargin: marginOf(revenue, gross),
+    otherExpenses: cost - labor,
     billed: sum((p) => p.billed),
+    unbilledCost: sum((p) => p.unbilled_cost),
     unbilledHours: sum((p) => p.unbilled_hours),
     unbilledRevenue: sum((p) => p.unbilled_revenue),
     timecardHours: sum((p) => p.timecard_hours) + n(d.unassigned?.hours),

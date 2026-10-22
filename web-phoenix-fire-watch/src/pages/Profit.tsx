@@ -35,7 +35,9 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { money } from "@/lib/crm/types";
 import {
   fetchProfit,
+  grossOf,
   laborCost,
+  otherExpenses,
   marginOf,
   PERIODS,
   pct,
@@ -253,14 +255,16 @@ const Hero = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf> }) 
             </p>
           )}
           <p className="mt-3 text-sm text-ink-2">
-            Revenue is what you billed — client invoices dated in this period. Costs are every hour worked ({hrs(t.hours)}) plus expenses.
+            Profit = revenue billed − labor on that work − expenses. Revenue is client invoices dated in this period; labor is the
+            hours those invoices cover plus recorded payroll.
           </p>
           {t.unbilledHours > 0 && (
             <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-ink-2">
               <FileText className="h-4 w-4 text-link" />
               <span>
                 <span className="font-medium text-ink">{hrs(t.unbilledHours)}</span> worked but not invoiced yet ≈{" "}
-                <span className="font-medium text-ink">{whole(t.unbilledRevenue)}</span> to bill — not counted as revenue until you upload the invoice.
+                <span className="font-medium text-ink">{whole(t.unbilledRevenue)}</span> to bill
+                {t.unbilledCost > 0 && <> ({whole(t.unbilledCost)} labor)</>} — counted once you upload the invoice.
               </span>
             </p>
           )}
@@ -279,15 +283,26 @@ const Hero = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf> }) 
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <HeroTile label="Revenue" value={whole(t.revenue)} dot="bg-link" />
-          <HeroTile label="Total cost" value={whole(t.cost)} dot="bg-ink-3" />
+          <HeroTile label="Revenue billed" value={whole(t.revenue)} dot="bg-link" />
           <HeroTile label="Labor" value={whole(t.labor)} sub={t.revenue > 0 ? `${pct(t.labor / t.revenue)} of revenue` : undefined} dot="bg-info" />
           <div className="rounded-lg border border-line bg-raised px-4 py-3">
-            <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">Margin</div>
-            <div className={cn("mt-1 font-display text-2xl font-extrabold tabular-nums", tone.text)}>{pct(t.margin)}</div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line" aria-hidden>
-              <div className={cn("h-full rounded-full transition-[width] duration-700", tone.bar)} style={{ width: `${marginPct * 100}%` }} />
+            <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-3">
+              <span className="h-1.5 w-1.5 rounded-full bg-status-clear" aria-hidden />
+              Gross profit
             </div>
+            <div className={cn("mt-1 font-display text-2xl font-extrabold tabular-nums", t.gross < 0 ? "text-status-incident-ink" : "text-ink")}>
+              {signed(t.gross)}
+            </div>
+            <div className="mt-0.5 text-xs text-ink-3">{t.grossMargin == null ? "before expenses" : `${pct(t.grossMargin)} · before expenses`}</div>
+          </div>
+          <HeroTile
+            label="Expenses"
+            value={whole(t.otherExpenses)}
+            sub={t.revenue > 0 ? `${pct(t.otherExpenses / t.revenue)} of revenue` : undefined}
+            dot="bg-ink-3"
+          />
+          <div className="col-span-2 h-1.5 overflow-hidden rounded-full bg-line" aria-hidden>
+            <div className={cn("h-full rounded-full transition-[width] duration-700", tone.bar)} style={{ width: `${marginPct * 100}%` }} />
           </div>
         </div>
       </div>
@@ -445,10 +460,11 @@ const PropertyTable = ({ d }: { d: ProfitDashboard }) => {
         </div>
       ) : (
         <>
-          <div className="mt-3 hidden grid-cols-[minmax(0,1.8fr)_repeat(4,minmax(0,1fr))_minmax(0,1.1fr)] gap-3 border-y border-line bg-raised/60 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-3 md:grid">
+          <div className="mt-3 hidden grid-cols-[minmax(0,1.8fr)_repeat(5,minmax(0,1fr))_minmax(0,0.9fr)] gap-3 border-y border-line bg-raised/60 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-3 md:grid">
             <span>Property</span>
             <span className="text-right">Revenue</span>
             <span className="text-right">Labor</span>
+            <span className="text-right">Gross profit</span>
             <span className="text-right">Expenses</span>
             <span className="text-right">Profit</span>
             <span className="text-right">Margin</span>
@@ -472,7 +488,7 @@ const PropertyRow = ({ p }: { p: ProfitProperty }) => {
     <li>
       <Link
         to={`/properties/${p.id}`}
-        className="group grid grid-cols-2 gap-x-3 gap-y-2 px-5 py-4 transition-colors hover:bg-raised/50 sm:px-6 md:grid-cols-[minmax(0,1.8fr)_repeat(4,minmax(0,1fr))_minmax(0,1.1fr)] md:items-center"
+        className="group grid grid-cols-2 gap-x-3 gap-y-2 px-5 py-4 transition-colors hover:bg-raised/50 sm:px-6 md:grid-cols-[minmax(0,1.8fr)_repeat(5,minmax(0,1fr))_minmax(0,0.9fr)] md:items-center"
       >
         <div className="col-span-2 min-w-0 md:col-span-1">
           <div className="flex items-center gap-1.5">
@@ -498,7 +514,10 @@ const PropertyRow = ({ p }: { p: ProfitProperty }) => {
           {p.revenue === 0 ? <span className="text-ink-3">—</span> : whole(p.revenue)}
         </Cell>
         <Cell label="Labor">{whole(laborCost(p))}</Cell>
-        <Cell label="Expenses">{p.expenses ? whole(p.expenses) : <span className="text-ink-3">—</span>}</Cell>
+        <Cell label="Gross profit">
+          <span className={cn(grossOf(p) < 0 && "text-status-incident-ink")}>{signed(grossOf(p))}</span>
+        </Cell>
+        <Cell label="Expenses">{otherExpenses(p) ? whole(otherExpenses(p)) : <span className="text-ink-3">—</span>}</Cell>
         <Cell label="Profit">
           <span className={cn("font-semibold", profit < 0 ? "text-status-incident-ink" : "text-ink")}>{signed(profit)}</span>
         </Cell>
