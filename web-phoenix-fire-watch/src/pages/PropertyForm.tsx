@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, Loader2, Save } from "lucide-react";
+import { BadgeCheck, Building2, Loader2, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Card, CardHeader, FieldError, FieldHint, FieldLabel, PageHeader } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useInspectors } from "@/lib/inspectors";
 import { friendlyError } from "@/lib/supabase";
 import type { PropertyInput } from "@/lib/types";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -23,6 +24,9 @@ const schema = z.object({
   contactPhone: z.string().trim().max(40),
   contactEmail: z.union([z.literal(""), z.string().trim().email("Enter a valid email address")]),
   notes: z.string().trim().max(2000),
+  fireMarshalName: z.string().trim().max(120),
+  fireMarshalPhone: z.string().trim().max(40),
+  fireMarshalEmail: z.union([z.literal(""), z.string().trim().email("Enter a valid email address").max(200)]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -33,6 +37,8 @@ const PropertyForm = () => {
   const { propertyById, addProperty, updateProperty } = useFireWatch();
   const existing = id ? propertyById.get(id) : undefined;
   const isEdit = !!id;
+  const { data: inspectors } = useInspectors();
+  const linkedInspector = existing?.inspectorId ? inspectors?.find((i) => i.id === existing.inspectorId) : undefined;
   useDocumentTitle(isEdit ? "Edit Property" : "Add Property");
 
   const {
@@ -48,6 +54,9 @@ const PropertyForm = () => {
       contactPhone: existing?.contactPhone ?? "",
       contactEmail: existing?.contactEmail ?? "",
       notes: existing?.notes ?? "",
+      fireMarshalName: existing?.fireMarshalName ?? "",
+      fireMarshalPhone: existing?.fireMarshalPhone ?? "",
+      fireMarshalEmail: existing?.fireMarshalEmail ?? "",
     },
   });
 
@@ -61,7 +70,17 @@ const PropertyForm = () => {
       contactPhone: raw.contactPhone ?? "",
       contactEmail: raw.contactEmail ?? "",
       notes: raw.notes ?? "",
+      fireMarshalName: raw.fireMarshalName ?? "",
+      fireMarshalPhone: raw.fireMarshalPhone ?? "",
+      fireMarshalEmail: raw.fireMarshalEmail ?? "",
     };
+    // Typing different marshal details replaces the directory inspector link.
+    const marshalChanged =
+      !!existing &&
+      (values.fireMarshalName?.trim() !== (existing.fireMarshalName ?? "") ||
+        values.fireMarshalPhone?.trim() !== (existing.fireMarshalPhone ?? "") ||
+        values.fireMarshalEmail?.trim().toLowerCase() !== (existing.fireMarshalEmail ?? "").toLowerCase());
+    if (existing?.inspectorId && marshalChanged) values.inspectorId = null;
     try {
       if (existing) {
         const saved = await updateProperty({ id: existing.id, input: values });
@@ -155,6 +174,47 @@ const PropertyForm = () => {
               <FieldHint>Used for patrol report delivery</FieldHint>
             )}
           </div>
+          <fieldset className="space-y-5 rounded-lg border border-line bg-raised/40 p-5">
+            <legend className="-ml-1 inline-flex items-center gap-2 px-1 text-sm font-semibold text-ink">
+              <BadgeCheck className="h-4 w-4 text-link" />
+              Fire Marshal
+            </legend>
+            <p className="-mt-1 text-sm text-ink-2">
+              {linkedInspector
+                ? `Filled from ${linkedInspector.name} in your Fire Inspectors list. Changing these details here unlinks them.`
+                : "The fire marshal or inspector for this site. Used on service agreements and job paperwork."}
+            </p>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <FieldLabel htmlFor="fireMarshalName">Name</FieldLabel>
+                <Input id="fireMarshalName" placeholder="e.g., Capt. Jane Rivera" {...register("fireMarshalName")} />
+                <FieldError message={errors.fireMarshalName?.message} />
+              </div>
+              <div>
+                <FieldLabel htmlFor="fireMarshalPhone">Phone</FieldLabel>
+                <Input
+                  id="fireMarshalPhone"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="(555) 123-4567"
+                  className="font-mono"
+                  {...register("fireMarshalPhone")}
+                />
+                <FieldError message={errors.fireMarshalPhone?.message} />
+              </div>
+            </div>
+            <div>
+              <FieldLabel htmlFor="fireMarshalEmail">Email</FieldLabel>
+              <Input
+                id="fireMarshalEmail"
+                type="email"
+                placeholder="marshal@fire.gov"
+                aria-invalid={!!errors.fireMarshalEmail}
+                {...register("fireMarshalEmail")}
+              />
+              <FieldError message={errors.fireMarshalEmail?.message} />
+            </div>
+          </fieldset>
           <div>
             <FieldLabel htmlFor="notes">Notes</FieldLabel>
             <Textarea

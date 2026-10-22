@@ -21,6 +21,10 @@ export interface Property {
   imagePath: string | null;
   /** Assigned fire inspector from the directory. */
   inspectorId?: string | null;
+  /** Fire marshal / inspector contact used on agreements and reports. */
+  fireMarshalName?: string;
+  fireMarshalPhone?: string;
+  fireMarshalEmail?: string;
   createdAt: string;
   syncState?: SyncState;
 }

@@ -21,8 +21,14 @@ export const FireInspectorCard = memo(({ property, isAdmin }: { property: Proper
   const [saving, setSaving] = useState<boolean>(false);
   const [adding, setAdding] = useState<boolean>(false);
   const current = inspectors.find((i) => i.id === property.inspectorId) ?? null;
+  const manual = {
+    name: property.fireMarshalName ?? "",
+    phone: property.fireMarshalPhone ?? "",
+    email: property.fireMarshalEmail ?? "",
+  };
+  const hasManual = !!(manual.name || manual.phone || manual.email);
 
-  if (!isAdmin && !current) return null;
+  if (!isAdmin && !current && !hasManual) return null;
 
   const assign = async (id: string | null) => {
     setSaving(true);
@@ -40,9 +46,9 @@ export const FireInspectorCard = memo(({ property, isAdmin }: { property: Proper
     <section className="mt-5 rounded-xl border border-line bg-surface p-6 shadow-card sm:p-7">
       <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
         <div className="flex min-w-0 items-start gap-4">
-          <BadgeCheck className={current ? "mt-0.5 h-8 w-8 shrink-0 text-link" : "mt-0.5 h-8 w-8 shrink-0 text-ink-3"} strokeWidth={1.6} />
+          <BadgeCheck className={current || hasManual ? "mt-0.5 h-8 w-8 shrink-0 text-link" : "mt-0.5 h-8 w-8 shrink-0 text-ink-3"} strokeWidth={1.6} />
           <div className="min-w-0">
-            <h2 className="font-display text-xl font-bold text-ink sm:text-[22px]">Fire Inspector</h2>
+            <h2 className="font-display text-xl font-bold text-ink sm:text-[22px]">Fire Marshal</h2>
             {current ? (
               <>
                 <p className="mt-1 text-[15px] font-medium text-ink">{current.name}</p>
@@ -72,9 +78,33 @@ export const FireInspectorCard = memo(({ property, isAdmin }: { property: Proper
                   )}
                 </div>
               </>
+            ) : hasManual ? (
+              <>
+                <p className="mt-1 text-[15px] font-medium text-ink">{manual.name || "Fire marshal"}</p>
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                  {manual.phone && (
+                    <a href={telHref(manual.phone)} className="focus-ring inline-flex items-center gap-1.5 rounded font-mono text-ink hover:text-link">
+                      <Phone className="h-4 w-4 text-ink-3" />
+                      {manual.phone}
+                    </a>
+                  )}
+                  {manual.email && (
+                    <a href={`mailto:${manual.email}`} className="focus-ring inline-flex items-center gap-1.5 rounded text-ink hover:text-link">
+                      <Mail className="h-4 w-4 text-ink-3" />
+                      {manual.email}
+                    </a>
+                  )}
+                </div>
+                <Link
+                  to={`/properties/${property.id}/edit`}
+                  className="focus-ring mt-2 inline-block rounded text-xs text-ink-3 hover:text-link"
+                >
+                  Entered on this property · Edit
+                </Link>
+              </>
             ) : (
               <p className="mt-1 text-sm text-ink-2">
-                No inspector assigned. Their contact fills the property's fire marshal details used in agreements.
+                No fire marshal yet. Pick one from your inspectors list, or tap Edit at the top to type their details.
               </p>
             )}
           </div>

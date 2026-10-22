@@ -6,6 +6,7 @@ import { useOnlineStatus } from "@/hooks/use-online";
 import type { Database } from "@/integrations/supabase/types";
 import { uid } from "@/lib/format";
 import { compressImage } from "@/lib/image";
+import { INSPECTORS_KEY, type FireInspector } from "@/lib/inspectors";
 import {
   deleteOp,
   loadOps,
@@ -54,6 +55,9 @@ const toProperty = (r: PropertyDbRow): Property => ({
   },
   imagePath: r.image_path,
   inspectorId: r.inspector_id ?? null,
+  fireMarshalName: r.fire_marshal_name ?? "",
+  fireMarshalPhone: r.fire_marshal_phone ?? "",
+  fireMarshalEmail: r.fire_marshal_email ?? "",
   createdAt: r.created_at,
 });
 
@@ -92,6 +96,11 @@ const cleanProperty = (input: PropertyInput): PropertyInput => ({
   contactPhone: input.contactPhone.trim(),
   contactEmail: input.contactEmail.trim(),
   notes: input.notes.trim(),
+  // Older queued offline edits don't carry these; leave the saved values alone then.
+  ...(input.fireMarshalName !== undefined && { fireMarshalName: input.fireMarshalName.trim() }),
+  ...(input.fireMarshalPhone !== undefined && { fireMarshalPhone: input.fireMarshalPhone.trim() }),
+  ...(input.fireMarshalEmail !== undefined && { fireMarshalEmail: input.fireMarshalEmail.trim().toLowerCase() }),
+  ...(input.inspectorId === null && { inspectorId: null }),
 });
 
 const propertyPayload = (input: PropertyInput) => ({
@@ -101,6 +110,11 @@ const propertyPayload = (input: PropertyInput) => ({
   contact_phone: input.contactPhone,
   contact_email: input.contactEmail,
   notes: input.notes,
+  ...(input.fireMarshalName !== undefined && { fire_marshal_name: input.fireMarshalName }),
+  ...(input.fireMarshalPhone !== undefined && { fire_marshal_phone: input.fireMarshalPhone }),
+  ...(input.fireMarshalEmail !== undefined && { fire_marshal_email: input.fireMarshalEmail }),
+  // Only ever clears the link (typed-in marshal details replace the directory inspector).
+  ...(input.inspectorId === null && { inspector_id: null }),
 });
 
 const PAGE_SIZE = 1000;
@@ -543,6 +557,7 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
         patrolIntervalMinutes: existing?.patrolIntervalMinutes ?? DEFAULT_PATROL_INTERVAL,
         geofence: existing?.geofence ?? NO_GEOFENCE,
         imagePath: existing?.imagePath ?? null,
+        inspectorId: cleaned.inspectorId === null ? null : (existing?.inspectorId ?? null),
         createdAt: existing?.createdAt ?? new Date().toISOString(),
         syncState: result === "queued" ? "pending" : undefined,
       };
@@ -702,9 +717,16 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
       if (!navigator.onLine) throw new Error(OFFLINE_ACTION);
       const { error } = await supabase.rpc("property_set_inspector", { p_property: propertyId, p_inspector: inspectorId });
       if (error) throw error;
-      setProperties((list) => list.map((p) => (p.id === propertyId ? { ...p, inspectorId } : p)));
+      // Mirror the server's copy of the inspector's contact into the property's fire marshal fields.
+      const insp = inspectorId
+        ? queryClient.getQueryData<FireInspector[]>(INSPECTORS_KEY)?.find((i) => i.id === inspectorId)
+        : undefined;
+      const marshal = insp
+        ? { fireMarshalName: insp.name, fireMarshalPhone: insp.phone || insp.mobile, fireMarshalEmail: insp.email }
+        : {};
+      setProperties((list) => list.map((p) => (p.id === propertyId ? { ...p, inspectorId, ...marshal } : p)));
     },
-    [setProperties],
+    [setProperties, queryClient],
   );
 
   /** Admin correction of a submitted report. The server keeps the before/after copy. */
