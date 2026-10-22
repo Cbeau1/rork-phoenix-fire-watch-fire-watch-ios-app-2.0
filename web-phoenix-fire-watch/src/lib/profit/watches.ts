@@ -15,6 +15,12 @@ export interface WatchTotals {
   pending_cost: number;
   unpriced_revenue_hours: number;
   rate: number | null;
+  /** Client invoices counted in this watch; when > 0, revenue = invoiced amount + timecard revenue for uninvoiced hours. */
+  invoices: number;
+  billed: number;
+  billed_hours: number;
+  unbilled_hours: number;
+  unbilled_revenue: number;
 }
 
 export interface ActiveWatch {
@@ -75,6 +81,11 @@ const totals = (t: Partial<WatchTotals> | null | undefined): WatchTotals => ({
   pending_cost: n(t?.pending_cost),
   unpriced_revenue_hours: n(t?.unpriced_revenue_hours),
   rate: t?.rate == null ? null : n(t.rate),
+  invoices: n(t?.invoices),
+  billed: n(t?.billed),
+  billed_hours: n(t?.billed_hours),
+  unbilled_hours: n(t?.unbilled_hours),
+  unbilled_revenue: n(t?.unbilled_revenue),
 });
 
 export async function fetchWatches(): Promise<WatchList> {

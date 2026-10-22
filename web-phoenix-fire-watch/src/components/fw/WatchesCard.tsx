@@ -56,7 +56,7 @@ export const WatchesCard = () => {
             Fire watches
           </h2>
           <p className="mt-1 text-sm text-ink-2">
-            Each watch runs from its start date until you end it. Totals cover the whole watch, not just the period above.
+            Each watch runs from its start date until you end it. Totals cover the whole watch, not just the period above. Uploaded client invoices set the revenue for the time they cover.
           </p>
         </div>
       </div>
@@ -185,19 +185,35 @@ const Figures = ({ t }: { t: WatchTotals }) => {
   const m = marginOf(t);
   return (
     <div className="grid grid-cols-4 gap-3 text-sm">
-      <Fig label="Hours" value={hrs(t.hours)} sub={t.pending_hours > 0 ? `+${hrs(t.pending_hours)} pending` : undefined} />
-      <Fig label="Revenue" value={t.revenue === 0 && t.unpriced_revenue_hours > 0 ? "—" : whole(t.revenue)} sub={t.unpriced_revenue_hours > 0 ? "no client rate" : undefined} />
+      <Fig
+        label="Hours"
+        value={hrs(t.hours)}
+        sub={t.pending_hours > 0 ? `+${hrs(t.pending_hours)} pending` : t.invoices > 0 ? `${hrs(t.billed_hours)} invoiced` : undefined}
+        subMuted={t.pending_hours <= 0 && t.invoices > 0}
+      />
+      <Fig
+        label="Revenue"
+        value={t.revenue === 0 && t.unpriced_revenue_hours > 0 ? "—" : whole(t.revenue)}
+        sub={
+          t.unpriced_revenue_hours > 0
+            ? "no client rate"
+            : t.invoices > 0
+              ? `${whole(t.billed)} invoiced`
+              : undefined
+        }
+        subMuted={t.unpriced_revenue_hours <= 0 && t.invoices > 0}
+      />
       <Fig label="Profit" value={signed(t.profit)} tone={t.revenue > 0 || t.profit !== 0 ? profitTone(t.profit) : undefined} />
       <Fig label="Margin" value={pctText(m)} />
     </div>
   );
 };
 
-const Fig = ({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: string }) => (
+const Fig = ({ label, value, sub, tone, subMuted }: { label: string; value: string; sub?: string; tone?: string; subMuted?: boolean }) => (
   <div className="min-w-0">
     <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-3">{label}</div>
     <div className={cn("truncate font-semibold tabular-nums text-ink", tone)}>{value}</div>
-    {sub && <div className="truncate text-[11px] text-status-follow">{sub}</div>}
+    {sub && <div className={cn("truncate text-[11px]", subMuted ? "text-ink-3" : "text-status-follow")} title={sub}>{sub}</div>}
   </div>
 );
 
@@ -271,13 +287,19 @@ const EndWatchDialog = ({ watch, today, onClose }: { watch: ActiveWatch; today: 
                 <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-3">
                   {validDates ? `${day(start)} – ${day(end, true)} · ${watchDays(start, end)} days` : "Watch total"}
                 </span>
-                <span className="text-xs text-ink-3">{hrs(t.hours)} approved</span>
+                <span className="text-xs text-ink-3">{hrs(t.hours)} {t.invoices > 0 ? "invoiced + approved" : "approved"}</span>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 <BigFig label="Revenue" value={whole(t.revenue)} />
                 <BigFig label="Cost" value={whole(cost)} />
                 <BigFig label="Profit" value={signed(t.profit)} tone={profitTone(t.profit)} sub={pctText(marginOf(t))} />
               </div>
+              {t.invoices > 0 && (
+                <p className="mt-2 text-xs text-ink-3">
+                  Revenue = {whole(t.billed)} on client invoices
+                  {t.unbilled_revenue > 0 ? ` + ${whole(t.unbilled_revenue)} for ${hrs(t.unbilled_hours)} not invoiced yet` : ""}.
+                </p>
+              )}
               <p className="mt-2 text-xs text-ink-3">
                 Cost = guard labor {whole(t.labor)}
                 {t.expenses > 0 && ` + property expenses ${whole(t.expenses)}`}. Company overhead isn't included.

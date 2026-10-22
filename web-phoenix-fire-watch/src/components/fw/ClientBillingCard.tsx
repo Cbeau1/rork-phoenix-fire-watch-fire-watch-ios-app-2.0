@@ -263,6 +263,7 @@ const InvoiceRow = ({ inv, today, onView, onEdit }: { inv: ClientInvoice; today:
     onSuccess: (_r, next) => {
       toast.success(next === "paid" ? `Invoice #${inv.invoice_number} marked paid` : next === "void" ? `Invoice #${inv.invoice_number} marked void` : "Invoice reopened");
       void qc.invalidateQueries({ queryKey: KEY });
+      void qc.invalidateQueries({ queryKey: ["profit", "watches"] });
     },
     onError: (e) => toast.error("Couldn't update the invoice", { description: friendlyError(e) }),
   });
@@ -272,6 +273,7 @@ const InvoiceRow = ({ inv, today, onView, onEdit }: { inv: ClientInvoice; today:
       toast.success(`Invoice #${inv.invoice_number} deleted`);
       setConfirmDelete(false);
       void qc.invalidateQueries({ queryKey: KEY });
+      void qc.invalidateQueries({ queryKey: ["profit", "watches"] });
     },
     onError: (e) => toast.error("Couldn't delete the invoice", { description: friendlyError(e) }),
   });
@@ -581,6 +583,7 @@ const ReviewDialog = ({ state, billing, onClose }: { state: ReviewState; billing
         description: prop ? `${money(amount)} billed to ${prop}` : undefined,
       });
       void qc.invalidateQueries({ queryKey: KEY });
+      void qc.invalidateQueries({ queryKey: ["profit", "watches"] });
       onClose();
     },
     onError: (e) => toast.error("Couldn't save the invoice", { description: friendlyError(e) }),
