@@ -26,12 +26,18 @@ interface Sched {
 
 const parts = (key: string): [number, number] => [Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1];
 
+/** First charge allowed: the start month counts in full (its charge is due on the day that month), then any resume date. */
+const floorOf = (s: Sched): string => {
+  const monthStart = `${s.start.slice(0, 7)}-01`;
+  return s.skipBefore && s.skipBefore > monthStart ? s.skipBefore : monthStart;
+};
+
 /** Every charge date from the start month through `until` (inclusive), capped to 36 entries. */
 export const occurrencesThrough = (s: Sched, until: string): string[] => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s.start) || s.day < 1 || s.day > 31) return [];
   const out: string[] = [];
   let [y, m] = parts(s.start);
-  const floor = s.skipBefore && s.skipBefore > s.start ? s.skipBefore : s.start;
+  const floor = floorOf(s);
   for (let i = 0; i < 400 && out.length < 36; i++) {
     const occ = occurrenceIn(y, m, s.day);
     if (occ > until) break;
@@ -49,7 +55,7 @@ export const occurrencesThrough = (s: Sched, until: string): string[] => {
 /** The next charge date strictly after today, or null if the schedule has ended. */
 export const nextOccurrence = (s: Sched, today: string = todayKey()): string | null => {
   let [y, m] = parts(today > s.start ? today : s.start);
-  const floor = [s.start, s.skipBefore ?? "", today].sort().pop() ?? today;
+  const floor = [floorOf(s), today].sort().pop() ?? today;
   for (let i = 0; i < 3; i++) {
     const occ = occurrenceIn(y, m, s.day);
     if (occ > today && occ >= floor) return s.end && occ > s.end ? null : occ;

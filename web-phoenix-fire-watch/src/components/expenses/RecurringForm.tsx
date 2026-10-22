@@ -179,7 +179,7 @@ export const RecurringForm = ({ open, onOpenChange, recurring }: { open: boolean
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <SelectField label="Day of the month" required value={d.day} onChange={setDay} options={dayOptions} />
           <TextField
-            label="First charge on or after"
+            label="Starting month"
             type="date"
             required
             value={d.start_on}
@@ -188,6 +188,7 @@ export const RecurringForm = ({ open, onOpenChange, recurring }: { open: boolean
               set("start_on")(v);
             }}
             error={errors.start_on}
+            hint="The charge due in this month counts, even if this date is after it."
           />
           <TextField label="End date" type="date" value={d.end_on} onChange={set("end_on")} error={errors.end_on} hint="Optional — leave blank to repeat until stopped." />
         </div>

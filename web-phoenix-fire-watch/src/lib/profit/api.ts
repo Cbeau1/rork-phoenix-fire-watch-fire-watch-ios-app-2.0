@@ -25,6 +25,8 @@ export interface ProfitProperty {
   agency: number;
   overtime_hours: number;
   expenses: number;
+  /** Payroll/agency-category expenditures at this property (already part of expenses). */
+  labor_expenses: number;
   pending_hours: number;
   pending_revenue: number;
   pending_cost: number;
@@ -61,6 +63,8 @@ export interface ProfitDashboard {
   unassigned: { hours: number; cost: number; pending_hours: number; pending_cost: number };
   overhead: { category: string; amount: number }[];
   excluded_labor_expenses: number;
+  /** Approved timecard hours whose labor is already recorded as a payroll/agency expenditure (not counted twice). */
+  paid_labor_hours: number;
   daily: ProfitDay[];
   live: { on_duty: number; sites: number; revenue_per_hour: number; cost_per_hour: number; unpriced: number };
   missing_pay: { name: string; hours: number }[];
@@ -88,6 +92,7 @@ export async function fetchProfit(period: ProfitPeriod): Promise<ProfitDashboard
       agency: n(p.agency),
       overtime_hours: n(p.overtime_hours),
       expenses: n(p.expenses),
+      labor_expenses: n(p.labor_expenses),
       pending_hours: n(p.pending_hours),
       pending_revenue: n(p.pending_revenue),
       pending_cost: n(p.pending_cost),
@@ -104,6 +109,7 @@ export async function fetchProfit(period: ProfitPeriod): Promise<ProfitDashboard
       workers: n(a.workers),
     })),
     excluded_labor_expenses: n(d.excluded_labor_expenses),
+    paid_labor_hours: n(d.paid_labor_hours),
   };
 }
 

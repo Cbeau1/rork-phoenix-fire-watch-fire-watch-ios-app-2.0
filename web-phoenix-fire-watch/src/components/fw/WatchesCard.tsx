@@ -56,7 +56,7 @@ export const WatchesCard = () => {
             Fire watches
           </h2>
           <p className="mt-1 text-sm text-ink-2">
-            Each watch runs from its start date until you end it. Totals cover the whole watch, not just the period above. Uploaded client invoices set the revenue for the time they cover.
+            Each watch runs from its start date until you end it. Totals cover the whole watch, not just the period above. Uploaded client invoices set the revenue for the time they cover, and costs include every expenditure plus a share of company overhead.
           </p>
         </div>
       </div>
@@ -249,7 +249,7 @@ const EndWatchDialog = ({ watch, today, onClose }: { watch: ActiveWatch; today: 
 
   const p = preview.data;
   const t = p?.totals;
-  const cost = t ? t.labor + t.expenses : 0;
+  const cost = t ? t.labor + t.expenses + t.overhead : 0;
   const dateError = !isDate(start) || !isDate(end) ? "Pick both dates." : end < start ? "The end date must be on or after the start date." : end > today ? "The end date can't be in the future." : "";
 
   return (
@@ -302,7 +302,9 @@ const EndWatchDialog = ({ watch, today, onClose }: { watch: ActiveWatch; today: 
               )}
               <p className="mt-2 text-xs text-ink-3">
                 Cost = guard labor {whole(t.labor)}
-                {t.expenses > 0 && ` + property expenses ${whole(t.expenses)}`}. Company overhead isn't included.
+                {t.labor_expenses > 0 && ` + recorded payroll ${whole(t.labor_expenses)}`}
+                {t.expenses - t.labor_expenses > 0 && ` + property expenses ${whole(t.expenses - t.labor_expenses)}`}
+                {t.overhead > 0 && ` + share of company overhead ${whole(t.overhead)}`}.
               </p>
             </>
           )}

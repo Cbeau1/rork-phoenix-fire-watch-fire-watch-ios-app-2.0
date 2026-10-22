@@ -502,12 +502,14 @@ const Cell = ({ label, children }: { label: string; children: ReactNode }) => (
 // ─── Cost breakdown ─────────────────────────────────────────────────────────
 
 const Breakdown = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf> }) => {
+  const laborExpenses = d.properties.reduce((s, p) => s + p.labor_expenses, 0);
   const lines: { label: string; value: number; hint?: string }[] = [
     { label: "Direct staff wages", value: t.wages, hint: "Includes weekly overtime premium" },
     ...(d.burden_pct > 0 ? [{ label: `Payroll tax & insurance (${d.burden_pct}%)`, value: t.burden }] : []),
     { label: "Temp agency charges", value: t.agency, hint: "Agency bill rate, or pay rate when none is set" },
     ...(t.unassignedCost > 0 ? [{ label: "Hours not linked to a property", value: t.unassignedCost }] : []),
-    { label: "Property expenses", value: t.siteExpenses },
+    { label: "Recorded payroll & agency payments", value: laborExpenses, hint: "From Expenditures" },
+    { label: "Property expenses", value: t.siteExpenses - laborExpenses },
     ...d.overhead.map((o) => ({ label: o.category, value: o.amount, hint: "Company overhead" })),
   ].filter((l) => l.value > 0 || l.label === "Direct staff wages");
   const max = Math.max(1, ...lines.map((l) => l.value));
@@ -534,12 +536,12 @@ const Breakdown = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf
           </li>
         ))}
       </ul>
-      {(d.excluded_labor_expenses > 0 || d.burden_pct === 0) && (
+      {(d.paid_labor_hours > 0 || d.burden_pct === 0) && (
         <div className="grid gap-2 border-t border-line px-5 py-4 text-xs text-ink-3 sm:px-6">
-          {d.excluded_labor_expenses > 0 && (
+          {d.paid_labor_hours > 0 && (
             <p className="flex gap-2">
               <Info className="mt-px h-3.5 w-3.5 shrink-0" />
-              {money(d.excluded_labor_expenses)} in payroll and agency-staffing expenses isn't counted again — wages already come from timecards.
+              {d.paid_labor_hours.toLocaleString(undefined, { maximumFractionDigits: 2 })} h of timecard labor is already in a recorded payroll payment linked to those shifts, so it isn't counted twice.
             </p>
           )}
           {d.burden_pct === 0 && (

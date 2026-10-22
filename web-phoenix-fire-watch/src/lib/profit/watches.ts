@@ -17,6 +17,10 @@ export interface WatchTotals {
   rate: number | null;
   /** Client invoices counted in this watch; when > 0, revenue = invoiced amount + timecard revenue for uninvoiced hours. */
   invoices: number;
+  /** Recorded payroll/agency expenditures at this property (included in expenses). */
+  labor_expenses: number;
+  /** This watch's share of company overhead (expenditures with no property), split by days on watch each month. */
+  overhead: number;
   billed: number;
   billed_hours: number;
   unbilled_hours: number;
@@ -82,6 +86,8 @@ const totals = (t: Partial<WatchTotals> | null | undefined): WatchTotals => ({
   unpriced_revenue_hours: n(t?.unpriced_revenue_hours),
   rate: t?.rate == null ? null : n(t.rate),
   invoices: n(t?.invoices),
+  labor_expenses: n(t?.labor_expenses),
+  overhead: n(t?.overhead),
   billed: n(t?.billed),
   billed_hours: n(t?.billed_hours),
   unbilled_hours: n(t?.unbilled_hours),
