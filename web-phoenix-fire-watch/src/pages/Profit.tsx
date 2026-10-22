@@ -44,6 +44,7 @@ import {
   type ProfitProperty,
   profitOf,
   saveBurden,
+  saveFederalTax,
   setAgencyRate,
   totalsOf,
 } from "@/lib/profit/api";
@@ -244,9 +245,18 @@ const Hero = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf> }) 
               {pct(t.margin)} margin
             </span>
           </div>
+          {d.federal_tax_pct > 0 && (
+            <p className="mt-3 text-sm text-ink-2">
+              After {d.federal_tax_pct.toLocaleString("en-US", { maximumFractionDigits: 2 })}% federal tax:{" "}
+              <span className={cn("font-semibold tabular-nums", t.net < 0 ? "text-status-incident-ink" : "text-ink")}>{signed(t.net)}</span>
+              {t.tax > 0 ? <span className="text-ink-3"> · set aside {whole(t.tax)}</span> : <span className="text-ink-3"> · no tax on a loss</span>}
+            </p>
+          )}
           <p className="mt-3 text-sm text-ink-2">
-            From {hrs(t.hours)} of approved timecards
-            {t.revenue === 0 && t.hours > 0 ? " — set client rates to see revenue." : "."}
+            {t.billed > 0
+              ? `${hrs(t.hours)} of coverage — revenue from client invoices where uploaded, approved timecards for the rest.`
+              : `From ${hrs(t.hours)} of approved timecards`}
+            {t.billed > 0 ? "" : t.revenue === 0 && t.hours > 0 ? " — set client rates to see revenue." : "."}
           </p>
           {t.pendingHours > 0 && (
             <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-ink-2">
@@ -505,7 +515,7 @@ const Breakdown = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf
   const laborExpenses = d.properties.reduce((s, p) => s + p.labor_expenses, 0);
   const lines: { label: string; value: number; hint?: string }[] = [
     { label: "Direct staff wages", value: t.wages, hint: "Includes weekly overtime premium" },
-    ...(d.burden_pct > 0 ? [{ label: `Payroll tax & insurance (${d.burden_pct}%)`, value: t.burden }] : []),
+    ...(d.burden_pct > 0 ? [{ label: `Payroll tax (${d.burden_pct}%)`, value: t.burden }] : []),
     { label: "Temp agency charges", value: t.agency, hint: "Agency bill rate, or pay rate when none is set" },
     ...(t.unassignedCost > 0 ? [{ label: "Hours not linked to a property", value: t.unassignedCost }] : []),
     { label: "Recorded payroll & agency payments", value: laborExpenses, hint: "From Expenditures" },
@@ -536,6 +546,24 @@ const Breakdown = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf
           </li>
         ))}
       </ul>
+      <dl className="grid gap-2 border-t border-line px-5 py-4 text-sm sm:px-6">
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink-2">Profit before tax</dt>
+          <dd className={cn("font-medium tabular-nums", t.profit < 0 ? "text-status-incident-ink" : "text-ink")}>{signed(t.profit)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-ink-2">
+            Business federal tax{d.federal_tax_pct > 0 ? ` (${d.federal_tax_pct.toLocaleString("en-US", { maximumFractionDigits: 2 })}% of profit)` : ""}
+          </dt>
+          <dd className="font-medium tabular-nums text-ink">
+            {d.federal_tax_pct > 0 ? (t.tax > 0 ? `−${money(t.tax)}` : money(0)) : <span className="text-status-follow">Not set</span>}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2">
+          <dt className="font-semibold text-ink">Net profit after tax</dt>
+          <dd className={cn("font-display text-lg font-extrabold tabular-nums", t.net < 0 ? "text-status-incident-ink" : "text-status-clear")}>{signed(t.net)}</dd>
+        </div>
+      </dl>
       {(d.paid_labor_hours > 0 || d.burden_pct === 0) && (
         <div className="grid gap-2 border-t border-line px-5 py-4 text-xs text-ink-3 sm:px-6">
           {d.paid_labor_hours > 0 && (
@@ -547,7 +575,7 @@ const Breakdown = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf
           {d.burden_pct === 0 && (
             <p className="flex gap-2">
               <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-status-follow" />
-              Payroll tax & insurance isn't included yet. Add your percentage under Rates & costs for a truer margin.
+              Payroll tax isn't included yet. Add your percentage under Rates & costs for a truer margin.
             </p>
           )}
         </div>
@@ -563,6 +591,7 @@ const RatesCard = ({ d }: { d: ProfitDashboard }) => {
   const [rateFor, setRateFor] = useState<ProfitProperty | null>(null);
   const [agencyFor, setAgencyFor] = useState<ProfitAgency | null>(null);
   const [burdenOpen, setBurdenOpen] = useState<boolean>(false);
+  const [taxOpen, setTaxOpen] = useState<boolean>(false);
   const props = [...d.properties].sort((a, b) => a.name.localeCompare(b.name));
   const agencies = [...d.agencies].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -627,15 +656,24 @@ const RatesCard = ({ d }: { d: ProfitDashboard }) => {
 
         <RateGroup
           icon={<Percent className="h-4 w-4" />}
-          title="Payroll tax & insurance"
-          hint="Added on top of your direct employees' wages (not temp agency workers)."
+          title="Taxes"
+          hint="Insurance isn't entered here — your monthly insurance in Expenditures is already counted."
         >
           <RateRow
-            name="All direct employees"
+            name="Payroll tax"
+            sub="% of direct employees' wages · not temp agency workers"
             value={d.burden_pct > 0 ? `${d.burden_pct.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : null}
             missing="Not set"
             action={d.burden_pct > 0 ? "Change" : "Set"}
             onAction={() => setBurdenOpen(true)}
+          />
+          <RateRow
+            name="Business federal tax"
+            sub="% of net profit · not revenue"
+            value={d.federal_tax_pct > 0 ? `${d.federal_tax_pct.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : null}
+            missing="Not set"
+            action={d.federal_tax_pct > 0 ? "Change" : "Set"}
+            onAction={() => setTaxOpen(true)}
           />
         </RateGroup>
 
@@ -654,7 +692,28 @@ const RatesCard = ({ d }: { d: ProfitDashboard }) => {
         <AddRateDialog open onOpenChange={(v) => !v && setRateFor(null)} propertyId={rateFor.id} propertyName={rateFor.name} today={d.today} />
       )}
       {agencyFor && <AgencyRateDialog agency={agencyFor} onClose={() => setAgencyFor(null)} />}
-      {burdenOpen && <CostSettingsDialog open onOpenChange={setBurdenOpen} burden={d.burden_pct} />}
+      {burdenOpen && (
+        <PctDialog
+          onOpenChange={setBurdenOpen}
+          initial={d.burden_pct}
+          title="Payroll tax"
+          label="Payroll tax (% of direct staff wages)"
+          placeholder="12"
+          hint="Employer payroll taxes on your own employees. Not applied to temp agency workers — their agency rate already covers it. Insurance belongs in Expenditures so it isn't counted twice."
+          save={saveBurden}
+        />
+      )}
+      {taxOpen && (
+        <PctDialog
+          onOpenChange={setTaxOpen}
+          initial={d.federal_tax_pct}
+          title="Business federal tax"
+          label="Federal tax (% of net profit)"
+          placeholder="25"
+          hint="Taken from profit after every cost — never from revenue. Nothing is taken in a period with a loss."
+          save={saveFederalTax}
+        />
+      )}
     </Card>
     </div>
   );
@@ -834,15 +893,32 @@ const NoAccess = ({ admin }: { admin: boolean }) => (
   </div>
 );
 
-const CostSettingsDialog = ({ open, onOpenChange, burden }: { open: boolean; onOpenChange: (v: boolean) => void; burden: number }) => {
+const PctDialog = ({
+  onOpenChange,
+  initial,
+  title,
+  label,
+  placeholder,
+  hint,
+  save: saveFn,
+}: {
+  onOpenChange: (v: boolean) => void;
+  initial: number;
+  title: string;
+  label: string;
+  placeholder: string;
+  hint: string;
+  save: (n: number) => Promise<void>;
+}) => {
   const qc = useQueryClient();
-  const [value, setValue] = useState<string>(String(burden));
+  const init = initial > 0 ? String(initial) : "";
+  const [value, setValue] = useState<string>(init);
   const [error, setError] = useState<string>("");
 
   const save = useMutation({
-    mutationFn: (n: number) => saveBurden(n),
+    mutationFn: (n: number) => saveFn(n),
     onSuccess: () => {
-      toast.success("Payroll tax & insurance saved");
+      toast.success(`${title} saved`);
       void qc.invalidateQueries({ queryKey: ["profit", "dashboard"] });
       onOpenChange(false);
     },
@@ -851,11 +927,11 @@ const CostSettingsDialog = ({ open, onOpenChange, burden }: { open: boolean; onO
 
   return (
     <FormDialog
-      open={open}
+      open
       onOpenChange={onOpenChange}
-      title="Payroll tax & insurance"
+      title={title}
       description="Applied to every property and period on this page."
-      dirty={value !== String(burden)}
+      dirty={value !== init}
       saving={save.isPending}
       onSubmit={() => {
         const n = toNum(value);
@@ -866,15 +942,7 @@ const CostSettingsDialog = ({ open, onOpenChange, burden }: { open: boolean; onO
         save.mutate(n);
       }}
     >
-      <TextField
-        label="Payroll tax & insurance (% of direct staff wages)"
-        value={value}
-        onChange={setValue}
-        inputMode="decimal"
-        placeholder="15"
-        error={error}
-        hint="Employer payroll taxes, workers' comp and other insurance on your own employees. Often 10–20%. Not applied to temp agency workers — their agency rate already covers it."
-      />
+      <TextField label={label} value={value} onChange={setValue} inputMode="decimal" placeholder={placeholder} error={error} hint={hint} />
     </FormDialog>
   );
 };

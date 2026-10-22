@@ -18,8 +18,15 @@ export interface ProfitProperty {
   current_rate: number | null;
   current_rate_from: string | null;
   current_rate_source: "manual" | "contract" | null;
+  /** Invoiced hours (spread over the time each invoice covers) plus approved timecard hours outside invoiced time. */
   hours: number;
+  /** Client invoices for the time they cover, plus timecards × client rate for the rest. */
   revenue: number;
+  timecard_hours: number;
+  timecard_revenue: number;
+  /** Share of uploaded client invoices that falls in this period. */
+  billed: number;
+  billed_hours: number;
   wages: number;
   burden: number;
   agency: number;
@@ -59,6 +66,8 @@ export interface ProfitDashboard {
   today: string;
   generated_at: string;
   burden_pct: number;
+  /** Business federal income tax, % of positive net profit. */
+  federal_tax_pct: number;
   properties: ProfitProperty[];
   unassigned: { hours: number; cost: number; pending_hours: number; pending_cost: number };
   overhead: { category: string; amount: number }[];
@@ -82,11 +91,16 @@ export async function fetchProfit(period: ProfitPeriod): Promise<ProfitDashboard
   return {
     ...d,
     burden_pct: n(d.burden_pct),
+    federal_tax_pct: n(d.federal_tax_pct),
     properties: (d.properties ?? []).map((p) => ({
       ...p,
       current_rate: p.current_rate == null ? null : n(p.current_rate),
       hours: n(p.hours),
       revenue: n(p.revenue),
+      timecard_hours: n(p.timecard_hours ?? p.hours),
+      timecard_revenue: n(p.timecard_revenue ?? p.revenue),
+      billed: n(p.billed),
+      billed_hours: n(p.billed_hours),
       wages: n(p.wages),
       burden: n(p.burden),
       agency: n(p.agency),
@@ -130,8 +144,16 @@ export interface ProfitTotals {
   overhead: number;
   unassignedCost: number;
   cost: number;
+  /** Profit before federal tax. */
   profit: number;
   margin: number | null;
+  /** Federal tax on positive profit (0 on a loss). */
+  tax: number;
+  /** Profit after federal tax. */
+  net: number;
+  netMargin: number | null;
+  billed: number;
+  timecardHours: number;
   hours: number;
   pendingHours: number;
   pendingRevenue: number;
@@ -152,6 +174,8 @@ export const totalsOf = (d: ProfitDashboard): ProfitTotals => {
   const labor = wages + burden + agency + unassignedCost;
   const cost = labor + siteExpenses + overhead;
   const profit = revenue - cost;
+  const tax = profit > 0 ? (profit * d.federal_tax_pct) / 100 : 0;
+  const net = profit - tax;
   return {
     revenue,
     labor,
@@ -164,6 +188,11 @@ export const totalsOf = (d: ProfitDashboard): ProfitTotals => {
     cost,
     profit,
     margin: marginOf(revenue, profit),
+    tax,
+    net,
+    netMargin: marginOf(revenue, net),
+    billed: sum((p) => p.billed),
+    timecardHours: sum((p) => p.timecard_hours) + n(d.unassigned?.hours),
     hours: sum((p) => p.hours) + n(d.unassigned?.hours),
     pendingHours: sum((p) => p.pending_hours) + n(d.unassigned?.pending_hours),
     pendingRevenue: sum((p) => p.pending_revenue),
@@ -212,6 +241,11 @@ export async function setAgencyRate(agencyId: string, regular: number | null, ov
 
 export async function saveBurden(pct: number): Promise<void> {
   const { error } = await supabase.rpc("profit_save_settings", { p_burden: pct });
+  if (error) throw error;
+}
+
+export async function saveFederalTax(pct: number): Promise<void> {
+  const { error } = await supabase.rpc("profit_save_tax", { p_pct: pct });
   if (error) throw error;
 }
 

@@ -2123,18 +2123,21 @@ export type Database = {
       profit_settings: {
         Row: {
           direct_burden_pct: number
+          federal_tax_pct: number
           org_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           direct_burden_pct?: number
+          federal_tax_pct?: number
           org_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           direct_burden_pct?: number
+          federal_tax_pct?: number
           org_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -4990,10 +4993,27 @@ export type Database = {
         Returns: Json
       }
       profit_delete_bill_rate: { Args: { p_id: string }; Returns: undefined }
+      profit_save_tax: {
+        Args: { p_pct: number }
+        Returns: {
+          direct_burden_pct: number
+          federal_tax_pct: number
+          org_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profit_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       profit_save_settings: {
         Args: { p_burden: number }
         Returns: {
           direct_burden_pct: number
+          federal_tax_pct: number
           org_id: string
           updated_at: string
           updated_by: string | null
