@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Copy, FileSpreadsheet, FileText, Filter, Plus, Repeat, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -35,7 +35,20 @@ const ExRecords = () => {
   const f = readFilters(params);
   const [showFilters, setShowFilters] = useState<boolean>(() => FILTER_KEYS.some((k) => k !== "q" && params.has(k)));
   const [addOpen, setAddOpen] = useState<boolean>(false);
+  const [addPreset, setAddPreset] = useState<{ category_id: string } | undefined>(undefined);
   const [busy, setBusy] = useState<boolean>(false);
+  // "?add=agency" (from Workforce → Agency invoices) opens Add with the agency staffing category picked.
+  const addParam = params.get("add");
+  const agencyCatId = ex.categories.find((c) => c.active && c.kind === "agency")?.id;
+  useEffect(() => {
+    if (!addParam || (addParam === "agency" && ex.categories.length === 0)) return;
+    setAddPreset(addParam === "agency" && agencyCatId ? { category_id: agencyCatId } : undefined);
+    setAddOpen(true);
+    const n = new URLSearchParams(params);
+    n.delete("add");
+    setParams(n, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addParam, agencyCatId, ex.categories.length]);
   const sort = (params.get("sort") as SortKey) || "date";
   const dir = (params.get("dir") as "asc" | "desc") || "desc";
   const page = Math.max(1, Number(params.get("page") ?? "1") || 1);
@@ -264,7 +277,15 @@ const ExRecords = () => {
         </>
       )}
 
-      <ExpenditureForm open={addOpen} onOpenChange={setAddOpen} expenditure={null} />
+      <ExpenditureForm
+        open={addOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o);
+          if (!o) setAddPreset(undefined);
+        }}
+        expenditure={null}
+        preset={addPreset}
+      />
     </div>
   );
 };

@@ -24,7 +24,7 @@ import {
   TextField,
   toNum,
 } from "@/components/workforce/kit";
-import { ScanInvoiceDialog, type InvoicePrefill } from "@/components/workforce/InvoiceScan";
+import { type InvoicePrefill } from "@/components/workforce/InvoiceScan";
 import { placementPropertyName } from "@/components/workforce/placements";
 import { AgencyPayables, useAgencyInvoiceSync, WeeklyInvoiceDetail, weekRange } from "@/components/workforce/WeeklyInvoice";
 import { fmtHours } from "@/lib/timeclock";
@@ -434,9 +434,6 @@ const diffCell = (n: number | null, fmt: (x: number) => string) =>
 export const InvoiceList = () => {
   const wf = useWorkforce();
   const [params, setParams] = useSearchParams();
-  const [addOpen, setAddOpen] = useState<boolean>(false);
-  const [scanOpen, setScanOpen] = useState<boolean>(false);
-  const [prefill, setPrefill] = useState<InvoicePrefill | null>(null);
   const status = params.get("status") ?? "";
   const agency = params.get("agency") ?? "";
   const sync = useAgencyInvoiceSync();
@@ -454,20 +451,26 @@ export const InvoiceList = () => {
     <div>
       <PageHeader
         title="Agency invoices"
-        subtitle="A weekly invoice for each temp agency is built automatically from approved hours and pay rates, on that agency's billing week (Tuesday–Monday, invoiced Wednesday, unless changed on the agency). You can still record an agency's own invoice to reconcile."
+        subtitle="The expected weekly cost for each temp agency, built automatically from approved hours and pay rates on that agency's billing week (Tuesday–Monday, invoiced Wednesday, unless changed on the agency)."
         actions={
-          <>
-            <Button variant="outline" onClick={() => { setPrefill(null); setAddOpen(true); }} disabled={wf.agencies.length === 0}>
-              <PenLine />
-              Enter manually
-            </Button>
-            <Button onClick={() => setScanOpen(true)} disabled={wf.agencies.length === 0}>
+          <Button asChild variant="outline">
+            <Link to="/expenditures/records?add=agency">
               <ScanText />
-              Upload agency invoice
-            </Button>
-          </>
+              Upload in Expenditures
+            </Link>
+          </Button>
         }
       />
+      <div className="mb-4 flex items-start gap-2 rounded-lg border border-line bg-raised px-4 py-3 text-sm text-ink-2">
+        <CircleHelp className="mt-0.5 h-4 w-4 shrink-0 text-link" />
+        <span>
+          All invoices are uploaded in one place. Upload the agency's actual invoice (e.g. HireQuest) under{" "}
+          <Link to="/expenditures/records?add=agency" className="text-link hover:underline">
+            Expenditures
+          </Link>{" "}
+          — it fills in the amount and ticks the matching shifts so Profit uses the real cost. This page is for reference only.
+        </span>
+      </div>
       {sync.isError && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-status-follow/50 bg-status-follow/10 px-4 py-3 text-sm text-ink" role="alert">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-follow" />
@@ -488,7 +491,7 @@ export const InvoiceList = () => {
       </div>
       {list.length === 0 ? (
         <div className="rounded-xl border border-line bg-surface shadow-card p-4">
-          <Empty title="No invoices" description={wf.agencies.length === 0 ? "Add an agency first." : "Upload an agency invoice and it will be filled in for you."} />
+          <Empty title="No invoices" description={wf.agencies.length === 0 ? "Add an agency first." : "Weekly invoices appear here once temp hours are approved."} />
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -548,24 +551,6 @@ export const InvoiceList = () => {
           })}
         </ul>
       )}
-      <ScanInvoiceDialog
-        open={scanOpen}
-        onOpenChange={setScanOpen}
-        onReady={(p) => {
-          setPrefill(p);
-          setScanOpen(false);
-          setAddOpen(true);
-        }}
-      />
-      <InvoiceDialog
-        open={addOpen}
-        onOpenChange={(o) => {
-          setAddOpen(o);
-          if (!o) setPrefill(null);
-        }}
-        invoice={null}
-        prefill={prefill}
-      />
     </div>
   );
 };
