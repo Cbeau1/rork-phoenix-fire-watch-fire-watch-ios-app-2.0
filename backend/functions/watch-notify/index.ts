@@ -1,6 +1,6 @@
 import { corsHeaders, createAdminClient, EMAIL_RE, handleError, HttpError, json, requireAuth } from "../_shared/auth.ts";
 import { emailConfigured, escapeHtml, sendEmail } from "../_shared/crm.ts";
-import { loadDispatchSettings, type DispatchSettings } from "../_shared/sms.ts";
+import { loadDispatchSettings, routeSms, sendSms, smsConfigured, toE164, type DispatchSettings } from "../_shared/sms.ts";
 
 /**
  * Client emails when a fire watch starts and when it ends.
@@ -8,6 +8,8 @@ import { loadDispatchSettings, type DispatchSettings } from "../_shared/sms.ts";
  * and the completion notice once the last shift of an ended watch is over.
  * Admin (signed-in admin JWT): status, save, preview, send (manual / resend), run (after ending a watch), skip.
  * Test mode (dispatch_settings.test_mode, or no settings) sends ONLY to the org's test email.
+ * Optional client texts (per-property text_start / text_end, OFF by default) follow the same timing;
+ * in test mode they go ONLY to the org's test phone.
  */
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -38,6 +40,9 @@ interface PropCfg {
   coverage: string;
   officers: number | null;
   deposit_amount: number | null;
+  text_start: boolean;
+  text_end: boolean;
+  text_phones: string[];
 }
 interface Watch {
   id: string;
@@ -93,6 +98,9 @@ const PROP_DEFAULTS: PropCfg = {
   coverage: "",
   officers: null,
   deposit_amount: null,
+  text_start: false,
+  text_end: false,
+  text_phones: [],
 };
 
 /* ---------------------------------------------------------------- data */
@@ -133,6 +141,9 @@ async function loadPropCfg(admin: Admin, propertyId: string): Promise<PropCfg> {
     coverage: data.coverage ?? "",
     officers: data.officers == null ? null : Number(data.officers),
     deposit_amount: data.deposit_amount == null ? null : Number(data.deposit_amount),
+    text_start: data.text_start === true,
+    text_end: data.text_end === true,
+    text_phones: (data.text_phones ?? []) as string[],
   };
 }
 
@@ -557,6 +568,93 @@ async function deliver(admin: Admin, watchId: string, kind: Kind, trigger: "auto
   return { status: "sent", id: row.id, sent_to: route.to, test_mode: route.test };
 }
 
+/* ---------------------------------------------------------------- texts */
+
+function intendedPhones(ctx: Ctx, pc: PropCfg = ctx.prop): string[] {
+  const list = pc.text_phones.length ? pc.text_phones : [ctx.property.contact_phone ?? ""];
+  return [...new Set(list.map(toE164).filter(Boolean))];
+}
+
+const shortWhen = (iso: string | null, tz: string): string => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const day = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short", month: "short", day: "numeric" }).format(d);
+  const t = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(d);
+  return `${day} at ${t}`;
+};
+
+function composeSms(kind: Kind, f: Fields, tz: string): string {
+  const company = f.company_legal || "Fire Watch";
+  const phone = f.your_phone || f.office_line || f.direct_line;
+  if (kind === "start") {
+    const when = shortWhen(f.start_at, tz);
+    return `${company}: Hi ${f.first_name}, fire watch service for ${f.property} is confirmed${when ? ` to begin ${when}` : ""}. Questions or changes? Call ${phone || "us"}. Reply STOP to opt out.`;
+  }
+  const when = shortWhen(f.end_at, tz);
+  return `${company}: Hi ${f.first_name}, fire watch service at ${f.property} was completed${when ? ` ${when}` : ""}. Your final invoice follows within ${f.invoice_days} business ${f.invoice_days === 1 ? "day" : "days"}. Thank you!${f.review_url ? ` Review us: ${f.review_url}` : ""}`;
+}
+
+async function deliverText(admin: Admin, watchId: string, kind: Kind, trigger: "auto" | "manual", by: string | null, force = false) {
+  const ctx = await loadCtx(admin, watchId);
+  const { data: existing } = await admin.from("watch_texts").select("id, status, attempts, updated_at").eq("watch_id", watchId).eq("kind", kind).maybeSingle();
+  const ex = existing as Row | null;
+  let row: Row | null = null;
+  const now = new Date().toISOString();
+  if (!ex) {
+    const { data } = await admin
+      .from("watch_texts")
+      .upsert(
+        { org_id: ctx.watch.org_id, property_id: ctx.property.id, watch_id: watchId, kind, status: "sending", trigger, attempts: 1, sent_by: by, updated_at: now },
+        { onConflict: "watch_id,kind", ignoreDuplicates: true },
+      )
+      .select("id, status, attempts, updated_at")
+      .maybeSingle();
+    row = data as Row | null;
+    if (!row) return { status: "busy" };
+  } else {
+    const stuck = ex.status === "sending" && Date.parse(ex.updated_at) < Date.now() - 15 * 60000;
+    const retryable = ex.status === "failed" || stuck;
+    if (!force && !retryable) return { status: ex.status, id: ex.id };
+    if (ex.status === "sending" && !stuck) throw new HttpError(409, "This text is already being sent.");
+    const { data } = await admin
+      .from("watch_texts")
+      .update({ status: "sending", trigger, attempts: ex.attempts + 1, sent_by: by, updated_at: now, error: "" })
+      .eq("id", ex.id)
+      .eq("status", ex.status)
+      .select("id, status, attempts, updated_at")
+      .maybeSingle();
+    row = data as Row | null;
+    if (!row) return { status: "busy" };
+  }
+
+  const f = resolve(ctx);
+  const intended = intendedPhones(ctx);
+  const dispatch = await loadDispatchSettings(admin, ctx.watch.org_id);
+  const route = routeSms(dispatch, intended, intended.join(", ") || "no client phone on file");
+  const test = !dispatch || dispatch.test_mode;
+  const body = route.prefix + composeSms(kind, f, ctx.tz);
+  const base = { intended_to: intended, test_mode: test, body, updated_at: new Date().toISOString() };
+
+  if (!route.to.length) {
+    const status = test ? "failed" : "skipped";
+    await admin.from("watch_texts").update({ ...base, status, error: route.reason, ...(test ? { attempts: 3 } : {}) }).eq("id", row.id);
+    return { status, id: row.id, error: route.reason };
+  }
+  const sent: string[] = [];
+  let err: string | null = null;
+  for (const to of route.to) {
+    const e = await sendSms(to, body);
+    if (e) err = e;
+    else sent.push(to);
+  }
+  if (!sent.length) {
+    await admin.from("watch_texts").update({ ...base, status: "failed", error: err ?? "Text failed." }).eq("id", row.id);
+    return { status: "failed", id: row.id, error: err ?? "Text failed." };
+  }
+  await admin.from("watch_texts").update({ ...base, status: "sent", sent_to: sent, sent_at: new Date().toISOString(), error: err ?? "" }).eq("id", row.id);
+  return { status: "sent", id: row.id, sent_to: sent, test_mode: test };
+}
+
 async function replyTo(admin: Admin, orgId: string): Promise<string | undefined> {
   const { data } = await admin.from("crm_settings").select("company_email").eq("org_id", orgId).maybeSingle();
   return data?.company_email && EMAIL_RE.test(data.company_email) ? data.company_email : undefined;
@@ -595,6 +693,14 @@ function cleanPropInput(v: unknown): Partial<PropCfg> {
     const n = o.deposit_amount === null || o.deposit_amount === "" ? null : Number(o.deposit_amount);
     if (n !== null && (!Number.isFinite(n) || n < 0 || n > 10_000_000)) throw new HttpError(400, "The deposit amount isn't valid.");
     out.deposit_amount = n === null ? null : Math.round(n * 100) / 100;
+  }
+  if (typeof o.text_start === "boolean") out.text_start = o.text_start;
+  if (typeof o.text_end === "boolean") out.text_end = o.text_end;
+  if (Array.isArray(o.text_phones)) {
+    const raw = o.text_phones.map((e) => str(e, 30)).filter(Boolean).slice(0, 5);
+    const bad = raw.find((e) => !toE164(e));
+    if (bad) throw new HttpError(400, `"${bad}" isn't a valid phone number.`);
+    out.text_phones = [...new Set(raw.map(toE164))];
   }
   return out;
 }
@@ -640,13 +746,19 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
   if (action === "status") {
     const propertyId = await ownProperty(body.property_id);
     const watchId = await watchFor(propertyId);
-    const [org, prop, dispatch, { data: log }] = await Promise.all([
+    const [org, prop, dispatch, { data: log }, { data: textLog }] = await Promise.all([
       loadOrgCfg(admin, me.org_id),
       loadPropCfg(admin, propertyId),
       loadDispatchSettings(admin, me.org_id),
       admin
         .from("watch_emails")
         .select("id, watch_id, kind, status, trigger, sent_to, intended_to, test_mode, subject, error, event_at, sent_at, created_at, updated_at")
+        .eq("property_id", propertyId)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      admin
+        .from("watch_texts")
+        .select("id, watch_id, kind, status, trigger, sent_to, intended_to, test_mode, body, error, sent_at, created_at, updated_at")
         .eq("property_id", propertyId)
         .order("created_at", { ascending: false })
         .limit(10),
@@ -661,6 +773,7 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
         onsite_contact: [ctx.property.contact_name, ctx.property.contact_phone].filter((x) => x && x.trim()).join(" · "),
         billing_email: ctx.clientBilling || ctx.property.contact_email || "",
         recipient: ctx.property.contact_email ?? "",
+        phone: toE164(ctx.property.contact_phone ?? ""),
         coverage: f.auto_coverage,
         officers: f.auto_officers,
         patrol: f.patrol,
@@ -682,13 +795,21 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
           !ctx.watch.ended_on && !sentStart && autoOn && prop.send_start && ctx.firstStart
             ? new Date(Math.max(Date.now(), Date.parse(ctx.firstStart) - 24 * 3600000)).toISOString()
             : null,
+        text_start_auto_at:
+          !ctx.watch.ended_on && autoOn && prop.text_start && ctx.firstStart &&
+          !((textLog ?? []) as { watch_id: string; kind: string }[]).some((l) => l.watch_id === watchId && l.kind === "start")
+            ? new Date(Math.max(Date.now(), Date.parse(ctx.firstStart) - 24 * 3600000)).toISOString()
+            : null,
         auto_covers_this_watch: autoOn,
       };
     }
     return json({
       email_configured: emailConfigured(),
+      sms_configured: smsConfigured(),
       test_mode: !dispatch || dispatch.test_mode,
       test_email: dispatch?.test_email ?? "",
+      test_phone: dispatch?.test_phone ?? "",
+      text_log: textLog ?? [],
       org: { ...org, live_since: undefined },
       property: prop,
       auto,
@@ -728,7 +849,10 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
     const dispatch = await loadDispatchSettings(admin, me.org_id);
     const route = routeEmail(dispatch, intended);
     const msg = compose(kind, f, route.test ? intended : undefined);
-    return json({ ...msg, to: route.to, intended, test_mode: route.test, reason: route.reason, start_source: f.start_source, end_source: f.end_source, watch_ended: !!ctx.watch.ended_on });
+    const phones = intendedPhones(ctx, { ...ctx.prop, ...draft });
+    const sr = routeSms(dispatch, phones, phones.join(", ") || "no client phone on file");
+    const sms = { body: sr.prefix + composeSms(kind, f, ctx.tz), to: sr.to, intended: phones, reason: sr.reason };
+    return json({ ...msg, sms, to: route.to, intended, test_mode: route.test, reason: route.reason, start_source: f.start_source, end_source: f.end_source, watch_ended: !!ctx.watch.ended_on });
   }
 
   if (action === "send") {
@@ -737,7 +861,11 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
     const watchId = await watchFor(propertyId);
     if (!watchId) throw new HttpError(404, "This property has no fire watch yet.");
     const { data: w } = await admin.from("property_watches").select("ended_on").eq("id", watchId).single();
-    if (kind === "end" && !w?.ended_on) throw new HttpError(400, "End the watch first — the completion email uses its real end time.");
+    if (kind === "end" && !w?.ended_on) throw new HttpError(400, "End the watch first — the completion notice uses its real end time.");
+    if (body.channel === "text") {
+      if (!smsConfigured()) throw new HttpError(400, "Text messaging isn't set up yet.");
+      return json(await deliverText(admin, watchId, kind, "manual", me.id, true));
+    }
     if (!emailConfigured()) throw new HttpError(400, "Email sending isn't set up yet.");
     return json(await deliver(admin, watchId, kind, "manual", me.id, true));
   }
@@ -750,7 +878,11 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
     const mine = ((due ?? []) as { watch_id: string; kind: Kind }[]).filter((d) => d.watch_id === watchId);
     const results = [];
     for (const d of mine) results.push({ kind: d.kind, ...(await deliver(admin, watchId, d.kind, "auto", me.id)) });
-    return json({ ok: true, results });
+    const { data: dueT } = await admin.rpc("watch_text__due", { p_limit: 50 });
+    const mineT = ((dueT ?? []) as { watch_id: string; kind: Kind }[]).filter((d) => d.watch_id === watchId);
+    const texts = [];
+    for (const d of mineT) texts.push({ kind: d.kind, ...(await deliverText(admin, watchId, d.kind, "auto", me.id)) });
+    return json({ ok: true, results, texts });
   }
 
   if (action === "skip") {
@@ -759,7 +891,7 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
     const { data: w } = await admin.from("property_watches").select("org_id, property_id").eq("id", watchId).maybeSingle();
     if (!w || w.org_id !== me.org_id) throw new HttpError(404, "Watch not found.");
     await admin
-      .from("watch_emails")
+      .from(body.channel === "text" ? "watch_texts" : "watch_emails")
       .upsert(
         { org_id: w.org_id, property_id: w.property_id, watch_id: watchId, kind, status: "skipped", trigger: "manual", error: "Skipped when the watch was ended.", sent_by: me.id },
         { onConflict: "watch_id,kind", ignoreDuplicates: true },
@@ -802,8 +934,26 @@ Deno.serve(async (req) => {
           console.error("watch-notify job failed", j.kind, e instanceof Error ? e.message : "unknown");
         }
       }
-      if (jobs.length) console.log(`watch-notify: ${jobs.length} jobs`, results.join(","));
-      return json({ ok: true, jobs: jobs.length });
+      const { data: dueT } = await admin.rpc("watch_text__due", { p_limit: 10 });
+      const { data: retryT } = await admin
+        .from("watch_texts")
+        .select("watch_id, kind")
+        .eq("status", "failed")
+        .eq("trigger", "auto")
+        .lt("attempts", 3)
+        .lt("updated_at", new Date(Date.now() - 20 * 60000).toISOString())
+        .limit(5);
+      const textJobs = [...((dueT ?? []) as { watch_id: string; kind: Kind }[]), ...((retryT ?? []) as { watch_id: string; kind: Kind }[])];
+      for (const j of textJobs) {
+        try {
+          results.push(`text:${(await deliverText(admin, j.watch_id, j.kind, "auto", null)).status}`);
+        } catch (e) {
+          console.error("watch-notify text job failed", j.kind, e instanceof Error ? e.message : "unknown");
+        }
+      }
+      const total = jobs.length + textJobs.length;
+      if (total) console.log(`watch-notify: ${total} jobs`, results.join(","));
+      return json({ ok: true, jobs: total });
     }
 
     return await adminAction(req, admin, action, body);

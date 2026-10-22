@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, Eye, Flag, Loader2, MailCheck, Send, Settings2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Eye, Flag, Loader2, MailCheck, MessageSquareText, Send, Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ import {
   type WatchEmailOrg,
   type WatchEmailProperty,
   type WatchEmailStatusResponse,
+  type WatchTextLog,
 } from "@/lib/fw/watchEmails";
 import { fmtInTz } from "@/lib/reports/api";
 import { friendlyError } from "@/lib/supabase";
@@ -26,8 +27,20 @@ import { cn } from "@/lib/utils";
 const TZ = "America/New_York";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const KIND_LABEL: Record<WatchEmailKind, string> = { start: "Start confirmation", end: "Completion notice" };
+const TEXT_LABEL: Record<WatchEmailKind, string> = { start: "Start text", end: "Completion text" };
+type ToggleKey = "send_start" | "send_end" | "text_start" | "text_end";
+const TOGGLE_LABEL: Record<ToggleKey, string> = {
+  send_start: "Start confirmation email",
+  send_end: "Completion notice email",
+  text_start: "Start text to the client",
+  text_end: "Completion text to the client",
+};
+const fmtPhone = (e164: string): string => {
+  const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(e164);
+  return m ? `(${m[1]}) ${m[2]}-${m[3]}` : e164;
+};
 
-const logMeta = (l: WatchEmailLog): { label: string; tone: Tone } => {
+const logMeta = (l: WatchEmailLog | WatchTextLog): { label: string; tone: Tone } => {
   if (l.status === "sent") return l.test_mode ? { label: "Sent · test", tone: "amber" } : { label: "Sent", tone: "green" };
   if (l.status === "failed") return { label: "Failed", tone: "red" };
   if (l.status === "skipped") return { label: "Skipped", tone: "slate" };
@@ -47,7 +60,7 @@ export const WatchEmailCard = ({ propertyId }: { propertyId: string }) => {
     mutationFn: (p: Partial<WatchEmailProperty>) => saveWatchEmailSettings({ property_id: propertyId, property: p }),
     onSuccess: (_r, p) => {
       const [k, v] = Object.entries(p)[0] ?? [];
-      toast.success(`${k === "send_start" ? "Start confirmation" : "Completion notice"} ${v ? "on" : "off"} for this property`);
+      toast.success(`${TOGGLE_LABEL[k as ToggleKey] ?? "Setting"} ${v ? "on" : "off"} for this property`);
       refresh();
     },
     onError: (e) => toast.error("Couldn't change that", { description: friendlyError(e) }),
@@ -59,6 +72,31 @@ export const WatchEmailCard = ({ propertyId }: { propertyId: string }) => {
   const lastFor = (k: WatchEmailKind) => d?.log.find((l) => l.kind === k && l.watch_id === d.watch?.id);
   const startLog = lastFor("start");
   const endLog = lastFor("end");
+  const phones = p?.text_phones.length ? p.text_phones : d?.auto?.phone ? [d.auto.phone] : [];
+  const textingOn = !!(p?.text_start || p?.text_end);
+  const textFor = (k: WatchEmailKind) => d?.text_log.find((l) => l.kind === k && l.watch_id === d.watch?.id);
+  const log = [
+    ...(d?.log ?? []).map((l) => ({ ...l, channel: "email" as const })),
+    ...(d?.text_log ?? []).map((l) => ({ ...l, channel: "text" as const })),
+  ].sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+  const textLine = (): string => {
+    if (!d?.watch || !textingOn) return "";
+    const parts: string[] = [];
+    const st = textFor("start");
+    const en = textFor("end");
+    if (p?.text_start) {
+      if (st?.status === "sent") parts.push(`Start text sent ${st.sent_at ? fmtInTz(st.sent_at, TZ) : ""}.`);
+      else if (d.watch.text_start_auto_at) parts.push(`Start text goes out ${fmtInTz(d.watch.text_start_auto_at, TZ)}.`);
+      else if (!d.watch.ended_on && !d.watch.auto_covers_this_watch) parts.push("Start text: this watch began before automatic notices were on.");
+    }
+    if (p?.text_end) {
+      if (en?.status === "sent") parts.push(`Completion text sent ${en.sent_at ? fmtInTz(en.sent_at, TZ) : ""}.`);
+      else if (en?.status === "skipped") parts.push("Completion text was skipped for this watch.");
+      else parts.push("Completion text goes out with the completion notice.");
+    }
+    return parts.join(" ");
+  };
 
   const startLine = (): string => {
     if (!d?.watch) return "No fire watch at this property yet.";
@@ -88,15 +126,16 @@ export const WatchEmailCard = ({ propertyId }: { propertyId: string }) => {
             <MailCheck className={cn("mt-0.5 h-8 w-8 shrink-0", p?.send_start || p?.send_end ? "text-link" : "text-ink-3")} strokeWidth={1.6} />
             <div className="min-w-0">
               <h2 id="watch-email-title" className="font-display text-xl font-bold text-ink sm:text-[22px]">
-                Watch start &amp; end emails
+                Watch start &amp; end notices
               </h2>
               <p className="mt-1 text-sm text-ink-2">
-                The client gets a confirmation before the watch begins and a completion notice when it ends. Dates and times fill in from the
-                real schedule and guard clock-ins.
+                The client gets a confirmation before the watch begins and a completion notice when it ends — by email, and by text if you switch
+                texts on. Dates and times fill in from the real schedule and guard clock-ins.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {(["send_start", "send_end"] as const).map((k) => {
+                {(["send_start", "send_end", "text_start", "text_end"] as const).map((k) => {
                   const on = !!p?.[k];
+                  const isText = k.startsWith("text");
                   return (
                     <label
                       key={k}
@@ -110,10 +149,12 @@ export const WatchEmailCard = ({ propertyId }: { propertyId: string }) => {
                         checked={on}
                         disabled={!p || toggle.isPending}
                         onCheckedChange={(v) => toggle.mutate({ [k]: v })}
-                        aria-label={`${k === "send_start" ? "Start confirmation" : "Completion notice"} ${on ? "on" : "off"}`}
+                        aria-label={`${TOGGLE_LABEL[k]} ${on ? "on" : "off"}`}
                         className="scale-75"
                       />
-                      {k === "send_start" ? "Start" : "End"} · {on ? "On" : "Off"}
+                      {isText && <MessageSquareText className="h-3 w-3" aria-hidden />}
+                      {isText ? "Text " : "Email "}
+                      {k.endsWith("start") ? "start" : "end"} · {on ? "On" : "Off"}
                     </label>
                   );
                 })}
@@ -133,10 +174,16 @@ export const WatchEmailCard = ({ propertyId }: { propertyId: string }) => {
         </div>
 
         {d && !d.email_configured && <Notice tone="red">Email sending isn't set up on the server yet, so these emails can't go out.</Notice>}
+        {d && textingOn && !d.sms_configured && <Notice tone="red">Text messaging isn't set up on the server yet, so client texts can't go out.</Notice>}
         {d?.test_mode && (
           <Notice tone="amber">
-            Test mode is on: these emails go only to <span className="font-medium">{d.test_email || "the test email (not set)"}</span>, never to the
-            client.
+            Test mode is on: emails go only to <span className="font-medium">{d.test_email || "the test email (not set)"}</span>
+            {textingOn && (
+              <>
+                {" "}and texts only to <span className="font-medium">{d.test_phone || "the test phone (not set)"}</span>
+              </>
+            )}
+            , never to the client.
           </Notice>
         )}
 
@@ -157,6 +204,14 @@ export const WatchEmailCard = ({ propertyId }: { propertyId: string }) => {
                     <span className="text-status-incident-ink">No client email on file</span>
                   )}
                   {!p?.recipients.length && recipients.length > 0 && <span className="block text-xs text-ink-3">Property contact</span>}
+                  <span className="mt-1.5 flex items-start gap-1.5 text-xs text-ink-3">
+                    <MessageSquareText className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+                    {textingOn
+                      ? phones.length
+                        ? `Texts ${phones.map(fmtPhone).join(", ")}`
+                        : "Texts on, but no client phone on file"
+                      : "Texts off"}
+                  </span>
                 </Tile>
                 <Tile label="Filled in from the schedule">
                   {d.auto?.coverage || "Coverage — add shifts"}
@@ -175,33 +230,45 @@ export const WatchEmailCard = ({ propertyId }: { propertyId: string }) => {
                 </Tile>
               </div>
               <ul className="grid gap-1.5 text-sm text-ink">
-                {[startLine(), endLine()].filter(Boolean).map((t, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    {i === 0 ? <Flag className="mt-0.5 h-4 w-4 shrink-0 text-link" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-link" />}
-                    {t}
-                  </li>
-                ))}
+                {[
+                  { t: startLine(), icon: <Flag className="mt-0.5 h-4 w-4 shrink-0 text-link" /> },
+                  { t: endLine(), icon: <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-link" /> },
+                  { t: textLine(), icon: <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-link" /> },
+                ]
+                  .filter((x) => x.t)
+                  .map((x, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      {x.icon}
+                      {x.t}
+                    </li>
+                  ))}
               </ul>
             </>
           )
         )}
       </div>
 
-      {!!d?.log.length && (
+      {log.length > 0 && (
         <div className="border-t border-line">
           <h3 className="px-6 pt-4 text-xs font-semibold uppercase tracking-[0.14em] text-ink-3 sm:px-7">Sent so far</h3>
           <ul className="divide-y divide-line px-2 pb-2 pt-2 sm:px-3">
-            {d.log.map((l) => {
+            {log.slice(0, 12).map((l) => {
               const m = logMeta(l);
+              const isText = l.channel === "text";
               return (
-                <li key={l.id} className="rounded-lg px-4 py-3">
+                <li key={`${l.channel}-${l.id}`} className="rounded-lg px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-ink">{KIND_LABEL[l.kind]}</span>
+                    {isText ? <MessageSquareText className="h-4 w-4 text-ink-3" aria-hidden /> : <MailCheck className="h-4 w-4 text-ink-3" aria-hidden />}
+                    <span className="font-medium text-ink">{isText ? TEXT_LABEL[l.kind] : KIND_LABEL[l.kind]}</span>
                     <Pill tone={m.tone}>{m.label}</Pill>
                     {l.trigger === "manual" && <span className="text-xs text-ink-3">sent manually</span>}
                   </div>
                   <p className="mt-0.5 text-sm text-ink-2">
-                    {l.sent_to.length ? `To ${l.sent_to.join(", ")}` : l.intended_to.length ? `For ${l.intended_to.join(", ")}` : ""}
+                    {l.sent_to.length
+                      ? `To ${l.sent_to.map(fmtPhone).join(", ")}`
+                      : l.intended_to.length
+                        ? `For ${l.intended_to.map(fmtPhone).join(", ")}`
+                        : ""}
                     {l.sent_at ? ` · ${fmtInTz(l.sent_at, TZ)}` : ` · ${fmtInTz(l.created_at, TZ)}`}
                   </p>
                   {l.error && l.status !== "sent" && (
@@ -248,6 +315,7 @@ const Notice = ({ tone, children }: { tone: "amber" | "red"; children: React.Rea
 
 interface Form {
   recipients: string;
+  text_phones: string;
   client_first_name: string;
   onsite_contact: string;
   billing_email: string;
@@ -266,6 +334,7 @@ interface Form {
 
 const toForm = (d: WatchEmailStatusResponse): Form => ({
   recipients: d.property.recipients.join(", "),
+  text_phones: d.property.text_phones.map(fmtPhone).join(", "),
   client_first_name: d.property.client_first_name,
   onsite_contact: d.property.onsite_contact,
   billing_email: d.property.billing_email,
@@ -313,7 +382,7 @@ const EditDialog = ({
     mutationFn: (input: { property: Partial<WatchEmailProperty>; org: Partial<WatchEmailOrg> }) =>
       saveWatchEmailSettings({ property_id: propertyId, ...input }),
     onSuccess: () => {
-      toast.success("Watch email details saved");
+      toast.success("Watch notice details saved");
       onSaved();
       onOpenChange(false);
     },
@@ -327,6 +396,16 @@ const EditDialog = ({
       .filter(Boolean);
     const bad = recipients.find((x) => !EMAIL_RE.test(x));
     if (bad) return setErr(`"${bad}" isn't a valid email address.`);
+    const textPhones = form.text_phones
+      .split(/[,;]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const badPhone = textPhones.find((x) => {
+      const n = x.replace(/\D/g, "");
+      return x.startsWith("+") ? n.length < 8 || n.length > 15 : !(n.length === 10 || (n.length === 11 && n.startsWith("1")));
+    });
+    if (badPhone) return setErr(`"${badPhone}" isn't a valid phone number.`);
+    if (textPhones.length > 5) return setErr("Up to 5 text numbers per property.");
     if (form.billing_email.trim() && !EMAIL_RE.test(form.billing_email.trim())) return setErr("The billing email isn't valid.");
     const officers = form.officers.trim() ? toNum(form.officers) : null;
     if (form.officers.trim() && (officers == null || officers < 1 || officers > 50)) return setErr("Officers on duty must be between 1 and 50.");
@@ -338,6 +417,7 @@ const EditDialog = ({
     save.mutate({
       property: {
         recipients,
+        text_phones: textPhones,
         client_first_name: form.client_first_name.trim(),
         onsite_contact: form.onsite_contact.trim(),
         billing_email: form.billing_email.trim().toLowerCase(),
@@ -352,7 +432,7 @@ const EditDialog = ({
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Watch email details"
+      title="Watch notice details"
       description="Leave a field blank to use what the app works out on its own (shown as the grey example)."
       dirty={dirty}
       saving={save.isPending}
@@ -368,6 +448,14 @@ const EditDialog = ({
           placeholder={a?.recipient || "client@company.com"}
           hint="Separate several with commas. Blank = the property contact."
           inputMode="email"
+        />
+        <TextField
+          label="Text to"
+          value={form.text_phones}
+          onChange={set("text_phones")}
+          placeholder={a?.phone ? fmtPhone(a.phone) : "(727) 555-0100"}
+          hint="Mobile numbers, separated by commas. Blank = the property contact phone. Only used when texts are switched on."
+          inputMode="tel"
         />
         <TextField label="Client first name" value={form.client_first_name} onChange={set("client_first_name")} placeholder={a?.first_name || "First name"} maxLength={60} />
         <TextField label="On-site contact" value={form.onsite_contact} onChange={set("onsite_contact")} placeholder={a?.onsite_contact || "Name · phone"} maxLength={160} />
@@ -433,6 +521,7 @@ const PreviewDialog = ({
   onSent: () => void;
 }) => {
   const [confirm, setConfirm] = useState<boolean>(false);
+  const [confirmText, setConfirmText] = useState<boolean>(false);
   const pv = useQuery({ queryKey: ["watch-emails", propertyId, "preview", kind], queryFn: () => previewWatchEmail(propertyId, kind), staleTime: 30_000 });
   const already = data.log.find((l) => l.kind === kind && l.watch_id === data.watch?.id && l.status === "sent");
   const endNotReady = kind === "end" && !data.watch?.ended_on;
@@ -448,13 +537,26 @@ const PreviewDialog = ({
     },
     onError: (e) => toast.error("Couldn't send the email", { description: friendlyError(e) }),
   });
+  const alreadyText = data.text_log.find((l) => l.kind === kind && l.watch_id === data.watch?.id && l.status === "sent");
+  const sendText = useMutation({
+    mutationFn: () => sendWatchEmail(propertyId, kind, "text"),
+    onSuccess: (r) => {
+      setConfirmText(false);
+      if (r.status === "sent") toast.success(r.test_mode ? "Text sent to the test phone" : "Text sent to the client");
+      else if (r.status === "failed" || r.status === "skipped") toast.error("The text didn't go out", { description: r.error });
+      else toast.message("Already being sent");
+      onSent();
+    },
+    onError: (e) => toast.error("Couldn't send the text", { description: friendlyError(e) }),
+  });
+  const busy = send.isPending || sendText.isPending;
 
   const v = pv.data;
   return (
-    <Dialog open onOpenChange={(o) => !o && !send.isPending && onClose()}>
+    <Dialog open onOpenChange={(o) => !o && !busy && onClose()}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto border-line bg-surface text-ink sm:max-w-2xl sm:rounded-xl">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">Email preview</DialogTitle>
+          <DialogTitle className="font-display text-xl">Notice preview</DialogTitle>
           <DialogDescription className="text-ink-2">Exactly what the client receives, with today's schedule and clock-ins filled in.</DialogDescription>
         </DialogHeader>
 
@@ -508,6 +610,32 @@ const PreviewDialog = ({
                 sandbox=""
                 className="h-[460px] w-full rounded-lg border border-line bg-white"
               />
+              <div className="rounded-lg border border-line bg-raised px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <MessageSquareText className="h-4 w-4 text-ink-3" aria-hidden />
+                  <span className="text-sm font-medium text-ink">Text message</span>
+                  <Pill tone={data.property[kind === "start" ? "text_start" : "text_end"] ? "green" : "slate"}>
+                    {data.property[kind === "start" ? "text_start" : "text_end"] ? "Automatic · on" : "Automatic · off"}
+                  </Pill>
+                </div>
+                <p className="mt-1 text-xs text-ink-3">
+                  {v.sms.to.length ? `To ${v.sms.to.map(fmtPhone).join(", ")}` : v.sms.reason}
+                  {data.test_mode && v.sms.intended.length > 0 && ` · client (${v.sms.intended.map(fmtPhone).join(", ")}) gets it once test mode is off`}
+                </p>
+                <p className="mt-2 whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-surface px-3.5 py-2.5 text-sm text-ink ring-1 ring-line">{v.sms.body}</p>
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+                  {alreadyText && !endNotReady && <span className="mr-auto text-xs text-ink-3">Already texted for this watch.</span>}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmText(true)}
+                    disabled={endNotReady || busy || !data.sms_configured || !v.sms.to.length}
+                  >
+                    {sendText.isPending ? <Loader2 className="animate-spin" /> : <Send />}
+                    {alreadyText ? "Resend text" : "Send text now"}
+                  </Button>
+                </div>
+              </div>
             </div>
           )
         )}
@@ -515,12 +643,12 @@ const PreviewDialog = ({
         <div className="flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-end">
           {endNotReady && <p className="text-xs text-ink-3 sm:mr-auto">End the watch first — the real end time fills in then.</p>}
           {already && !endNotReady && <p className="text-xs text-ink-3 sm:mr-auto">Already sent for this watch — sending again resends it.</p>}
-          <Button variant="ghost" onClick={onClose} disabled={send.isPending}>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
             Close
           </Button>
-          <Button onClick={() => setConfirm(true)} disabled={!v || endNotReady || send.isPending || (!v.to.length && !v.test_mode)}>
+          <Button onClick={() => setConfirm(true)} disabled={!v || endNotReady || busy || (!v.to.length && !v.test_mode)}>
             {send.isPending ? <Loader2 className="animate-spin" /> : <Send />}
-            {already ? "Resend now" : "Send now"}
+            {already ? "Resend email" : "Send email now"}
           </Button>
         </div>
 
@@ -532,6 +660,15 @@ const PreviewDialog = ({
           confirmLabel="Send now"
           busy={send.isPending}
           onConfirm={() => send.mutate()}
+        />
+        <ConfirmDialog
+          open={confirmText}
+          onOpenChange={setConfirmText}
+          title={`Text the ${kind === "start" ? "start confirmation" : "completion notice"} now?`}
+          description={v ? `This texts ${v.sms.to.map(fmtPhone).join(", ") || "nobody"}${data.test_mode ? " (test mode — test phone only)" : ""}.` : ""}
+          confirmLabel="Send text"
+          busy={sendText.isPending}
+          onConfirm={() => sendText.mutate()}
         />
       </DialogContent>
     </Dialog>

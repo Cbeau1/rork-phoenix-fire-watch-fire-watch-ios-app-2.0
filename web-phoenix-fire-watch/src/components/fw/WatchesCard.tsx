@@ -235,23 +235,33 @@ const EndWatchDialog = ({ watch, today, onClose }: { watch: ActiveWatch; today: 
 
   const emailCfg = useQuery({ queryKey: ["watch-emails", watch.property_id], queryFn: () => fetchWatchEmailStatus(watch.property_id), staleTime: 60_000 });
   const [notify, setNotify] = useState<boolean>(true);
+  const [textNotify, setTextNotify] = useState<boolean>(false);
   const ec = emailCfg.data;
   useEffect(() => {
-    if (ec) setNotify(ec.property.send_end);
+    if (ec) {
+      setNotify(ec.property.send_end);
+      setTextNotify(ec.property.text_end);
+    }
   }, [ec]);
   const notifyTo = ec ? (ec.property.recipients.length ? ec.property.recipients.join(", ") : ec.auto?.recipient || "") : "";
+  const textTo = ec ? (ec.property.text_phones.length ? ec.property.text_phones.join(", ") : ec.auto?.phone || "") : "";
 
   const afterEnd = async () => {
     try {
-      if (!notify) {
-        await skipWatchEmail(watch.id, "end");
-        return;
-      }
+      if (!notify) await skipWatchEmail(watch.id, "end");
+      // Texts only go out when switched on for the property AND ticked here.
+      if (ec?.property.text_end && !textNotify) await skipWatchEmail(watch.id, "end", "text");
+      if (!notify && !(ec?.property.text_end && textNotify)) return;
       const r = await runWatchEmails(watch.id);
-      const sent = r.results.find((x) => x.kind === "end");
-      if (sent?.status === "sent") toast.success(sent.test_mode ? "Completion notice sent to the test email" : "Completion notice emailed to the client");
-      else if (sent?.status === "failed" || sent?.status === "skipped") toast.error("The completion notice didn't go out", { description: sent.error });
-      else toast.message("Completion notice scheduled", { description: "It goes out automatically once the last shift is over." });
+      if (notify) {
+        const sent = r.results.find((x) => x.kind === "end");
+        if (sent?.status === "sent") toast.success(sent.test_mode ? "Completion notice sent to the test email" : "Completion notice emailed to the client");
+        else if (sent?.status === "failed" || sent?.status === "skipped") toast.error("The completion notice didn't go out", { description: sent.error });
+        else toast.message("Completion notice scheduled", { description: "It goes out automatically once the last shift is over." });
+      }
+      const txt = r.texts?.find((x) => x.kind === "end");
+      if (txt?.status === "sent") toast.success(txt.test_mode ? "Completion text sent to the test phone" : "Completion text sent to the client");
+      else if (txt?.status === "failed" || txt?.status === "skipped") toast.error("The completion text didn't go out", { description: txt.error });
     } catch (e) {
       toast.error("Couldn't send the completion notice", { description: friendlyError(e) });
     } finally {
@@ -393,9 +403,25 @@ const EndWatchDialog = ({ watch, today, onClose }: { watch: ActiveWatch; today: 
                   ? `Test mode is on — it goes to ${ec.test_email || "the test email"} only. Sent once the last shift is over, with the real end time.`
                   : notifyTo
                     ? `To ${notifyTo}, once the last shift is over, with the real end time.`
-                    : "No client email on file — add one under the property's Watch start & end emails."
+                    : "No client email on file — add one under the property's Watch start & end notices."
               }
             />
+            {ec.property.text_end && (
+              <div className="mt-2.5 border-t border-line pt-2.5">
+                <CheckField
+                  label="Text the client the completion notice"
+                  checked={textNotify}
+                  onChange={setTextNotify}
+                  hint={
+                    ec.test_mode
+                      ? `Test mode is on — it goes to ${ec.test_phone || "the test phone"} only.`
+                      : textTo
+                        ? `To ${textTo}, once the last shift is over.`
+                        : "No client phone on file — add one under the property's Watch start & end notices."
+                  }
+                />
+              </div>
+            )}
           </div>
         )}
 
