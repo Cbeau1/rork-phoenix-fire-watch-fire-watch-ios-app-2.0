@@ -18,6 +18,7 @@ import {
   TrendingDown,
   TrendingUp,
   UserX,
+  FileText,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -215,7 +216,6 @@ const Hero = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf> }) 
   const loss = t.profit < 0;
   const range =
     d.start === d.end ? format(parseISO(d.start), "EEE, MMM d") : `${format(parseISO(d.start), "MMM d")} – ${format(parseISO(d.end), "MMM d, yyyy")}`;
-  const pendingProfit = t.pendingRevenue - t.pendingCost;
   const marginPct = t.margin == null ? 0 : Math.max(0, Math.min(1, t.margin));
 
   return (
@@ -253,18 +253,23 @@ const Hero = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf> }) 
             </p>
           )}
           <p className="mt-3 text-sm text-ink-2">
-            {t.billed > 0
-              ? `${hrs(t.hours)} of coverage — revenue from client invoices where uploaded, approved timecards for the rest.`
-              : `From ${hrs(t.hours)} of approved timecards`}
-            {t.billed > 0 ? "" : t.revenue === 0 && t.hours > 0 ? " — set client rates to see revenue." : "."}
+            Revenue is what you billed — client invoices dated in this period. Costs are every hour worked ({hrs(t.hours)}) plus expenses.
           </p>
+          {t.unbilledHours > 0 && (
+            <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-ink-2">
+              <FileText className="h-4 w-4 text-link" />
+              <span>
+                <span className="font-medium text-ink">{hrs(t.unbilledHours)}</span> worked but not invoiced yet ≈{" "}
+                <span className="font-medium text-ink">{whole(t.unbilledRevenue)}</span> to bill — not counted as revenue until you upload the invoice.
+              </span>
+            </p>
+          )}
           {t.pendingHours > 0 && (
             <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-line bg-raised px-3 py-1.5 text-sm text-ink-2">
               <Hourglass className="h-4 w-4 text-status-follow" />
               <span>
                 <span className="font-medium text-ink">{hrs(t.pendingHours)}</span> waiting for approval or still on the clock ≈{" "}
-                <span className="font-medium text-ink">{signed(pendingProfit)}</span> more ({whole(t.pendingRevenue)} revenue, {whole(t.pendingCost)}{" "}
-                cost)
+                <span className="font-medium text-ink">{whole(t.pendingCost)}</span> more cost, not counted yet
               </span>
               <Link to="/payroll" className="font-medium text-link hover:underline">
                 Approve
@@ -463,7 +468,6 @@ const PropertyRow = ({ p }: { p: ProfitProperty }) => {
   const profit = profitOf(p);
   const m = marginOf(p.revenue, profit);
   const tone = marginTone(m);
-  const noRate = p.unpriced_revenue_hours > 0;
   return (
     <li>
       <Link
@@ -483,9 +487,16 @@ const PropertyRow = ({ p }: { p: ProfitProperty }) => {
             {p.current_rate != null ? <span className="font-mono">{money(p.current_rate)}/h</span> : <span className="text-status-follow">No client rate</span>}
             {p.overtime_hours > 0 && <span>{hrs(p.overtime_hours)} overtime</span>}
             {p.pending_hours > 0 && <span className="text-status-follow">+{hrs(p.pending_hours)} pending</span>}
+            {p.unbilled_hours > 0 && (
+              <span>
+                {hrs(p.unbilled_hours)} not invoiced{p.unbilled_revenue > 0 ? ` (≈${whole(p.unbilled_revenue)})` : ""}
+              </span>
+            )}
           </div>
         </div>
-        <Cell label="Revenue">{noRate && p.revenue === 0 ? <span className="text-ink-3">—</span> : whole(p.revenue)}</Cell>
+        <Cell label="Revenue">
+          {p.revenue === 0 ? <span className="text-ink-3">—</span> : whole(p.revenue)}
+        </Cell>
         <Cell label="Labor">{whole(laborCost(p))}</Cell>
         <Cell label="Expenses">{p.expenses ? whole(p.expenses) : <span className="text-ink-3">—</span>}</Cell>
         <Cell label="Profit">

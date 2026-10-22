@@ -18,13 +18,17 @@ export interface ProfitProperty {
   current_rate: number | null;
   current_rate_from: string | null;
   current_rate_source: "manual" | "contract" | null;
-  /** Invoiced hours (spread over the time each invoice covers) plus approved timecard hours outside invoiced time. */
+  /** Approved timecard hours worked in the period. */
   hours: number;
-  /** Client invoices for the time they cover, plus timecards × client rate for the rest. */
+  /** What was billed: client invoices issued in the period (full amount, on the invoice date). */
   revenue: number;
+  /** Approved hours outside every invoice's service period — worked but not invoiced yet (not counted as revenue). */
+  unbilled_hours: number;
+  /** Estimated value of the unbilled hours at the client rate (not counted as revenue). */
+  unbilled_revenue: number;
   timecard_hours: number;
   timecard_revenue: number;
-  /** Share of uploaded client invoices that falls in this period. */
+  /** Client invoices issued in this period (same as revenue). */
   billed: number;
   billed_hours: number;
   wages: number;
@@ -47,6 +51,8 @@ export interface ProfitDay {
   cost: number;
   pending_revenue: number;
   pending_cost: number;
+  /** Estimated value of hours worked that day but not invoiced yet (not in revenue). */
+  unbilled_revenue?: number;
 }
 
 /** Temp agency and its default charge per staffing hour (null = not set; falls back to the worker's pay rate). */
@@ -97,6 +103,8 @@ export async function fetchProfit(period: ProfitPeriod): Promise<ProfitDashboard
       current_rate: p.current_rate == null ? null : n(p.current_rate),
       hours: n(p.hours),
       revenue: n(p.revenue),
+      unbilled_hours: n(p.unbilled_hours),
+      unbilled_revenue: n(p.unbilled_revenue),
       timecard_hours: n(p.timecard_hours ?? p.hours),
       timecard_revenue: n(p.timecard_revenue ?? p.revenue),
       billed: n(p.billed),
@@ -153,6 +161,8 @@ export interface ProfitTotals {
   net: number;
   netMargin: number | null;
   billed: number;
+  unbilledHours: number;
+  unbilledRevenue: number;
   timecardHours: number;
   hours: number;
   pendingHours: number;
@@ -192,6 +202,8 @@ export const totalsOf = (d: ProfitDashboard): ProfitTotals => {
     net,
     netMargin: marginOf(revenue, net),
     billed: sum((p) => p.billed),
+    unbilledHours: sum((p) => p.unbilled_hours),
+    unbilledRevenue: sum((p) => p.unbilled_revenue),
     timecardHours: sum((p) => p.timecard_hours) + n(d.unassigned?.hours),
     hours: sum((p) => p.hours) + n(d.unassigned?.hours),
     pendingHours: sum((p) => p.pending_hours) + n(d.unassigned?.pending_hours),
