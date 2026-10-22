@@ -34,6 +34,7 @@ import { LogPatrolGate } from "./ClockInGate";
 import { Crest } from "./Crest";
 import { PatrolTimerAlerts } from "./PatrolTimerAlerts";
 import { SyncStatus } from "./SyncStatus";
+import { TestModeToggle } from "./TestModeToggle";
 
 type NavItem = { to: string; label: string; short: string; icon: LucideIcon; match: (p: string) => boolean };
 
@@ -121,6 +122,7 @@ const TabletRail = () => {
         })}
       </nav>
       <div className="mt-auto flex flex-col items-center gap-3 px-2 pt-4">
+        <TestModeToggle variant="compact" />
         <SyncStatus iconOnly />
         <div
           title={user?.name}
@@ -193,6 +195,9 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
       <div className="mt-auto px-5 pb-6">
         <RunningTimers onNavigate={onNavigate} />
+        <div className="mb-3 empty:hidden">
+          <TestModeToggle />
+        </div>
         <div className="mb-3">
           <SyncStatus />
         </div>

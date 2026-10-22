@@ -1,6 +1,6 @@
 import { callFunction, supabase } from "@/lib/supabase";
 
-/** Daily 9 a.m. patrol report emails (server-sent; see backend function "daily-report"). */
+/** Daily patrol report emails at each property's chosen time (server-sent; see backend function "daily-report"). */
 
 export type RunStatus = "queued" | "sending" | "sent" | "failed" | "skipped";
 
@@ -11,6 +11,8 @@ export interface DailyReportSettings {
   include_photos: boolean;
   send_when_empty: boolean;
   timezone: string;
+  /** Local send time, "HH:MM". The report covers the 24 hours before it. */
+  send_time: string;
 }
 
 export interface DailyReportRun {
@@ -62,16 +64,30 @@ export const DEFAULT_SETTINGS = (propertyId: string): DailyReportSettings => ({
   include_photos: true,
   send_when_empty: false,
   timezone: "",
+  send_time: "09:00",
 });
+
+/** "07:30" or "07:30:00" → "7:30 AM". */
+export const sendTimeLabel = (t: string): string => {
+  const [h, m] = t.split(":").map(Number);
+  const hh = Number.isFinite(h) ? h : 9;
+  const mm = Number.isFinite(m) ? m : 0;
+  return `${hh % 12 || 12}:${String(mm).padStart(2, "0")} ${hh < 12 ? "AM" : "PM"}`;
+};
+
+/** Every half hour of the day, as "HH:MM". */
+export const SEND_TIMES: string[] = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`);
+
+const hhmm = (t: unknown): string => (typeof t === "string" && /^\d{2}:\d{2}/.test(t) ? t.slice(0, 5) : "09:00");
 
 export async function fetchReportSettings(propertyId: string): Promise<DailyReportSettings> {
   const { data, error } = await supabase
     .from("daily_report_settings")
-    .select("property_id, enabled, recipients, include_photos, send_when_empty, timezone")
+    .select("property_id, enabled, recipients, include_photos, send_when_empty, timezone, send_time")
     .eq("property_id", propertyId)
     .maybeSingle();
   if (error) throw error;
-  return (data as DailyReportSettings | null) ?? DEFAULT_SETTINGS(propertyId);
+  return data ? { ...data, send_time: hhmm(data.send_time) } : DEFAULT_SETTINGS(propertyId);
 }
 
 export async function saveReportSettings(s: DailyReportSettings): Promise<DailyReportSettings> {
@@ -82,9 +98,11 @@ export async function saveReportSettings(s: DailyReportSettings): Promise<DailyR
     p_include_photos: s.include_photos,
     p_send_when_empty: s.send_when_empty,
     p_timezone: s.timezone,
+    p_send_time: s.send_time,
   });
   if (error) throw error;
-  return data as unknown as DailyReportSettings;
+  const row = data as unknown as DailyReportSettings;
+  return { ...row, send_time: hhmm(row.send_time) };
 }
 
 export async function fetchPropertyRuns(propertyId: string, limit = 14): Promise<DailyReportRun[]> {

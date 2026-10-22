@@ -766,6 +766,7 @@ export type Database = {
           org_id: string
           property_id: string
           recipients: string[]
+          send_time: string
           send_when_empty: boolean
           timezone: string
           updated_at: string
@@ -777,6 +778,7 @@ export type Database = {
           org_id: string
           property_id: string
           recipients?: string[]
+          send_time?: string
           send_when_empty?: boolean
           timezone?: string
           updated_at?: string
@@ -788,6 +790,7 @@ export type Database = {
           org_id?: string
           property_id?: string
           recipients?: string[]
+          send_time?: string
           send_when_empty?: boolean
           timezone?: string
           updated_at?: string
@@ -2068,6 +2071,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profit_agency_rates: {
+        Row: {
+          agency_id: string
+          org_id: string
+          overtime_rate: number | null
+          regular_rate: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agency_id: string
+          org_id: string
+          overtime_rate?: number | null
+          regular_rate: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agency_id?: string
+          org_id?: string
+          overtime_rate?: number | null
+          regular_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profit_agency_rates_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "wf_agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profit_agency_rates_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -4666,33 +4711,64 @@ export type Database = {
         Returns: Json
       }
       daily_report__tz: { Args: { p_property: string }; Returns: string }
-      daily_report_upsert_settings: {
-        Args: {
-          p_enabled: boolean
-          p_include_photos: boolean
-          p_property: string
-          p_recipients: string[]
-          p_send_when_empty: boolean
-          p_timezone: string
-        }
-        Returns: {
-          enabled: boolean
-          include_photos: boolean
-          org_id: string
-          property_id: string
-          recipients: string[]
-          send_when_empty: boolean
-          timezone: string
-          updated_at: string
-          updated_by: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "daily_report_settings"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      daily_report_upsert_settings:
+        | {
+            Args: {
+              p_enabled: boolean
+              p_include_photos: boolean
+              p_property: string
+              p_recipients: string[]
+              p_send_when_empty: boolean
+              p_timezone: string
+            }
+            Returns: {
+              enabled: boolean
+              include_photos: boolean
+              org_id: string
+              property_id: string
+              recipients: string[]
+              send_time: string
+              send_when_empty: boolean
+              timezone: string
+              updated_at: string
+              updated_by: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "daily_report_settings"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_enabled: boolean
+              p_include_photos: boolean
+              p_property: string
+              p_recipients: string[]
+              p_send_time: string
+              p_send_when_empty: boolean
+              p_timezone: string
+            }
+            Returns: {
+              enabled: boolean
+              include_photos: boolean
+              org_id: string
+              property_id: string
+              recipients: string[]
+              send_time: string
+              send_when_empty: boolean
+              timezone: string
+              updated_at: string
+              updated_by: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "daily_report_settings"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       dispatch__scan: { Args: never; Returns: Json }
       dispatch_ack_alert: { Args: { p_id: string }; Returns: undefined }
       dispatch_board: { Args: never; Returns: Json }
@@ -4871,6 +4947,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      profit_set_agency_rate: {
+        Args: { p_agency: string; p_overtime?: number; p_regular: number }
+        Returns: undefined
       }
       shift__window: {
         Args: { p_tz: string; s: Database["public"]["Tables"]["shifts"]["Row"] }

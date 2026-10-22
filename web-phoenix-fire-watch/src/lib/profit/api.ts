@@ -40,6 +40,15 @@ export interface ProfitDay {
   pending_cost: number;
 }
 
+/** Temp agency and its default charge per staffing hour (null = not set; falls back to the worker's pay rate). */
+export interface ProfitAgency {
+  id: string;
+  name: string;
+  regular_rate: number | null;
+  overtime_rate: number | null;
+  workers: number;
+}
+
 export interface ProfitDashboard {
   tz: string;
   period: ProfitPeriod;
@@ -55,6 +64,7 @@ export interface ProfitDashboard {
   daily: ProfitDay[];
   live: { on_duty: number; sites: number; revenue_per_hour: number; cost_per_hour: number; unpriced: number };
   missing_pay: { name: string; hours: number }[];
+  agencies: ProfitAgency[];
 }
 
 export type BillRate = Tables<"property_bill_rates">;
@@ -87,6 +97,12 @@ export async function fetchProfit(period: ProfitPeriod): Promise<ProfitDashboard
     overhead: (d.overhead ?? []).map((o) => ({ ...o, amount: n(o.amount) })),
     daily: d.daily ?? [],
     missing_pay: d.missing_pay ?? [],
+    agencies: (d.agencies ?? []).map((a) => ({
+      ...a,
+      regular_rate: a.regular_rate == null ? null : n(a.regular_rate),
+      overtime_rate: a.overtime_rate == null ? null : n(a.overtime_rate),
+      workers: n(a.workers),
+    })),
     excluded_labor_expenses: n(d.excluded_labor_expenses),
   };
 }
@@ -175,6 +191,16 @@ export async function addBillRate(propertyId: string, rate: number, effective: s
 
 export async function deleteBillRate(id: string): Promise<void> {
   const { error } = await supabase.rpc("profit_delete_bill_rate", { p_id: id });
+  if (error) throw error;
+}
+
+/** Set (or clear, with regular = null) an agency's default charge per staffing hour. Overtime null = 1.5× regular. */
+export async function setAgencyRate(agencyId: string, regular: number | null, overtime: number | null): Promise<void> {
+  const { error } = await supabase.rpc("profit_set_agency_rate", {
+    p_agency: agencyId,
+    p_regular: regular as number,
+    p_overtime: overtime as number,
+  });
   if (error) throw error;
 }
 

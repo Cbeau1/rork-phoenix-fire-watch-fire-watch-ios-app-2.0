@@ -148,16 +148,18 @@ export const ClientRateCard = ({ propertyId }: { propertyId: string }) => {
   );
 };
 
-const AddRateDialog = ({
+export const AddRateDialog = ({
   open,
   onOpenChange,
   propertyId,
   today,
+  propertyName,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   propertyId: string;
   today: string;
+  propertyName?: string;
 }) => {
   const qc = useQueryClient();
   const [rate, setRate] = useState<string>("");
@@ -199,7 +201,7 @@ const AddRateDialog = ({
         if (!v) reset();
         onOpenChange(v);
       }}
-      title="Set client rate"
+      title={propertyName ? `Client rate · ${propertyName}` : "Set client rate"}
       description="Hours worked on or after the start date are billed at this rate. Earlier hours keep their old rate."
       dirty={rate !== "" || note !== "" || from !== today}
       saving={save.isPending}
@@ -207,7 +209,7 @@ const AddRateDialog = ({
       submitLabel="Save rate"
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <TextField label="Hourly rate ($)" value={rate} onChange={setRate} inputMode="decimal" placeholder="38.00" required error={errors.rate} />
+        <TextField label="Hourly rate ($)" value={rate} onChange={setRate} inputMode="decimal" placeholder="44.00" required error={errors.rate} />
         <TextField label="Starts on" type="date" value={from} onChange={setFrom} required error={errors.from} />
       </div>
       <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. 2027 rate increase" maxLength={300} />

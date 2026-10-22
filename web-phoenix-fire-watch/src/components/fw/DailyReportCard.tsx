@@ -7,6 +7,7 @@ import { FieldLabel } from "@/components/fw/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { CheckField, ConfirmDialog, ErrorBlock, FormDialog, Pill, selectContent, selectItem, selectTrigger } from "@/components/workforce/kit";
 import { downloadBlob } from "@/lib/report";
 import {
@@ -23,7 +24,9 @@ import {
   reportDownloadUrl,
   retryReport,
   saveReportSettings,
+  SEND_TIMES,
   sendReportNow,
+  sendTimeLabel,
   tzAbbr,
 } from "@/lib/reports/api";
 import { friendlyError } from "@/lib/supabase";
@@ -57,7 +60,7 @@ export const runStatusMeta = (r: Pick<DailyReportRun, "status" | "test_mode">): 
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
-/** Admin-only: the automatic 9 a.m. patrol report email for one property. */
+/** Admin-only: the automatic morning patrol report email for one property (send time chosen per property). */
 export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
   const qc = useQueryClient();
   const keys = {
@@ -137,8 +140,31 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
     }
   };
 
+  const toggle = useMutation({
+    mutationFn: (on: boolean) => saveReportSettings({ ...(s as DailyReportSettings), enabled: on }),
+    onSuccess: (r) => {
+      qc.setQueryData(keys.settings, r);
+      toast.success(r.enabled ? `Daily report on — sends every day at ${sendTimeLabel(r.send_time)}` : "Daily report turned off");
+      refresh();
+    },
+    onError: (e) => toast.error("Couldn't change the daily report", { description: friendlyError(e) }),
+  });
+
   const enabled = !!s?.enabled;
   const recipients = s?.recipients ?? [];
+  const at = sendTimeLabel(s?.send_time ?? "09:00");
+  const zone = st?.tz ? ` ${tzAbbr(st.next_send_at ?? new Date().toISOString(), tz)}` : "";
+
+  const onToggle = (on: boolean) => {
+    if (!s) return;
+    // Turning on needs someone to send to — open settings instead of failing.
+    if (on && recipients.length === 0) {
+      toast.message("Add who gets the report first", { description: "Then switch it on." });
+      setEditing(true);
+      return;
+    }
+    toggle.mutate(on);
+  };
 
   return (
     <section className="mt-5 overflow-hidden rounded-xl border border-line bg-surface shadow-card" aria-labelledby="daily-report-title">
@@ -151,19 +177,26 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
                 <h2 id="daily-report-title" className="font-display text-xl font-bold text-ink sm:text-[22px]">
                   Daily report email
                 </h2>
-                <span
+                <label
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] ring-1 ring-inset",
+                    "inline-flex cursor-pointer items-center gap-2 rounded-full py-0.5 pl-1 pr-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] ring-1 ring-inset transition-colors",
                     enabled ? "bg-status-clear/10 text-status-clear ring-status-clear/30" : "bg-raised text-ink-3 ring-line",
+                    (!s || toggle.isPending) && "cursor-wait opacity-70",
                   )}
                 >
-                  <span className={cn("h-1.5 w-1.5 rounded-full", enabled ? "bg-status-clear" : "bg-ink-3")} />
-                  {settings.isLoading ? "…" : enabled ? "On" : "Off"}
-                </span>
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={onToggle}
+                    disabled={!s || toggle.isPending}
+                    aria-label={enabled ? "Turn the daily report off for this property" : "Turn the daily report on for this property"}
+                    className="scale-75"
+                  />
+                  {settings.isLoading ? "…" : toggle.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : enabled ? "On" : "Off"}
+                </label>
               </div>
               <p className="mt-1 text-sm text-ink-2">
-                Every morning at 9:00 AM{st?.tz ? ` ${tzAbbr(st.next_send_at ?? new Date().toISOString(), tz)}` : ""}, a PDF of the
-                previous 24 hours (patrols, incidents, photos, check-ins) is emailed automatically.
+                Every day at <span className="font-medium text-ink">{at}{zone}</span>, a PDF of the previous 24 hours (patrols, incidents,
+                photos, check-ins) is emailed to this client automatically.
               </p>
               {enabled && st?.next_send_at && (
                 <p className="mt-1 text-sm text-ink">
@@ -194,7 +227,7 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
         {st?.test_mode && (
           <Notice tone="amber">
             Test mode is on: every report goes only to <span className="font-medium">{st.test_email || "the test email (not set)"}</span>, never to
-            the recipients below. Turn test mode off in Dispatch → Settings when you're ready.
+            the recipients below. Turn it off with the Test mode switch in the menu when you're ready.
           </Notice>
         )}
 
@@ -242,7 +275,7 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
             <ErrorBlock message={friendlyError(runs.error)} onRetry={() => void runs.refetch()} />
           </div>
         ) : !runs.data?.length ? (
-          <p className="px-6 pb-6 pt-3 text-sm text-ink-3 sm:px-7">No reports yet. The first one goes out at the next 9:00 AM after you turn this on.</p>
+          <p className="px-6 pb-6 pt-3 text-sm text-ink-3 sm:px-7">No reports yet. The first one goes out at the next {at} after you turn this on.</p>
         ) : (
           <ul className="divide-y divide-line px-2 pb-2 pt-2 sm:px-3">
             {runs.data.map((r) => {
@@ -299,9 +332,9 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
         title="Send the report now?"
         description={
           st?.test_mode
-            ? `This emails the report for the last 9 a.m.-to-9 a.m. period to the test email only (${st.test_email || "not set"}).`
+            ? `This emails the report for the 24 hours up to the last ${at} to the test email only (${st.test_email || "not set"}).`
             : recipients.length
-              ? `This emails the report for the last 9 a.m.-to-9 a.m. period to ${recipients.join(", ")}.`
+              ? `This emails the report for the 24 hours up to the last ${at} to ${recipients.join(", ")}.`
               : "Add at least one recipient first."
         }
         confirmLabel="Send now"
@@ -407,7 +440,7 @@ const SettingsDialog = ({
       open={open}
       onOpenChange={onOpenChange}
       title="Daily report email"
-      description="Sent automatically every day at 9:00 AM in the property's time zone, covering the previous 24 hours."
+      description="Sent automatically every day at the time you pick, in the property's time zone, covering the previous 24 hours."
       dirty={dirty}
       saving={save.isPending}
       onSubmit={submit}
@@ -492,6 +525,23 @@ const SettingsDialog = ({
         checked={form.send_when_empty}
         onChange={(v) => setForm({ ...form, send_when_empty: v })}
       />
+
+      <div>
+        <FieldLabel htmlFor="dr-time">Send time</FieldLabel>
+        <Select value={form.send_time} onValueChange={(v) => setForm({ ...form, send_time: v })}>
+          <SelectTrigger id="dr-time" className={selectTrigger}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className={cn(selectContent, "max-h-72")}>
+            {(SEND_TIMES.includes(form.send_time) ? SEND_TIMES : [form.send_time, ...SEND_TIMES]).map((t) => (
+              <SelectItem key={t} value={t} className={selectItem}>
+                {sendTimeLabel(t)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="mt-1.5 text-xs text-ink-3">The report covers the 24 hours before this time. If a send is missed, it goes out within 4 hours.</p>
+      </div>
 
       <div>
         <FieldLabel htmlFor="dr-tz">Time zone</FieldLabel>

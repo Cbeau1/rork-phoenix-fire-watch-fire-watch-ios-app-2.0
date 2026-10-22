@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, startOfISOWeek } from "date-fns";
 import {
   AlertTriangle,
+  BadgeDollarSign,
   Building2,
   ChevronRight,
+  Percent,
+  Users,
   Clock,
   Hourglass,
   Info,
@@ -11,7 +14,7 @@ import {
   Lock,
   RadioTower,
   RefreshCw,
-  Settings2,
+  SlidersHorizontal,
   TrendingDown,
   TrendingUp,
   UserX,
@@ -21,6 +24,7 @@ import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, 
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
+import { AddRateDialog } from "@/components/fw/ClientRateCard";
 import { Card, PageHeader } from "@/components/fw/primitives";
 import { Button } from "@/components/ui/button";
 import { Empty, ErrorBlock, FormDialog, Loading, TextField, toNum } from "@/components/workforce/kit";
@@ -32,11 +36,13 @@ import {
   marginOf,
   PERIODS,
   pct,
+  type ProfitAgency,
   type ProfitDashboard,
   type ProfitPeriod,
   type ProfitProperty,
   profitOf,
   saveBurden,
+  setAgencyRate,
   totalsOf,
 } from "@/lib/profit/api";
 import { friendlyError } from "@/lib/supabase";
@@ -66,7 +72,6 @@ const Profit = () => {
   const perms = useWfPerms();
   const canSee = isAdmin && perms.data?.pay === true;
   const [period, setPeriod] = useState<ProfitPeriod>("month");
-  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
 
   const q = useQuery({
     queryKey: ["profit", "dashboard", period],
@@ -97,9 +102,13 @@ const Profit = () => {
         actions={
           <>
             <LiveStamp at={d?.generated_at} fetching={q.isFetching} onRefresh={() => void q.refetch()} />
-            <Button variant="outline" onClick={() => setSettingsOpen(true)} disabled={!d}>
-              <Settings2 />
-              Cost settings
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById("rates")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              disabled={!d}
+            >
+              <SlidersHorizontal />
+              Rates & costs
             </Button>
           </>
         }
@@ -116,8 +125,6 @@ const Profit = () => {
           <Body d={d} />
         </div>
       ) : null}
-
-      {d && settingsOpen && <CostSettingsDialog open onOpenChange={setSettingsOpen} burden={d.burden_pct} />}
     </div>
   );
 };
@@ -188,6 +195,8 @@ const Body = ({ d }: { d: ProfitDashboard }) => {
           </div>
         </>
       )}
+
+      <RatesCard d={d} />
     </>
   );
 };
@@ -530,12 +539,226 @@ const Breakdown = ({ d, t }: { d: ProfitDashboard; t: ReturnType<typeof totalsOf
           {d.burden_pct === 0 && (
             <p className="flex gap-2">
               <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-status-follow" />
-              Payroll tax & insurance isn't included yet. Add your percentage in Cost settings for a truer margin.
+              Payroll tax & insurance isn't included yet. Add your percentage under Rates & costs for a truer margin.
             </p>
           )}
         </div>
       )}
     </Card>
+  );
+};
+
+// ─── Rates & costs ───────────────────────────────────────────────────────────
+
+/** One place to enter everything the margins depend on. Each save refreshes the numbers above. */
+const RatesCard = ({ d }: { d: ProfitDashboard }) => {
+  const [rateFor, setRateFor] = useState<ProfitProperty | null>(null);
+  const [agencyFor, setAgencyFor] = useState<ProfitAgency | null>(null);
+  const [burdenOpen, setBurdenOpen] = useState<boolean>(false);
+  const props = [...d.properties].sort((a, b) => a.name.localeCompare(b.name));
+  const agencies = [...d.agencies].sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <div id="rates" className="scroll-mt-24">
+    <Card className="overflow-hidden">
+      <div className="border-b border-line px-5 py-4 sm:px-6">
+        <h2 className="font-display text-xl font-bold text-ink">Rates & costs</h2>
+        <p className="mt-0.5 text-sm text-ink-2">Enter what you charge and what you pay. Margins update as soon as you save.</p>
+      </div>
+
+      <div className="grid lg:grid-cols-2">
+        <RateGroup icon={<BadgeDollarSign className="h-4 w-4" />} title="Client rate" hint="What each client pays you per guard-hour.">
+          {props.length === 0 ? (
+            <EmptyRow>No properties yet.</EmptyRow>
+          ) : (
+            props.map((p) => (
+              <RateRow
+                key={p.id}
+                name={p.name}
+                value={p.current_rate == null ? null : `${money(p.current_rate)}/h`}
+                sub={p.current_rate_source === "contract" ? "From signed contract" : undefined}
+                missing="Not set"
+                action={p.current_rate == null ? "Set" : "Change"}
+                onAction={() => setRateFor(p)}
+              />
+            ))
+          )}
+        </RateGroup>
+
+        <RateGroup
+          icon={<Building2 className="h-4 w-4" />}
+          title="Temp agency charge"
+          hint="What each agency bills you per staffing hour. Used for all of its workers unless a placement has its own rate."
+        >
+          {agencies.length === 0 ? (
+            <EmptyRow>
+              No temp agencies yet. Add one in{" "}
+              <Link to="/workforce" className="font-medium text-link hover:underline">
+                Workforce
+              </Link>
+              .
+            </EmptyRow>
+          ) : (
+            agencies.map((a) => (
+              <RateRow
+                key={a.id}
+                name={a.name}
+                value={a.regular_rate == null ? null : `${money(a.regular_rate)}/h`}
+                sub={
+                  a.regular_rate == null
+                    ? `${a.workers} worker${a.workers === 1 ? "" : "s"} · using each worker's pay rate`
+                    : `${a.workers} worker${a.workers === 1 ? "" : "s"} · OT ${money(a.overtime_rate ?? a.regular_rate * 1.5)}/h`
+                }
+                missing="Not set"
+                action={a.regular_rate == null ? "Set" : "Change"}
+                onAction={() => setAgencyFor(a)}
+              />
+            ))
+          )}
+        </RateGroup>
+
+        <RateGroup
+          icon={<Percent className="h-4 w-4" />}
+          title="Payroll tax & insurance"
+          hint="Added on top of your direct employees' wages (not temp agency workers)."
+        >
+          <RateRow
+            name="All direct employees"
+            value={d.burden_pct > 0 ? `${d.burden_pct.toLocaleString("en-US", { maximumFractionDigits: 2 })}%` : null}
+            missing="Not set"
+            action={d.burden_pct > 0 ? "Change" : "Set"}
+            onAction={() => setBurdenOpen(true)}
+          />
+        </RateGroup>
+
+        <RateGroup icon={<Users className="h-4 w-4" />} title="Guard pay rates" hint="Hourly pay for each guard, set per person in Team.">
+          {d.missing_pay.length === 0 ? (
+            <EmptyRow>Everyone who worked this period has a pay rate.</EmptyRow>
+          ) : (
+            d.missing_pay.map((m) => (
+              <RateRow key={m.name} name={m.name} value={null} sub={`${hrs(m.hours)} worked`} missing="No pay rate" action="Open Team" to="/team" />
+            ))
+          )}
+        </RateGroup>
+      </div>
+
+      {rateFor && (
+        <AddRateDialog open onOpenChange={(v) => !v && setRateFor(null)} propertyId={rateFor.id} propertyName={rateFor.name} today={d.today} />
+      )}
+      {agencyFor && <AgencyRateDialog agency={agencyFor} onClose={() => setAgencyFor(null)} />}
+      {burdenOpen && <CostSettingsDialog open onOpenChange={setBurdenOpen} burden={d.burden_pct} />}
+    </Card>
+    </div>
+  );
+};
+
+const RateGroup = ({ icon, title, hint, children }: { icon: ReactNode; title: string; hint: string; children: ReactNode }) => (
+  <section className="min-w-0 border-line px-5 py-4 sm:px-6 [&:not(:first-child)]:border-t lg:even:border-l lg:[&:nth-child(2)]:border-t-0">
+    <h3 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">
+      <span className="text-link">{icon}</span>
+      {title}
+    </h3>
+    <p className="mt-1 text-xs text-ink-3">{hint}</p>
+    <ul className="mt-2 divide-y divide-line">{children}</ul>
+  </section>
+);
+
+const EmptyRow = ({ children }: { children: ReactNode }) => <li className="py-2.5 text-sm text-ink-3">{children}</li>;
+
+const RateRow = ({
+  name,
+  value,
+  sub,
+  missing,
+  action,
+  onAction,
+  to,
+}: {
+  name: string;
+  value: string | null;
+  sub?: string;
+  missing: string;
+  action: string;
+  onAction?: () => void;
+  to?: string;
+}) => (
+  <li className="flex items-center gap-3 py-2.5">
+    <div className="min-w-0 flex-1">
+      <div className="truncate text-sm font-medium text-ink">{name}</div>
+      {sub && <div className="truncate text-xs text-ink-3">{sub}</div>}
+    </div>
+    <span className={cn("shrink-0 text-sm tabular-nums", value ? "font-semibold text-ink" : "font-medium text-status-follow")}>{value ?? missing}</span>
+    {to ? (
+      <Button asChild variant="outline" size="sm" className="shrink-0">
+        <Link to={to}>{action}</Link>
+      </Button>
+    ) : (
+      <Button variant="outline" size="sm" className="shrink-0" onClick={onAction} aria-label={`${action} — ${name}`}>
+        {action}
+      </Button>
+    )}
+  </li>
+);
+
+const AgencyRateDialog = ({ agency, onClose }: { agency: ProfitAgency; onClose: () => void }) => {
+  const qc = useQueryClient();
+  const initReg = agency.regular_rate == null ? "" : String(agency.regular_rate);
+  const initOt = agency.overtime_rate == null ? "" : String(agency.overtime_rate);
+  const [reg, setReg] = useState<string>(initReg);
+  const [ot, setOt] = useState<string>(initOt);
+  const [errors, setErrors] = useState<{ reg?: string; ot?: string }>({});
+
+  const save = useMutation({
+    mutationFn: (v: { reg: number | null; ot: number | null }) => setAgencyRate(agency.id, v.reg, v.ot),
+    onSuccess: (_r, v) => {
+      toast.success(v.reg == null ? `${agency.name} rate cleared` : `${agency.name} rate saved`);
+      void qc.invalidateQueries({ queryKey: ["profit"] });
+      onClose();
+    },
+    onError: (e) => toast.error("Couldn't save the agency rate", { description: friendlyError(e) }),
+  });
+
+  const regNum = toNum(reg);
+  const submit = () => {
+    const o = ot.trim() === "" ? null : toNum(ot);
+    const next: typeof errors = {};
+    if (regNum == null || regNum <= 0 || regNum >= 1000) next.reg = "Enter the hourly charge, e.g. 23.95.";
+    if (ot.trim() !== "" && (o == null || o <= 0 || o >= 1000)) next.ot = "Enter an hourly amount, or leave blank for 1.5×.";
+    setErrors(next);
+    if (Object.keys(next).length === 0) save.mutate({ reg: regNum, ot: o });
+  };
+
+  return (
+    <FormDialog
+      open
+      onOpenChange={(v) => !v && onClose()}
+      title={`${agency.name} · hourly charge`}
+      description="What this agency bills you per staffing hour. Applies to every worker from this agency, for all dates, unless their placement has its own rate."
+      dirty={reg !== initReg || ot !== initOt}
+      saving={save.isPending}
+      onSubmit={submit}
+      submitLabel="Save rate"
+      footerExtra={
+        agency.regular_rate != null ? (
+          <Button type="button" variant="ghost" disabled={save.isPending} onClick={() => save.mutate({ reg: null, ot: null })}>
+            Clear rate
+          </Button>
+        ) : undefined
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField label="Regular ($/hour)" value={reg} onChange={setReg} inputMode="decimal" placeholder="23.95" required error={errors.reg} />
+        <TextField
+          label="Overtime ($/hour, optional)"
+          value={ot}
+          onChange={setOt}
+          inputMode="decimal"
+          placeholder={regNum && regNum > 0 ? (regNum * 1.5).toFixed(2) : "1.5× regular"}
+          error={errors.ot}
+          hint="Leave blank to use 1.5× regular."
+        />
+      </div>
+    </FormDialog>
   );
 };
 
@@ -611,7 +834,7 @@ const CostSettingsDialog = ({ open, onOpenChange, burden }: { open: boolean; onO
   const save = useMutation({
     mutationFn: (n: number) => saveBurden(n),
     onSuccess: () => {
-      toast.success("Cost settings saved");
+      toast.success("Payroll tax & insurance saved");
       void qc.invalidateQueries({ queryKey: ["profit", "dashboard"] });
       onOpenChange(false);
     },
@@ -622,7 +845,7 @@ const CostSettingsDialog = ({ open, onOpenChange, burden }: { open: boolean; onO
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Cost settings"
+      title="Payroll tax & insurance"
       description="Applied to every property and period on this page."
       dirty={value !== String(burden)}
       saving={save.isPending}

@@ -111,8 +111,8 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
           <div className="flex items-start gap-2.5 rounded-lg border border-status-follow/40 bg-status-follow/10 px-3.5 py-3 text-sm text-ink">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-status-follow" />
             <span>
-              Test mode is on: texts go only to {status.data.test_phone || "the test phone"}, not to the guard. Turn it off in Dispatch
-              settings when you're ready.
+              Test mode is on: texts go only to {status.data.test_phone || "the test phone"}, not to the guard. Turn it off with the Test
+              mode switch in the menu when you're ready.
             </span>
           </div>
         )}

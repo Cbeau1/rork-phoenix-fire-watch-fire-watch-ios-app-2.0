@@ -19,7 +19,8 @@ import {
 
 /**
  * Daily patrol report PDFs.
- * Cron (x-cron-secret, every 5 min via pg_cron): claims due 9 a.m. property-local runs + retries and sends them.
+ * Cron (x-cron-secret, every 5 min via pg_cron): claims runs due at each property's send time (default 9 a.m.,
+ * property-local) + retries and sends them.
  * Admin (signed-in admin JWT): status, preview (PDF only, no email), send_now, retry, download.
  * Test mode (dispatch_settings.test_mode, or no settings) sends every report ONLY to the org's test email.
  */
@@ -52,6 +53,7 @@ interface Settings {
   include_photos: boolean;
   send_when_empty: boolean;
   timezone: string;
+  send_time?: string;
 }
 
 const uuid = (v: unknown): string => {
@@ -68,9 +70,9 @@ const safeName = (s: string) => s.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/
 /* ---------------------------------------------------------------- time windows */
 
 /** UTC instant for a wall-clock time in an IANA zone (DST-safe). */
-function zonedToUtc(ymd: string, hh: number, tz: string): Date {
+function zonedToUtc(ymd: string, hh: number, tz: string, mm = 0): Date {
   const [y, m, d] = ymd.split("-").map(Number);
-  const guess = Date.UTC(y, m - 1, d, hh, 0, 0);
+  const guess = Date.UTC(y, m - 1, d, hh, mm, 0);
   const offset = (t: number) => {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
@@ -89,11 +91,23 @@ const addDays = (ymd: string, n: number) => {
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
 };
 
-/** The most recent complete 9 a.m.-to-9 a.m. period in the property's zone. */
-function latestWindow(tz: string, now = new Date()): { report_date: string; start: string; end: string } {
+/** "HH:MM[:SS]" → [hour, minute]; anything else falls back to 9:00. */
+const parseSendTime = (v: unknown): [number, number] => {
+  const m = typeof v === "string" ? /^(\d{1,2}):(\d{2})/.exec(v) : null;
+  const h = m ? Number(m[1]) : 9;
+  const mi = m ? Number(m[2]) : 0;
+  return h >= 0 && h < 24 && mi >= 0 && mi < 60 ? [h, mi] : [9, 0];
+};
+
+/** The most recent complete send-time-to-send-time (24 h) period in the property's zone. */
+function latestWindow(tz: string, at: [number, number] = [9, 0], now = new Date()): { report_date: string; start: string; end: string } {
   let date = localYmd(now, tz);
-  if (zonedToUtc(date, 9, tz).getTime() > now.getTime()) date = addDays(date, -1);
-  return { report_date: date, start: zonedToUtc(addDays(date, -1), 9, tz).toISOString(), end: zonedToUtc(date, 9, tz).toISOString() };
+  if (zonedToUtc(date, at[0], tz, at[1]).getTime() > now.getTime()) date = addDays(date, -1);
+  return {
+    report_date: date,
+    start: zonedToUtc(addDays(date, -1), at[0], tz, at[1]).toISOString(),
+    end: zonedToUtc(date, at[0], tz, at[1]).toISOString(),
+  };
 }
 
 /* ---------------------------------------------------------------- data + pdf */
@@ -349,12 +363,13 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
     const d = await loadDispatchSettings(admin, me.org_id);
     const propertyId = body.property_id ? await ownProperty(body.property_id) : null;
     const tz = propertyId ? await propertyTz(admin, propertyId) : null;
-    const w = tz ? latestWindow(tz) : null;
+    const at = parseSendTime(propertyId ? (await loadSettings(admin, propertyId))?.send_time : null);
+    const w = tz ? latestWindow(tz, at) : null;
     let next: string | null = null;
     if (tz) {
       const today = localYmd(new Date(), tz);
-      const nine = zonedToUtc(today, 9, tz);
-      next = (nine.getTime() > Date.now() ? nine : zonedToUtc(addDays(today, 1), 9, tz)).toISOString();
+      const due = zonedToUtc(today, at[0], tz, at[1]);
+      next = (due.getTime() > Date.now() ? due : zonedToUtc(addDays(today, 1), at[0], tz, at[1])).toISOString();
     }
     return json({
       email_configured: emailConfigured(),
@@ -369,8 +384,8 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
   if (action === "preview") {
     const propertyId = await ownProperty(body.property_id);
     const tz = await propertyTz(admin, propertyId);
-    const w = latestWindow(tz);
     const s = await loadSettings(admin, propertyId);
+    const w = latestWindow(tz, parseSendTime(s?.send_time));
     const include = typeof body.include_photos === "boolean" ? body.include_photos : s?.include_photos ?? true;
     const built = await buildReport(admin, { orgId: me.org_id, propertyId, tz, start: w.start, end: w.end, includePhotos: include });
     return json({ filename: built.filename, pdf_base64: toBase64(built.pdf), empty: built.empty, window: w, tz });
@@ -379,7 +394,7 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
   if (action === "send_now") {
     const propertyId = await ownProperty(body.property_id);
     const tz = await propertyTz(admin, propertyId);
-    const w = latestWindow(tz);
+    const w = latestWindow(tz, parseSendTime((await loadSettings(admin, propertyId))?.send_time));
     const { data: run, error } = await admin
       .from("daily_report_runs")
       .insert({
