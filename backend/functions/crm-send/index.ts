@@ -1,5 +1,12 @@
 import { corsHeaders, createAdminClient, EMAIL_RE, handleError, HttpError, json, readString, requireAuth } from "../_shared/auth.ts";
 import { emailShell, escapeHtml, isSafeOrigin, orgIdentity, paragraphs, randomToken, sendEmail, sha256Hex } from "../_shared/crm.ts";
+import { fillAgreement, parseFieldValues } from "../_shared/agreementPdf.ts";
+
+const toBase64 = (bytes: Uint8Array): string => {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
 
 const money = (n: number | null | undefined): string =>
   n == null ? "—" : `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -28,6 +35,23 @@ Deno.serve(async (req) => {
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const action = readString(body.action, 20);
+
+    // Filled (unsigned) copy of the organization's own PDF agreement, exactly as the client will see it.
+    if (action === "preview") {
+      const path = readString(body.template_path, 300);
+      if (!path.startsWith(`${me.org_id}/templates/`) || !path.endsWith(".pdf")) throw new HttpError(400, "Choose your agreement PDF first.");
+      const fields = typeof body.body === "string" ? parseFieldValues(body.body) : {};
+      const { data, error } = await admin.storage.from("crm-documents").download(path);
+      if (error || !data) throw new HttpError(404, "Couldn't find the agreement PDF. Upload it again in Settings.");
+      try {
+        const pdf = await fillAgreement(new Uint8Array(await data.arrayBuffer()), fields);
+        return json({ pdf_base64: toBase64(await pdf.save()) });
+      } catch (e) {
+        console.error("agreement preview failed", e instanceof Error ? e.message : String(e));
+        throw new HttpError(422, "This PDF couldn't be filled. Make sure it's a fillable (form) PDF that isn't password-protected.");
+      }
+    }
+
     const to = readString(body.to, 200).toLowerCase();
     const toName = readString(body.to_name, 200);
     const message = readString(body.message, 4000);

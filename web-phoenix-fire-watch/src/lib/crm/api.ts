@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
-import { supabase } from "@/lib/supabase";
+import { callFunction, supabase } from "@/lib/supabase";
 import { useAuth } from "@/state/AuthProvider";
 
 import type {
@@ -182,7 +182,7 @@ export const useDeal = (id: string) => {
         db
           .from("crm_contracts")
           .select(
-            "id, deal_id, quote_id, number, title, body, coverage, hours_per_week, hourly_rate, start_date, end_date, payment_terms, status, sign_expires_at, sent_at, sent_to, sent_to_name, viewed_at, signer_name, signer_email, signed_at, signer_ip, signer_user_agent, signature_method, body_sha256, signed_pdf_path, void_reason, created_at",
+            "id, deal_id, quote_id, number, title, body, coverage, hours_per_week, hourly_rate, start_date, end_date, payment_terms, status, sign_expires_at, sent_at, sent_to, sent_to_name, viewed_at, signer_name, signer_email, signed_at, signer_ip, signer_user_agent, signature_method, body_sha256, signed_pdf_path, void_reason, created_at, doc_kind, template_path, template_layout",
           )
           .eq("deal_id", id)
           .order("created_at", { ascending: false }),
@@ -214,6 +214,11 @@ export const SETTINGS_DEFAULTS = (orgId: string): CrmSettings => ({
   sign_link_days: 14,
   quote_notes: "",
   contract_template: "",
+  agreement_pdf_path: null,
+  agreement_pdf_name: "",
+  agreement_layout: null,
+  agreement_uploaded_at: null,
+  countersign_name: "",
 });
 
 export const useCrmSettings = () => {
@@ -316,11 +321,14 @@ export const crm = {
         start_date: c.start_date || null,
         end_date: c.end_date || null,
         payment_terms: c.payment_terms ?? "",
+        doc_kind: c.doc_kind ?? "text",
+        template_path: c.template_path ?? null,
+        template_layout: c.template_layout ?? null,
       })
-      .select("id")
+      .select("id, number")
       .single();
     raise(error);
-    return (data as { id: string }).id;
+    return data as { id: string; number: number };
   },
   async updateContract(id: string, patch: Partial<CrmContract>) {
     const { error } = await db.from("crm_contracts").update(patch).eq("id", id);
@@ -339,10 +347,41 @@ export const crm = {
         sign_link_days: s.sign_link_days,
         quote_notes: s.quote_notes,
         contract_template: s.contract_template,
+        countersign_name: s.countersign_name.trim(),
       },
       { onConflict: "org_id" },
     );
     raise(error);
+  },
+  /** Stores a new version of the organization's agreement PDF (older versions stay for contracts that use them). */
+  async uploadAgreement(orgId: string, file: File, layout: unknown) {
+    const path = `${orgId}/templates/${crypto.randomUUID()}.pdf`;
+    const up = await supabase.storage.from("crm-documents").upload(path, file, { contentType: "application/pdf", upsert: false });
+    raise(up.error);
+    const { error } = await db.from("crm_settings").upsert(
+      {
+        org_id: orgId,
+        agreement_pdf_path: path,
+        agreement_pdf_name: file.name.slice(0, 200),
+        agreement_layout: layout,
+        agreement_uploaded_at: new Date().toISOString(),
+      },
+      { onConflict: "org_id" },
+    );
+    raise(error);
+  },
+  async clearAgreement(orgId: string) {
+    const { error } = await db
+      .from("crm_settings")
+      .update({ agreement_pdf_path: null, agreement_pdf_name: "", agreement_layout: null, agreement_uploaded_at: null })
+      .eq("org_id", orgId);
+    raise(error);
+  },
+  /** Filled, unsigned copy of the agreement PDF exactly as the client will see it. */
+  async previewAgreement(templatePath: string, body: string): Promise<Uint8Array> {
+    const res = await callFunction<{ pdf_base64?: string }>("crm-send", { action: "preview", template_path: templatePath, body });
+    if (!res?.pdf_base64) throw new Error("Couldn't build the preview.");
+    return Uint8Array.from(atob(res.pdf_base64), (ch) => ch.charCodeAt(0));
   },
   async signedPdfUrl(path: string) {
     const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 120, { download: true });

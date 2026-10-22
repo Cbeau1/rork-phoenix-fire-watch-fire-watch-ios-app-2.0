@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Download, Eraser, FileSignature, Loader2, PenLine, RefreshCw, Type } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { PdfPages } from "@/components/fw/PdfPages";
 import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { sha256Hex, toBlocks } from "@/lib/crm/template";
@@ -21,7 +22,20 @@ type ViewData = {
   expires_at: string | null;
   signer_name: string | null;
   signed_at: string | null;
+  doc_kind?: "text" | "pdf";
+  pdf_base64?: string | null;
+  initials_required?: boolean;
+  asks_title?: boolean;
 };
+
+const suggestInitials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("")
+    .slice(0, 4);
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -180,6 +194,9 @@ const SignContract = () => {
   const [image, setImage] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [signerTitle, setSignerTitle] = useState("");
+  const [initials, setInitials] = useState("");
+  const [initialsTouched, setInitialsTouched] = useState(false);
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -188,6 +205,18 @@ const SignContract = () => {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
   const onImage = useCallback((v: string | null) => setImage(v), []);
+  const pdfBytes = useMemo(() => {
+    const b64 = q.data?.doc_kind === "pdf" ? q.data.pdf_base64 : null;
+    if (!b64) return null;
+    try {
+      return Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+    } catch {
+      return null;
+    }
+  }, [q.data]);
+  useEffect(() => {
+    if (!initialsTouched) setInitials(suggestInitials(name));
+  }, [name, initialsTouched]);
 
   useEffect(() => {
     if (q.data) {
@@ -270,6 +299,7 @@ const SignContract = () => {
     const e: Record<string, string> = {};
     if (name.trim().replace(/\s+/g, " ").length < 2) e.name = "Enter your full legal name.";
     if (!EMAIL.test(email.trim())) e.email = "Enter a valid email address.";
+    if (d.initials_required && !/^[A-Za-z.\-']{1,6}$/.test(initials.trim())) e.initials = "Enter your initials (letters only).";
     if (method === "draw" && !image) e.signature = "Draw your signature in the box.";
     if (!consent) e.consent = "Please agree to sign electronically.";
     setErrors(e);
@@ -283,6 +313,8 @@ const SignContract = () => {
         name: name.trim(),
         email: email.trim(),
         method,
+        ...(d.asks_title ? { title: signerTitle.trim() } : {}),
+        ...(d.initials_required ? { initials: initials.trim().toUpperCase() } : {}),
         signature_image: method === "draw" ? image : undefined,
         consent: true,
         body_sha256: await sha256Hex(d.body),
@@ -312,6 +344,25 @@ const SignContract = () => {
         {d.expires_at && <p className="text-xs text-slate-500">Link expires {fmtWhen(d.expires_at)}</p>}
       </div>
 
+      {d.doc_kind === "pdf" ? (
+        pdfBytes ? (
+          <div className="rounded-2xl bg-slate-300/60 p-2 sm:p-4">
+            <PdfPages data={pdfBytes} label={d.title} pageClassName="shadow-[0_6px_24px_rgba(15,27,51,0.18)]" />
+          </div>
+        ) : (
+          <Message
+            icon={<AlertTriangle className="h-6 w-6 text-amber-600" />}
+            title="Couldn't show the agreement"
+            body="The document didn't load. Reload the page to try again."
+            action={
+              <Button variant="outline" onClick={() => void q.refetch()}>
+                <RefreshCw />
+                Reload
+              </Button>
+            }
+          />
+        )
+      ) : (
       <article className="rounded-2xl border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-10">
         <div className="space-y-4 text-[15px] leading-relaxed text-slate-700">
           {toBlocks(d.body).map((b, i) =>
@@ -325,6 +376,7 @@ const SignContract = () => {
           )}
         </div>
       </article>
+      )}
 
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white px-6 py-7 shadow-sm sm:px-10" aria-labelledby="sign-heading">
         <div className="flex items-center gap-2">
@@ -344,6 +396,35 @@ const SignContract = () => {
             <input id="sig-email" type="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} autoComplete="email" />
             {errors.email && <p className="mt-1 text-sm text-red-700">{errors.email}</p>}
           </div>
+          {d.asks_title && (
+            <div>
+              <label htmlFor="sig-title" className="mb-1.5 block text-sm font-medium">
+                Title <span className="font-normal text-slate-500">(optional)</span>
+              </label>
+              <input id="sig-title" className={inputCls} value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} maxLength={120} autoComplete="organization-title" placeholder="e.g. Property Manager" />
+            </div>
+          )}
+          {d.initials_required && (
+            <div>
+              <label htmlFor="sig-initials" className="mb-1.5 block text-sm font-medium">Initials</label>
+              <input
+                id="sig-initials"
+                className={`${inputCls} uppercase tracking-widest`}
+                value={initials}
+                onChange={(e) => {
+                  setInitialsTouched(true);
+                  setInitials(e.target.value.replace(/\s+/g, ""));
+                }}
+                maxLength={6}
+                autoComplete="off"
+              />
+              {errors.initials ? (
+                <p className="mt-1 text-sm text-red-700">{errors.initials}</p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500">Placed on every page where the agreement asks for initials.</p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-6">

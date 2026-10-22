@@ -170,6 +170,9 @@ export interface CrmContract {
   signed_pdf_path: string | null;
   void_reason: string;
   created_at: string;
+  doc_kind: "text" | "pdf";
+  template_path: string | null;
+  template_layout: unknown;
 }
 
 export interface CrmPropertyLite {
@@ -227,6 +230,11 @@ export interface CrmSettings {
   sign_link_days: number;
   quote_notes: string;
   contract_template: string;
+  agreement_pdf_path: string | null;
+  agreement_pdf_name: string;
+  agreement_layout: unknown;
+  agreement_uploaded_at: string | null;
+  countersign_name: string;
 }
 
 export interface CrmActivity {

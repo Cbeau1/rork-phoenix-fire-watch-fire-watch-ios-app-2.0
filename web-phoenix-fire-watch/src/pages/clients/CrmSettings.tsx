@@ -1,11 +1,24 @@
-import { Eye, RotateCcw, Save } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Eye, FileText, RotateCcw, Save, Upload } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/fw/primitives";
 import { ErrorBlock, Loading, SectionCard, TextField, toNum, useUnloadGuard } from "@/components/workforce/kit";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { detectAgreementLayout, isAgreementLayout, type PdfDocLike } from "@/lib/crm/agreementLayout";
+import { loadPdfJs } from "@/lib/pdfjs";
+import { PdfPreviewDialog } from "./AgreementPdfEditor";
 import { crm, useCrmSettings, useInvalidateCrm, useOrg } from "@/lib/crm/api";
 import { DEFAULT_CONTRACT_TEMPLATE, MERGE_FIELDS, mergeValues, renderTemplate, toBlocks } from "@/lib/crm/template";
 import type { CrmSettings as Settings } from "@/lib/crm/types";
@@ -23,6 +36,7 @@ type Form = {
   sign_link_days: string;
   quote_notes: string;
   contract_template: string;
+  countersign_name: string;
 };
 
 const toForm = (s: Settings): Form => ({
@@ -35,6 +49,7 @@ const toForm = (s: Settings): Form => ({
   sign_link_days: String(s.sign_link_days),
   quote_notes: s.quote_notes,
   contract_template: s.contract_template.trim() ? s.contract_template : DEFAULT_CONTRACT_TEMPLATE,
+  countersign_name: s.countersign_name ?? "",
 });
 
 const Inner = ({ settings }: { settings: Settings }) => {
@@ -78,6 +93,7 @@ const Inner = ({ settings }: { settings: Settings }) => {
     setSaving(true);
     try {
       await crm.saveSettings({
+        ...settings,
         org_id: orgId,
         company_phone: f.company_phone.trim(),
         company_email: f.company_email.trim(),
@@ -88,6 +104,7 @@ const Inner = ({ settings }: { settings: Settings }) => {
         sign_link_days: sd ?? 14,
         quote_notes: f.quote_notes.trim(),
         contract_template: f.contract_template === DEFAULT_CONTRACT_TEMPLATE ? "" : f.contract_template,
+        countersign_name: f.countersign_name.trim(),
       });
       await invalidate();
       toast.success("Settings saved");
@@ -137,6 +154,14 @@ const Inner = ({ settings }: { settings: Settings }) => {
               <TextField label="Company email" value={f.company_email} onChange={(v) => set("company_email", v)} type="email" error={errors.company_email} hint="Used as the reply-to on quote and agreement emails." />
               <TextField label="Company phone" value={f.company_phone} onChange={(v) => set("company_phone", v)} type="tel" />
               <TextField label="Company address" value={f.company_address} onChange={(v) => set("company_address", v)} />
+              <TextField
+                label="Company signer (optional)"
+                value={f.countersign_name}
+                onChange={(v) => set("countersign_name", v)}
+                maxLength={120}
+                placeholder="e.g. Corey Smith, Owner"
+                hint="If filled, this name is signed for the company on your agreement PDF when the client signs. Leave blank to sign the company side yourself."
+              />
             </div>
           </SectionCard>
           <SectionCard title="Quote defaults">
@@ -163,9 +188,15 @@ const Inner = ({ settings }: { settings: Settings }) => {
           </SectionCard>
         </div>
 
+        <div className="grid content-start gap-6">
+        <AgreementDocumentCard settings={settings} />
         <SectionCard
-          title="Service agreement template"
-          subtitle="Each new agreement is filled in from this template, then you can edit it before sending."
+          title={settings.agreement_pdf_path ? "Backup text agreement" : "Service agreement template"}
+          subtitle={
+            settings.agreement_pdf_path
+              ? "Only used if you remove your agreement PDF. Agreements already written in text keep using it."
+              : "Each new agreement is filled in from this template, then you can edit it before sending."
+          }
           action={
             <>
               <Button size="sm" variant="outline" onClick={() => setPreview(true)}>
@@ -208,6 +239,7 @@ const Inner = ({ settings }: { settings: Settings }) => {
             <p className="text-xs text-ink-3">Blank lines separate paragraphs. Start a line with # for the title or ## for a section heading.</p>
           </div>
         </SectionCard>
+        </div>
       </div>
 
       <Dialog open={preview} onOpenChange={setPreview}>
@@ -229,6 +261,175 @@ const Inner = ({ settings }: { settings: Settings }) => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
+
+const describeLayout = (layout: unknown) => {
+  if (!isAgreementLayout(layout)) return null;
+  const fill = layout.fields.filter((x) => !x.readOnly).length;
+  const initialPages = new Set(layout.initials.map((s) => s.page)).size;
+  return [
+    `${layout.pages} page${layout.pages === 1 ? "" : "s"}`,
+    `${fill} fill-in field${fill === 1 ? "" : "s"}`,
+    initialPages ? `initials on ${initialPages} page${initialPages === 1 ? "" : "s"}` : "no initial lines",
+    layout.clientSig ? "client signature line found" : "signature goes on the last page",
+  ];
+};
+
+const AgreementDocumentCard = ({ settings }: { settings: Settings }) => {
+  const { orgId, orgName } = useOrg();
+  const invalidate = useInvalidateCrm();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState<"" | "upload" | "remove">("");
+  const [error, setError] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const path = settings.agreement_pdf_path;
+  const summary = describeLayout(settings.agreement_layout);
+
+  const onFile = async (file: File) => {
+    setError("");
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
+    if (file.size > MAX_PDF_BYTES) return setError("That PDF is over 10 MB. Export a smaller copy and try again.");
+    setBusy("upload");
+    try {
+      const pdfjs = await loadPdfJs();
+      let layout;
+      try {
+        const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+        try {
+          layout = await detectAgreementLayout(doc as unknown as PdfDocLike);
+        } finally {
+          void doc.loadingTask.destroy();
+        }
+      } catch {
+        throw new Error("This PDF couldn't be read. If it's password-protected, save an unlocked copy and try again.");
+      }
+      if (!layout.fields.some((x) => !x.readOnly)) {
+        throw new Error("This PDF has no fill-in fields. Save it as a fillable PDF form (with text fields) and upload it again.");
+      }
+      await crm.uploadAgreement(orgId, file, layout);
+      await invalidate();
+      toast.success("Agreement PDF uploaded", { description: "New agreements will use it. Agreements already created stay as they are." });
+    } catch (err) {
+      setError(err instanceof Error && err.message.startsWith("This PDF") ? err.message : friendlyError(err, "Couldn't upload the PDF."));
+    } finally {
+      setBusy("");
+      if (input.current) input.current.value = "";
+    }
+  };
+
+  const remove = async () => {
+    setBusy("remove");
+    try {
+      await crm.clearAgreement(orgId);
+      await invalidate();
+      toast.success("Switched back to the text agreement");
+    } catch (err) {
+      toast.error(friendlyError(err));
+    } finally {
+      setBusy("");
+      setConfirmRemove(false);
+    }
+  };
+
+  const uploaded = settings.agreement_uploaded_at
+    ? new Date(settings.agreement_uploaded_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    : "";
+
+  return (
+    <SectionCard
+      title="Agreement document"
+      subtitle="Upload your own fillable PDF agreement. Each new agreement fills in its blanks, and the client initials and signs it online."
+    >
+      <div className="grid gap-3 px-2 pb-2">
+        <input
+          ref={input}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          aria-label="Agreement PDF file"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void onFile(file);
+          }}
+        />
+        {path ? (
+          <div className="grid gap-3 rounded-lg border border-line bg-raised px-4 py-3">
+            <div className="flex items-start gap-3">
+            <FileText className="mt-0.5 h-8 w-8 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-ink">{settings.agreement_pdf_name || "Agreement.pdf"}</p>
+              <p className="text-xs text-ink-3">
+                {uploaded && `Uploaded ${uploaded}`}
+                {summary && ` · ${summary.join(" · ")}`}
+              </p>
+            </div>
+            </div>
+            <div className="flex flex-wrap gap-2 pl-11">
+              <Button size="sm" variant="outline" onClick={() => setPreview(true)}>
+                <Eye />
+                Preview
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => input.current?.click()} disabled={!!busy}>
+                <Upload />
+                {busy === "upload" ? "Uploading…" : "Replace"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmRemove(true)} disabled={!!busy}>
+                Remove
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => input.current?.click()}
+            disabled={!!busy}
+            className="focus-ring flex flex-col items-center gap-2 rounded-lg border border-dashed border-line-strong bg-raised/50 px-4 py-8 text-center transition-colors hover:border-primary disabled:opacity-60"
+          >
+            <Upload className="h-6 w-6 text-primary" />
+            <span className="text-sm font-semibold text-ink">{busy === "upload" ? "Reading and uploading…" : "Upload agreement PDF"}</span>
+            <span className="max-w-sm text-xs text-ink-3">
+              A fillable PDF form. Until you upload one, agreements use the text template below.
+            </span>
+          </button>
+        )}
+        {error && <p className="text-sm text-status-incident-ink">{error}</p>}
+      </div>
+
+      <PdfPreviewDialog
+        open={preview}
+        onOpenChange={setPreview}
+        title={settings.agreement_pdf_name || "Agreement"}
+        description={`Blank copy for ${orgName}. Each agreement fills these in from the client and quote.`}
+        fileName={settings.agreement_pdf_name || "agreement.pdf"}
+        load={() => (path ? crm.previewAgreement(path, JSON.stringify({ v: 1, fields: {} })) : Promise.reject(new Error("No PDF uploaded.")))}
+      />
+      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+        <AlertDialogContent className="border-line bg-surface text-ink">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove agreement PDF?</AlertDialogTitle>
+            <AlertDialogDescription className="text-ink-2">
+              New agreements will use the text template instead. Agreements already created or signed from this PDF keep it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void remove();
+              }}
+              disabled={busy === "remove"}
+            >
+              {busy === "remove" ? "Removing…" : "Remove PDF"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </SectionCard>
   );
 };
 

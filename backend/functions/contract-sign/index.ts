@@ -1,6 +1,7 @@
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from "npm:pdf-lib@1.17.1";
 import { corsHeaders, createAdminClient, EMAIL_RE, handleError, HttpError, json, readString } from "../_shared/auth.ts";
 import { emailShell, escapeHtml, orgIdentity, sendEmail, sha256Hex } from "../_shared/crm.ts";
+import { fillAgreement, fmtLongDate, parseFieldValues, parseLayout, SIGN_TIME_FIELDS, stampSignatures, winAnsi } from "../_shared/agreementPdf.ts";
 
 /**
  * Public signing endpoint (no login). The one-time token in the link is the only credential;
@@ -29,10 +30,13 @@ interface ContractRow {
   signed_pdf_path: string | null;
   app_origin: string;
   body_sha256: string | null;
+  doc_kind: "text" | "pdf";
+  template_path: string | null;
+  template_layout: unknown;
 }
 
 const COLS =
-  "id, org_id, deal_id, number, title, body, status, sign_expires_at, sent_to, sent_to_name, viewed_at, signer_name, signer_email, signed_at, signed_pdf_path, app_origin, body_sha256";
+  "id, org_id, deal_id, number, title, body, status, sign_expires_at, sent_to, sent_to_name, viewed_at, signer_name, signer_email, signed_at, signed_pdf_path, app_origin, body_sha256, doc_kind, template_path, template_layout";
 
 const ET = "America/New_York";
 
@@ -43,22 +47,137 @@ const fmtStamp = (iso: string): string => {
   return `${date} ${tz}`;
 };
 
-// Standard PDF fonts only cover Windows-1252; replace anything else so signing never fails on odd characters.
-const WIN_EXTRA = new Set("€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ");
-const winAnsi = (s: string): string =>
-  s
-    .replace(/\t/g, "    ")
-    .replace(/[\u2010\u2011\u2212]/g, "-")
-    .replace(/[\u00A0\u2007\u202F]/g, " ")
-    .split("")
-    .map((ch) => {
-      const c = ch.charCodeAt(0);
-      if (c === 10) return ch;
-      if (c < 32) return "";
-      if (c <= 126 || (c >= 160 && c <= 255) || WIN_EXTRA.has(ch)) return ch;
-      return "?";
-    })
-    .join("");
+async function loadTemplate(admin: ReturnType<typeof createAdminClient>, c: ContractRow): Promise<Uint8Array> {
+  if (!c.template_path || !c.template_path.startsWith(`${c.org_id}/templates/`)) {
+    throw new HttpError(500, "This agreement's document is missing. Ask the sender to send it again.");
+  }
+  const { data, error } = await admin.storage.from("crm-documents").download(c.template_path);
+  if (error || !data) throw new HttpError(500, "Couldn't load the agreement document. Please try again.");
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+/** Signed copy of an organization's own PDF agreement: filled, stamped, plus the signature certificate page. */
+async function buildSignedAgreement(opts: {
+  c: ContractRow;
+  template: Uint8Array;
+  company: string;
+  client: string;
+  property: string;
+  signerName: string;
+  signerTitle: string;
+  signerEmail: string;
+  initials: string;
+  countersignName: string;
+  timeZone: string;
+  signedAt: string;
+  ip: string;
+  ua: string;
+  method: "draw" | "type";
+  signaturePng: Uint8Array | null;
+  bodyHash: string;
+}): Promise<Uint8Array> {
+  const layout = parseLayout(opts.c.template_layout);
+  const date = fmtLongDate(opts.signedAt, opts.timeZone);
+  const values = {
+    ...parseFieldValues(opts.c.body),
+    [SIGN_TIME_FIELDS.name]: opts.signerName,
+    [SIGN_TIME_FIELDS.title]: opts.signerTitle,
+    [SIGN_TIME_FIELDS.date]: date,
+    [SIGN_TIME_FIELDS.companyDate]: opts.countersignName ? date : "",
+  };
+  const pdf = await fillAgreement(opts.template, values);
+  await stampSignatures(pdf, layout, {
+    signaturePng: opts.signaturePng,
+    signerName: opts.signerName,
+    initials: opts.initials,
+    countersignName: opts.countersignName,
+  });
+  pdf.setTitle(`${opts.c.title} C-${opts.c.number} (signed)`);
+  pdf.setAuthor(opts.company);
+  pdf.setSubject(`Signed by ${opts.signerName}`);
+
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const ink = rgb(0.086, 0.09, 0.102);
+  const ink2 = rgb(0.36, 0.37, 0.4);
+  const ember = rgb(0.86, 0.15, 0.15);
+  const W = 612, H = 792, M = 60, maxW = W - M * 2;
+  const certPages: PDFPage[] = [];
+  let page: PDFPage = pdf.addPage([W, H]);
+  certPages.push(page);
+  let y = H - M;
+  const wrap = (text: string, f: PDFFont, size: number): string[] => {
+    const out: string[] = [];
+    let cur = "";
+    for (const w of winAnsi(text).split(/\s+/)) {
+      let word = w;
+      while (f.widthOfTextAtSize(word, size) > maxW) {
+        let i = word.length;
+        while (i > 1 && f.widthOfTextAtSize(word.slice(0, i), size) > maxW) i--;
+        if (cur) out.push(cur);
+        cur = "";
+        out.push(word.slice(0, i));
+        word = word.slice(i);
+      }
+      const next = cur ? `${cur} ${word}` : word;
+      if (f.widthOfTextAtSize(next, size) <= maxW) cur = next;
+      else {
+        out.push(cur);
+        cur = word;
+      }
+    }
+    if (cur) out.push(cur);
+    return out;
+  };
+  const write = (text: string, f: PDFFont, size: number, color = ink, gap = 4) => {
+    for (const l of wrap(text, f, size)) {
+      if (y - size - gap < M + 20) {
+        page = pdf.addPage([W, H]);
+        certPages.push(page);
+        y = H - M;
+      }
+      page.drawText(l, { x: M, y: y - size, size, font: f, color });
+      y -= size + gap;
+    }
+  };
+  page.drawText(winAnsi(opts.company.toUpperCase()), { x: M, y: y - 14, size: 12, font: bold, color: ink });
+  page.drawText(`C-${opts.c.number}`, { x: W - M - bold.widthOfTextAtSize(`C-${opts.c.number}`, 10), y: y - 14, size: 10, font: bold, color: ink2 });
+  y -= 26;
+  page.drawRectangle({ x: M, y, width: maxW, height: 2, color: ember });
+  y -= 24;
+  write("Signature certificate", bold, 16, ink, 8);
+  y -= 6;
+  const audit: [string, string][] = [
+    ["Agreement", `${opts.c.title} (C-${opts.c.number})`],
+    ["Client", opts.client],
+    ["Property", opts.property || "-"],
+    ["Sent to", `${opts.c.sent_to_name ? `${opts.c.sent_to_name} ` : ""}<${opts.c.sent_to}>`],
+    ["First viewed", fmtStamp(opts.c.viewed_at ?? opts.signedAt)],
+    ["Signed by", `${opts.signerName}${opts.signerTitle ? `, ${opts.signerTitle}` : ""} <${opts.signerEmail}>`],
+    ["Signed at", fmtStamp(opts.signedAt)],
+    ["Initials", opts.initials || "-"],
+    ["IP address", opts.ip || "unknown"],
+    ["Device", opts.ua || "unknown"],
+    ["Method", opts.method === "draw" ? "Drawn signature" : "Typed signature"],
+    ["Consent", "Signer agreed to sign electronically and that the electronic signature is legally binding."],
+    ["Countersigned", opts.countersignName ? `${opts.countersignName} for ${opts.company} (applied automatically on signing)` : "Not countersigned electronically"],
+    ["Filled terms SHA-256", opts.bodyHash],
+    ["Agreement document SHA-256", await sha256Hex(opts.template)],
+  ];
+  for (const [k, v] of audit) {
+    write(k.toUpperCase(), bold, 7.5, ink2, 4);
+    write(v, font, 9.5, ink, 3.5);
+    y -= 6;
+  }
+  y -= 6;
+  write("The fingerprints identify the exact agreement document and the exact terms filled into it. Any change to either produces a different fingerprint.", font, 8.5, ink2, 3);
+  certPages.forEach((p, i) => {
+    const label = `Certificate ${i + 1} of ${certPages.length}`;
+    p.drawText(label, { x: W - M - font.widthOfTextAtSize(label, 8), y: 30, size: 8, font, color: ink2 });
+    p.drawText(winAnsi(`${opts.company} - Signed ${fmtStamp(opts.signedAt)}`), { x: M, y: 30, size: 8, font, color: ink2 });
+  });
+  return await pdf.save();
+}
 
 async function loadContract(token: string): Promise<{ admin: ReturnType<typeof createAdminClient>; c: ContractRow }> {
   if (token.length < 30 || token.length > 100 || !/^[A-Za-z0-9_-]+$/.test(token)) {
@@ -81,7 +200,9 @@ async function context(admin: ReturnType<typeof createAdminClient>, c: ContractR
   const client = (deal?.crm_clients as { name: string } | null)?.name ?? "";
   const prop = deal?.properties as { name: string; address: string } | null;
   const company = await orgIdentity(admin, c.org_id);
-  return { clientId: (deal?.client_id as string | null) ?? null, client, prop, company };
+  const { data: org } = await admin.from("organizations").select("timezone").eq("id", c.org_id).maybeSingle();
+  const timeZone = (org?.timezone as string | null) || ET;
+  return { clientId: (deal?.client_id as string | null) ?? null, client, prop, company, timeZone };
 }
 
 async function buildSignedPdf(opts: {
@@ -299,11 +420,20 @@ Deno.serve(async (req) => {
           actor_name: c.sent_to_name || c.sent_to || "Client",
         });
       }
+      let pdfB64: string | null = null;
+      if (c.doc_kind === "pdf" && c.status === "sent") {
+        const filled = await fillAgreement(await loadTemplate(admin, c), parseFieldValues(c.body));
+        pdfB64 = toBase64(await filled.save());
+      }
       return json({
         status: c.status,
         number: c.number,
         title: c.title,
         body: c.body,
+        doc_kind: c.doc_kind,
+        pdf_base64: pdfB64,
+        initials_required: c.doc_kind === "pdf" && parseLayout(c.template_layout).initials.length > 0,
+        asks_title: c.doc_kind === "pdf",
         company: ctx.company.name,
         client: ctx.client,
         property: ctx.prop ? `${ctx.prop.name}${ctx.prop.address && ctx.prop.address !== ctx.prop.name ? `, ${ctx.prop.address}` : ""}` : "",
@@ -334,6 +464,12 @@ Deno.serve(async (req) => {
       if (name.length < 2) throw new HttpError(400, "Enter your full legal name.");
       if (!EMAIL_RE.test(email)) throw new HttpError(400, "Enter a valid email address.");
       if (!method) throw new HttpError(400, "Add your signature.");
+      const isPdf = c.doc_kind === "pdf";
+      const signerTitle = readString(body.title, 120).replace(/\s+/g, " ");
+      const initials = readString(body.initials, 6).replace(/\s+/g, "");
+      if (isPdf && parseLayout(c.template_layout).initials.length > 0 && initials.length < 1) {
+        throw new HttpError(400, "Enter your initials for each page.");
+      }
       if (body.consent !== true) throw new HttpError(400, "Please agree to sign electronically.");
       if (typeof body.body_sha256 === "string" && body.body_sha256 && body.body_sha256 !== (await sha256Hex(c.body))) {
         throw new HttpError(409, "The agreement was updated while you were reviewing it. Reload the page to see the latest version.");
@@ -354,20 +490,44 @@ Deno.serve(async (req) => {
       const ctx = await context(admin, c);
       const propertyLabel = ctx.prop ? `${ctx.prop.name}${ctx.prop.address && ctx.prop.address !== ctx.prop.name ? `, ${ctx.prop.address}` : ""}` : "";
 
-      const pdfBytes = await buildSignedPdf({
-        c,
-        company: ctx.company.name,
-        client: ctx.client,
-        property: propertyLabel,
-        signerName: name,
-        signerEmail: email,
-        signedAt,
-        ip,
-        ua,
-        method,
-        signaturePng: png,
-        bodyHash,
-      });
+      let pdfBytes: Uint8Array;
+      if (isPdf) {
+        const { data: settings } = await admin.from("crm_settings").select("countersign_name").eq("org_id", c.org_id).maybeSingle();
+        pdfBytes = await buildSignedAgreement({
+          c,
+          template: await loadTemplate(admin, c),
+          company: ctx.company.name,
+          client: ctx.client,
+          property: propertyLabel,
+          signerName: name,
+          signerTitle,
+          signerEmail: email,
+          initials,
+          countersignName: ((settings?.countersign_name as string | null) ?? "").trim().slice(0, 80),
+          timeZone: ctx.timeZone,
+          signedAt,
+          ip,
+          ua,
+          method,
+          signaturePng: png,
+          bodyHash,
+        });
+      } else {
+        pdfBytes = await buildSignedPdf({
+          c,
+          company: ctx.company.name,
+          client: ctx.client,
+          property: propertyLabel,
+          signerName: name,
+          signerEmail: email,
+          signedAt,
+          ip,
+          ua,
+          method,
+          signaturePng: png,
+          bodyHash,
+        });
+      }
       const path = `${c.org_id}/contracts/${c.id}/signed-agreement.pdf`;
       const { error: upErr } = await admin.storage.from("crm-documents").upload(path, pdfBytes, { contentType: "application/pdf", upsert: true });
       if (upErr) {

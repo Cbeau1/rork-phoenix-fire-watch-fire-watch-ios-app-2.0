@@ -195,6 +195,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           deal_id: string
+          doc_kind: string
           end_date: string | null
           hourly_rate: number | null
           hours_per_week: number | null
@@ -218,6 +219,8 @@ export type Database = {
           signer_user_agent: string | null
           start_date: string | null
           status: string
+          template_layout: Json | null
+          template_path: string | null
           title: string
           updated_at: string
           viewed_at: string | null
@@ -231,6 +234,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_id: string
+          doc_kind?: string
           end_date?: string | null
           hourly_rate?: number | null
           hours_per_week?: number | null
@@ -254,6 +258,8 @@ export type Database = {
           signer_user_agent?: string | null
           start_date?: string | null
           status?: string
+          template_layout?: Json | null
+          template_path?: string | null
           title?: string
           updated_at?: string
           viewed_at?: string | null
@@ -267,6 +273,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_id?: string
+          doc_kind?: string
           end_date?: string | null
           hourly_rate?: number | null
           hours_per_week?: number | null
@@ -290,6 +297,8 @@ export type Database = {
           signer_user_agent?: string | null
           start_date?: string | null
           status?: string
+          template_layout?: Json | null
+          template_path?: string | null
           title?: string
           updated_at?: string
           viewed_at?: string | null
@@ -508,10 +517,15 @@ export type Database = {
       }
       crm_settings: {
         Row: {
+          agreement_layout: Json | null
+          agreement_pdf_name: string
+          agreement_pdf_path: string | null
+          agreement_uploaded_at: string | null
           company_address: string
           company_email: string
           company_phone: string
           contract_template: string
+          countersign_name: string
           default_rate: number | null
           org_id: string
           payment_terms: string
@@ -522,10 +536,15 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          agreement_layout?: Json | null
+          agreement_pdf_name?: string
+          agreement_pdf_path?: string | null
+          agreement_uploaded_at?: string | null
           company_address?: string
           company_email?: string
           company_phone?: string
           contract_template?: string
+          countersign_name?: string
           default_rate?: number | null
           org_id: string
           payment_terms?: string
@@ -536,10 +555,15 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          agreement_layout?: Json | null
+          agreement_pdf_name?: string
+          agreement_pdf_path?: string | null
+          agreement_uploaded_at?: string | null
           company_address?: string
           company_email?: string
           company_phone?: string
           contract_template?: string
+          countersign_name?: string
           default_rate?: number | null
           org_id?: string
           payment_terms?: string

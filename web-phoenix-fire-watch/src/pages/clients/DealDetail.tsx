@@ -62,6 +62,9 @@ import { callFunction, friendlyError } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useFireWatch } from "@/state/FireWatchProvider";
 
+import { AgreementPdfEditor, PdfPreviewDialog } from "./AgreementPdfEditor";
+import { parseAgreement, prefillAgreement, serializeAgreement, withEstimates } from "@/lib/crm/agreementFields";
+import { isAgreementLayout } from "@/lib/crm/agreementLayout";
 import { AcceptDialog, ContractEditor, LinkResultDialog, QuoteDialog, type QuoteDraft, ReasonDialog, SendDialog, newQuoteDraft, quoteDraftFrom } from "./DealDialogs";
 import { LostDialog, useStageMove } from "./Pipeline";
 
@@ -92,6 +95,14 @@ const Stepper = ({ stage }: { stage: Stage }) => {
       })}
     </ol>
   );
+};
+
+const EMPTY_VALUES: Record<string, string> = {};
+
+/** "Fire_Watch_Proposal-Agreement.pdf" → "Fire Watch Proposal Agreement" */
+const agreementTitle = (fileName: string) => {
+  const t = fileName.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  return t.length >= 4 ? t.slice(0, 120) : "Fire Watch Service Agreement";
 };
 
 const Agreement = ({ body, className }: { body: string; className?: string }) => (
@@ -243,6 +254,7 @@ const DealDetail = () => {
   const [sendResult, setSendResult] = useState<SendResult | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [showBody, setShowBody] = useState(false);
+  const [previewContract, setPreviewContract] = useState<CrmContract | null>(null);
 
   if (q.isLoading || settingsQ.isLoading) return <Loading label="Loading…" />;
   if (q.error) return <ErrorBlock message={friendlyError(q.error)} onRetry={() => void q.refetch()} />;
@@ -278,6 +290,12 @@ const DealDetail = () => {
       companyName: orgName,
     });
   const renderBody = (quote: CrmQuote | null) => renderTemplate(settings.contract_template.trim() || DEFAULT_CONTRACT_TEMPLATE, mergeCtx(quote));
+  const pdfTemplate =
+    settings.agreement_pdf_path && isAgreementLayout(settings.agreement_layout)
+      ? { path: settings.agreement_pdf_path, layout: settings.agreement_layout, title: agreementTitle(settings.agreement_pdf_name) }
+      : null;
+  const prefillFor = (layout: NonNullable<typeof pdfTemplate>["layout"], quote: CrmQuote | null, contractNumber: number | null) =>
+    withEstimates(layout, prefillAgreement(layout, { client, contacts, property, deal, quote, settings, tz, contractNumber }));
 
   const run = async (key: string, fn: () => Promise<void>, ok?: string) => {
     setWorking(key);
@@ -326,10 +344,12 @@ const DealDetail = () => {
       "contract-new",
       async () => {
         const qt = priced && priced.status !== "declined" ? priced : null;
-        await crm.createContract(orgId, deal.id, {
+        const tpl = pdfTemplate;
+        const created = await crm.createContract(orgId, deal.id, {
           quote_id: qt?.id ?? null,
-          title: "Fire Watch Service Agreement",
-          body: renderBody(qt),
+          title: tpl ? tpl.title : "Fire Watch Service Agreement",
+          body: tpl ? serializeAgreement(prefillFor(tpl.layout, qt, null)) : renderBody(qt),
+          ...(tpl ? { doc_kind: "pdf" as const, template_path: tpl.path, template_layout: tpl.layout } : {}),
           coverage: qt?.coverage ?? deal.coverage,
           hours_per_week: qt ? Number(qt.hours_per_week) : weeklyHours(deal.coverage, deal.hours_per_week) || null,
           hourly_rate: qt ? Number(qt.hourly_rate) : deal.est_rate,
@@ -337,6 +357,8 @@ const DealDetail = () => {
           end_date: qt?.end_date ?? deal.end_date,
           payment_terms: qt?.payment_terms || settings.payment_terms,
         });
+        // Without a quote, the proposal number is the agreement's own number, known only after insert.
+        if (tpl && !qt) await crm.updateContract(created.id, { body: serializeAgreement(prefillFor(tpl.layout, null, created.number)) });
       },
       "Agreement drafted — review it, then send for signature",
     ).catch(() => undefined);
@@ -647,6 +669,16 @@ const DealDetail = () => {
                   </div>
                 )}
 
+                {liveContract.doc_kind === "pdf" ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewContract(liveContract)}
+                    className="focus-ring flex w-full items-center justify-between rounded-xl border border-line px-4 py-3 text-sm font-medium text-ink transition-colors hover:border-primary"
+                  >
+                    <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-ink-3" /> {liveContract.status === "signed" ? "View agreement as filled in" : "Preview agreement PDF"}</span>
+                    <Eye className="h-4 w-4 text-ink-3" />
+                  </button>
+                ) : (
                 <div className="rounded-xl border border-line">
                   <button
                     type="button"
@@ -659,6 +691,7 @@ const DealDetail = () => {
                   </button>
                   {showBody && <Agreement body={liveContract.body} className="max-h-[60vh] overflow-y-auto border-t border-line px-5 py-4" />}
                 </div>
+                )}
               </div>
             )}
             {pastContracts.length > 0 && (
@@ -828,8 +861,58 @@ const DealDetail = () => {
           void run("delete-quote", () => crm.deleteQuote(qt.id), "Draft deleted").then(() => setDeleteQuote(null), () => undefined);
         }}
       />
+      <AgreementPdfEditor
+        open={editContract?.doc_kind === "pdf"}
+        onOpenChange={(v) => !v && setEditContract(null)}
+        layout={editContract && isAgreementLayout(editContract.template_layout) ? editContract.template_layout : null}
+        templatePath={editContract?.template_path ?? null}
+        initialValues={editContract ? parseAgreement(editContract.body) : EMPTY_VALUES}
+        warnSent={editContract?.status === "sent"}
+        fileName={editContract ? `C-${editContract.number} preview.pdf` : "preview.pdf"}
+        refill={() => {
+          const c = editContract;
+          if (!c || !isAgreementLayout(c.template_layout)) return {};
+          return prefillFor(c.template_layout, priced && priced.status !== "declined" ? priced : null, c.number);
+        }}
+        onSave={async (body) => {
+          const c = editContract;
+          if (!c) return;
+          const qt = priced && priced.status !== "declined" ? priced : null;
+          await run(
+            "edit-contract",
+            () =>
+              crm.updateContract(c.id, {
+                body,
+                ...(qt
+                  ? {
+                      quote_id: qt.id,
+                      coverage: qt.coverage,
+                      hours_per_week: Number(qt.hours_per_week),
+                      hourly_rate: Number(qt.hourly_rate),
+                      start_date: qt.start_date,
+                      end_date: qt.end_date,
+                      payment_terms: qt.payment_terms,
+                    }
+                  : {}),
+              }),
+            c.status === "sent" ? "Agreement updated — the old link no longer works. Send it again." : "Agreement saved",
+          );
+        }}
+      />
+      <PdfPreviewDialog
+        open={!!previewContract}
+        onOpenChange={(v) => !v && setPreviewContract(null)}
+        title={previewContract ? `C-${previewContract.number} · ${previewContract.title}` : "Agreement"}
+        description={previewContract?.status === "signed" ? "Filled-in terms. Download the signed PDF for the signed copy." : "Exactly what the client reads before signing."}
+        fileName={previewContract ? `C-${previewContract.number}.pdf` : "agreement.pdf"}
+        load={() =>
+          previewContract?.template_path
+            ? crm.previewAgreement(previewContract.template_path, previewContract.body)
+            : Promise.reject(new Error("This agreement's PDF is missing."))
+        }
+      />
       <ContractEditor
-        open={!!editContract}
+        open={!!editContract && editContract.doc_kind !== "pdf"}
         onOpenChange={(v) => !v && setEditContract(null)}
         initialTitle={editContract?.title ?? ""}
         initialBody={editContract?.body ?? ""}
