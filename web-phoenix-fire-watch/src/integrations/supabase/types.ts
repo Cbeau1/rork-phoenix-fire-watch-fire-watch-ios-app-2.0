@@ -880,8 +880,11 @@ export type Database = {
       dispatch_settings: {
         Row: {
           alert_phones: string[]
+          auto_link_email: boolean
+          auto_link_text: boolean
           grace_minutes: number
           late_minutes: number
+          link_origin: string
           org_id: string
           sms_alerts: boolean
           test_email: string
@@ -891,6 +894,9 @@ export type Database = {
         }
         Insert: {
           alert_phones?: string[]
+          auto_link_email?: boolean
+          auto_link_text?: boolean
+          link_origin?: string
           grace_minutes?: number
           late_minutes?: number
           org_id: string
@@ -902,6 +908,9 @@ export type Database = {
         }
         Update: {
           alert_phones?: string[]
+          auto_link_email?: boolean
+          auto_link_text?: boolean
+          link_origin?: string
           grace_minutes?: number
           late_minutes?: number
           org_id?: string

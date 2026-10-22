@@ -11,6 +11,9 @@ export interface DispatchSettings {
   test_mode: boolean;
   test_phone: string;
   test_email: string;
+  auto_link_text?: boolean;
+  auto_link_email?: boolean;
+  link_origin?: string;
 }
 
 const firstEnv = (...names: string[]): string => {

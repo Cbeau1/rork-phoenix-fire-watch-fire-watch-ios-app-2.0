@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Aperture, CameraOff, Loader2, RefreshCw, SwitchCamera, X } from "lucide-react";
+import { Aperture, CameraOff, Check, Loader2, RefreshCw, SwitchCamera, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { THEME } from "@/lib/theme";
@@ -52,6 +52,14 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
   const [flash, setFlash] = useState<boolean>(false);
   const [lastShot, setLastShot] = useState<string | null>(null);
   const [attempt, setAttempt] = useState<number>(0);
+  const [shots, setShots] = useState<number>(0);
+
+  useEffect(() => {
+    if (open) {
+      setShots(0);
+      setLastShot(null);
+    }
+  }, [open]);
 
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -136,6 +144,7 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
     setFlash(true);
     setTimeout(() => setFlash(false), 180);
     setLastShot(data);
+    setShots((n) => n + 1);
     onCapture(data);
     if (remaining - 1 <= 0) setTimeout(onClose, 450);
   };
@@ -143,7 +152,18 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex h-[100dvh] flex-col bg-black" role="dialog" aria-modal="true" aria-label="Camera">
+    // pointer-events-auto: an open dialog underneath sets pointer-events:none on <body>; without this, taps on the
+    // camera fell through to the form below (the shutter sat right over the submit button). The data attribute tells
+    // dialogs not to treat camera taps/Escape as "outside" dismissals.
+    <div
+      data-camera-capture=""
+      className="pointer-events-auto fixed inset-0 z-[60] flex h-[100dvh] flex-col bg-black"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Camera"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <div className="relative flex-1 overflow-hidden">
         <video
           ref={videoRef}
@@ -212,7 +232,16 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
           </span>
         </button>
         <div className="flex w-14 flex-col items-center gap-1">
-          {canSwitch ? (
+          {shots > 0 ? (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Done taking photos"
+              className="focus-ring flex h-12 w-12 items-center justify-center rounded-full bg-status-clear text-white hover:opacity-90"
+            >
+              <Check className="h-5 w-5" />
+            </button>
+          ) : canSwitch ? (
             <button
               type="button"
               onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
@@ -222,7 +251,7 @@ export const CameraCapture = ({ open, onClose, onCapture, remaining, stampLines 
               <SwitchCamera className="h-5 w-5" />
             </button>
           ) : null}
-          <span className="font-mono text-[11px] text-ink-2">{remaining} left</span>
+          <span className="font-mono text-[11px] text-ink-2">{shots > 0 ? "Done" : `${remaining} left`}</span>
         </div>
       </div>
     </div>,

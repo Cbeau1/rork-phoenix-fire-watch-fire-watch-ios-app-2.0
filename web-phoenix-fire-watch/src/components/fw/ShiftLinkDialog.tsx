@@ -1,15 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Link2, Loader2, Send, ShieldAlert, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { FieldLabel } from "@/components/fw/primitives";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { CheckField } from "@/components/workforce/kit";
-import { linkStatus, revokeShiftLink, saveStaffPhone, sendShiftLink, shiftLinkContact, type SendLinkResult } from "@/lib/dispatch/api";
+import { CheckField, Pill } from "@/components/workforce/kit";
+import {
+  fetchSettings,
+  fmtZoned,
+  linkStatus,
+  revokeShiftLink,
+  saveStaffPhone,
+  sendShiftLink,
+  shiftLinkContact,
+  type SendLinkResult,
+} from "@/lib/dispatch/api";
+import { linkState } from "@/lib/dispatch/linkState";
+import { useDispatchBoard, useNow } from "@/lib/dispatch/useBoard";
 import { friendlyError } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/state/AuthProvider";
 
 export interface ShiftLinkTarget {
   shiftId: string;
@@ -52,6 +65,16 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
   }, [target]);
 
   const status = useQuery({ queryKey: ["dispatch", "link-status"], enabled: !!target, staleTime: 60_000, queryFn: linkStatus });
+  const { user } = useAuth();
+  const orgId = user?.orgId ?? "";
+  const board = useDispatchBoard(!!target);
+  const settings = useQuery({ queryKey: ["dispatch", "settings", orgId], enabled: !!target && !!orgId, queryFn: () => fetchSettings(orgId) });
+  const now = useNow(15_000);
+  const shift = useMemo(() => board.data?.shifts.find((x) => x.id === target?.shiftId) ?? null, [board.data, target?.shiftId]);
+  const tz = board.data?.tz ?? "America/New_York";
+  const current = shift?.link ?? null;
+  const state = shift ? linkState(shift, now, tz, settings.data) : null;
+  const hasLink = !!current || !!target?.hasLink;
   const contact = useQuery({
     queryKey: ["dispatch", "link-contact", target?.shiftId],
     enabled: !!target,
@@ -93,14 +116,22 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
       return sendShiftLink(target.shiftId, { text, email: mail, emailTo: mail ? email.trim().toLowerCase() : "" });
     },
     onSuccess: (res, mode) => {
-      setResult(res);
       refresh();
-      if (mode === "copy") return void copy(res.url);
+      if (mode === "copy") {
+        setResult(res);
+        return void copy(res.url);
+      }
       const tm = res.test_mode ? " (test mode)" : "";
       const ok = [res.sent && `texted to ${res.sent_to}`, res.emailed && `emailed to ${res.emailed_to}`].filter(Boolean).join(" and ");
-      if (ok) toast.success(`Link ${ok}${tm}`);
       const fails = [res.error, res.email_error].filter(Boolean).join(" ");
-      if (fails) toast.error(ok ? `Partly sent: ${fails}` : fails);
+      if (ok) toast.success(`${hasLink ? "New link" : "Link"} ${ok}${tm}`);
+      if (fails) {
+        // Keep the dialog open so the admin can see what failed and copy the link.
+        setResult(res);
+        toast.error(ok ? `Partly sent: ${fails}` : fails);
+        return;
+      }
+      onClose();
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : friendlyError(e)),
   });
@@ -108,7 +139,7 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
   const revoke = useMutation({
     mutationFn: () => revokeShiftLink(target?.shiftId ?? ""),
     onSuccess: () => {
-      toast.success("Link turned off");
+      toast.success("Link revoked");
       refresh();
       onClose();
     },
@@ -134,6 +165,52 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
           The guard opens this link to check in with GPS, log patrols with photos, report incidents and check out — no login needed. It
           stops working 12 hours after the shift ends.
         </p>
+
+        {current && state && !result && (
+          <div className="grid gap-3 rounded-lg border border-line bg-raised/50 px-3.5 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-3">Current link</span>
+              <Pill tone={state.tone}>{state.label}</Pill>
+            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <TimelineRow label="Created" value={`${fmtZoned(current.created_at, tz, true)}${current.auto ? " · automatic" : ""}`} />
+              <TimelineRow
+                label="Sent"
+                value={current.sent_at ? `${fmtZoned(current.sent_at, tz)} · ${current.sent_to || "guard"}` : current.send_error ? "Failed" : "Not sent (copied)"}
+                bad={!current.sent_at && !!current.send_error}
+              />
+              {current.send_error && <TimelineRow label="Problem" value={current.send_error} bad />}
+              <TimelineRow label="Opened" value={current.opened_at ? fmtZoned(current.opened_at, tz) : "Not yet"} muted={!current.opened_at} />
+              <TimelineRow label="Last seen" value={current.last_seen_at ? fmtZoned(current.last_seen_at, tz) : "—"} muted={!current.last_seen_at} />
+              <TimelineRow label="Expires" value={fmtZoned(current.expires_at, tz, true)} />
+            </dl>
+            <div className="border-t border-line pt-2.5">
+              {confirmRevoke ? (
+                <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
+                  Revoke this link? The guard's page stops working right away.
+                  <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => revoke.mutate()}>
+                    {revoke.isPending && <Loader2 className="animate-spin" />}
+                    Revoke
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmRevoke(false)}>
+                    Keep it
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" size="sm" variant="ghost" className="-ml-2 text-ink-2" onClick={() => setConfirmRevoke(true)}>
+                  <XCircle />
+                  Revoke link
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+        {!current && state && (state.phase === "revoked" || state.phase === "auto_pending" || state.phase === "auto_failed") && !result && (
+          <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
+            <Pill tone={state.tone}>{state.label}</Pill>
+            <span className="text-xs text-ink-3">{state.detail}</span>
+          </div>
+        )}
 
         {status.data?.test_mode && (
           <div className="flex items-start gap-2.5 rounded-lg border border-status-follow/40 bg-status-follow/10 px-3.5 py-3 text-sm text-ink">
@@ -230,19 +307,29 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
               )}
             </div>
             <p className="text-xs text-ink-3">
-              {target?.hasLink ? "A link was already sent for this shift. " : ""}Each new link turns off any earlier link for this shift.
+              {hasLink ? "Reissuing creates a new link and turns off the current one." : "Each new link turns off any earlier link for this shift."}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button type="button" className="flex-1" disabled={busy || !canSend} onClick={() => send.mutate("send")}>
                 {send.isPending && send.variables === "send" ? <Loader2 className="animate-spin" /> : <Send />}
-                {viaText && viaEmail ? "Text & email link" : viaEmail ? "Email link" : "Text link"}
+                {hasLink
+                  ? viaText && viaEmail
+                    ? "Reissue, text & email"
+                    : viaEmail
+                      ? "Reissue & email"
+                      : "Reissue & text"
+                  : viaText && viaEmail
+                    ? "Text & email link"
+                    : viaEmail
+                      ? "Email link"
+                      : "Text link"}
               </Button>
               <Button type="button" variant="outline" className="flex-1" disabled={busy} onClick={() => send.mutate("copy")}>
                 {send.isPending && send.variables === "copy" ? <Loader2 className="animate-spin" /> : <Link2 />}
-                Copy link only
+                {hasLink ? "Reissue & copy" : "Copy link only"}
               </Button>
             </div>
-            {target?.hasLink && (
+            {hasLink && !current && (
               <div className="border-t border-line pt-3">
                 {confirmRevoke ? (
                   <div className="flex flex-wrap items-center gap-2 text-sm text-ink-2">
@@ -269,3 +356,10 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
     </Dialog>
   );
 };
+
+const TimelineRow = ({ label, value, muted, bad }: { label: string; value: string; muted?: boolean; bad?: boolean }) => (
+  <>
+    <dt className="text-ink-3">{label}</dt>
+    <dd className={cn("min-w-0 break-words font-mono text-[13px]", bad ? "text-status-incident-ink" : muted ? "text-ink-3" : "text-ink")}>{value}</dd>
+  </>
+);

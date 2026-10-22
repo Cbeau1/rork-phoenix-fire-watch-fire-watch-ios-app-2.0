@@ -58,7 +58,82 @@ import { cn } from "@/lib/utils";
 
 type LoadState = { kind: "loading" } | { kind: "ready" } | { kind: "dead"; message: string } | { kind: "error"; message: string };
 
-const MAX_PHOTOS = 4;
+const MAX_PHOTOS = 3;
+const PING_EVERY_MS = 20000;
+
+type Sharing = "off" | "starting" | "on" | "denied" | "stopped";
+
+/**
+ * While the guard is on shift, reports their position to dispatch (at most every ~20 s).
+ * Stops when the server says so (checked out / shift over), at the shift's scheduled end, or when the page closes.
+ */
+const useLocationSharing = (token: string, active: boolean, endsAt: string | null, online: boolean): Sharing => {
+  const [state, setState] = useState<Sharing>("off");
+  const lastSent = useRef<number>(0);
+  const stopped = useRef<boolean>(false);
+
+  useEffect(() => {
+    const endMs = endsAt ? new Date(endsAt).getTime() : null;
+    if (!active || stopped.current || (endMs !== null && Date.now() >= endMs)) {
+      setState((s) => (s === "on" || s === "starting" ? (stopped.current ? "stopped" : "off") : s));
+      return;
+    }
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setState("starting");
+    let watch: number | null = null;
+    let busy = false;
+    const stop = (final: boolean) => {
+      if (watch !== null) navigator.geolocation.clearWatch(watch);
+      watch = null;
+      if (final) {
+        stopped.current = true;
+        setState("stopped");
+      }
+    };
+    watch = navigator.geolocation.watchPosition(
+      (pos) => {
+        setState("on");
+        if (endMs !== null && Date.now() >= endMs) return stop(true);
+        if (busy || !navigator.onLine || Date.now() - lastSent.current < PING_EVERY_MS) return;
+        busy = true;
+        lastSent.current = Date.now();
+        const c = pos.coords;
+        guardCall<{ ok?: boolean; stop?: boolean }>({
+          action: "ping",
+          token,
+          lat: c.latitude,
+          lng: c.longitude,
+          accuracy: c.accuracy,
+          heading: Number.isFinite(c.heading) ? c.heading : null,
+          speed: Number.isFinite(c.speed) ? c.speed : null,
+        })
+          .then((r) => {
+            if (r?.stop) stop(true);
+          })
+          .catch((e) => {
+            if (e instanceof GuardApiError && (e.status === 404 || e.status === 410)) stop(true);
+          })
+          .finally(() => {
+            busy = false;
+          });
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setState("denied");
+          stop(false);
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 },
+    );
+    const endTimer = endMs !== null ? window.setTimeout(() => stop(true), Math.max(0, endMs - Date.now())) : null;
+    return () => {
+      stop(false);
+      if (endTimer !== null) window.clearTimeout(endTimer);
+    };
+  }, [token, active, endsAt, online]);
+
+  return state;
+};
 
 const useOnline = (): boolean => {
   const [online, setOnline] = useState<boolean>(typeof navigator === "undefined" ? true : navigator.onLine);
@@ -108,6 +183,10 @@ const ShiftLink = () => {
   useDocumentTitle(view ? `Shift · ${view.property.name}` : "Shift");
 
   const refreshQueue = useCallback(async () => setQueue(await queuedOps(token)), [token]);
+
+  const sharingActive =
+    !!view?.entry && !view.entry.clock_out && !queue.some((o) => o.kind === "check_out" && !o.error);
+  const sharing = useLocationSharing(token, sharingActive, view?.shift.ends_at ?? null, online);
 
   const fetchView = useCallback(async () => {
     try {
@@ -283,6 +362,22 @@ const ShiftLink = () => {
 
       {onShift && (
         <>
+          {sharing === "on" || sharing === "starting" ? (
+            <div className="flex items-center gap-2.5 rounded-xl border border-status-clear/40 bg-status-clear/[0.07] px-3.5 py-2.5 text-sm text-ink">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="absolute inset-0 animate-ping rounded-full bg-status-clear/60 motion-reduce:hidden" />
+                <span className="relative h-2.5 w-2.5 rounded-full bg-status-clear" />
+              </span>
+              <span>
+                <span className="font-semibold">Sharing location with dispatch</span>
+                <span className="text-ink-2"> · keep this page open. Stops when you check out or your shift ends.</span>
+              </span>
+            </div>
+          ) : sharing === "denied" ? (
+            <Banner tone="info" icon={MapPin}>
+              Location is off for this page, so dispatch can't see you on the map. Turn on location for your browser to share it.
+            </Banner>
+          ) : null}
           <PatrolDue view={view} queue={queue} />
           <div className="grid grid-cols-1 gap-3">
             <Button size="lg" className="h-14 text-base" onClick={() => setSheet("patrol")}>
@@ -850,7 +945,7 @@ const PatrolSheet = ({ view, token, onClose, submit, onDone }: { view: GuardView
         <SubmitError text={error} />
         <Button size="lg" className="h-12" disabled={!!busy} onClick={() => void save()}>
           {busy ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
-          {busy ?? "Log patrol"}
+          {busy ?? "Submit patrol"}
         </Button>
       </div>
     </SheetShell>

@@ -40,9 +40,9 @@ const TONE: Record<NonNullable<GeofenceMapProps["tone"]>, string> = {
 const esri = (service: string) => `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/tile/{z}/{y}/{x}`;
 const TILE_ATTRIBUTION = "Tiles &copy; Esri, Maxar, Earthstar Geographics, HERE, Garmin, OpenStreetMap contributors";
 
-type BaseStyle = "satellite" | "map";
+export type BaseStyle = "satellite" | "map";
 
-const buildLayers = (style: BaseStyle, theme: ResolvedTheme): L.TileLayer[] =>
+export const buildLayers = (style: BaseStyle, theme: ResolvedTheme): L.TileLayer[] =>
   style === "satellite"
     ? [
         L.tileLayer(esri("World_Imagery"), { attribution: TILE_ATTRIBUTION, maxZoom: 20, maxNativeZoom: 19 }),

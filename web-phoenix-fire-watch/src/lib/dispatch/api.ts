@@ -26,7 +26,7 @@ export interface BoardShift {
   starts_at: string;
   ends_at: string;
   notes: string;
-  property: { id: string; name: string; interval: number; geofence: boolean };
+  property: { id: string; name: string; interval: number; geofence: boolean; lat?: number | null; lng?: number | null; radius?: number | null };
   staff: { id: string; name: string; profile_id: string | null; phone: string };
   entry: { id: string; clock_in: string; clock_out: string | null; source: string } | null;
   check_in: { distance_m: number | null; overridden: boolean; at: string } | null;
@@ -44,7 +44,24 @@ export interface BoardShift {
     last_seen_at: string | null;
     send_error: string;
     expires_at: string;
+    auto?: boolean;
   } | null;
+  /** When the last link was revoked (only set while no link is active). */
+  revoked_at?: string | null;
+  /** The one automatic send attempt for this shift, if any. */
+  auto_attempt?: { at: string; ok: boolean; note: string } | null;
+  /** Latest live location from the guard's link page (only while checked in, until shift end). */
+  location?: {
+    lat: number;
+    lng: number;
+    accuracy_m: number | null;
+    at: string;
+    distance_m: number | null;
+    heading: number | null;
+    speed_mps: number | null;
+  } | null;
+  /** Recent breadcrumb trail, oldest first: [lat, lng]. */
+  trail?: [number, number][];
 }
 
 export interface BoardAlert {
@@ -89,6 +106,12 @@ export interface DispatchSettings {
   test_mode: boolean;
   test_phone: string;
   test_email: string;
+  /** Text each guard their shift link 1 hour before start. Default off. */
+  auto_link_text?: boolean;
+  /** Email each guard their shift link 1 hour before start. Default off. */
+  auto_link_email?: boolean;
+  /** Site address automatic links point to (saved from the admin's browser). */
+  link_origin?: string;
 }
 
 export interface LinkStatus {
@@ -147,7 +170,7 @@ export async function saveSettings(orgId: string, patch: Omit<DispatchSettings, 
   if (error) throw error;
 }
 
-export const linkStatus = (): Promise<LinkStatus> => callFunction<LinkStatus>("shift-link", { action: "status" });
+export const linkStatus = (): Promise<LinkStatus> => callFunction<LinkStatus>("shift-link", { action: "status", origin: window.location.origin });
 
 export const sendShiftLink = (shiftId: string, opts: { text: boolean; email: boolean; emailTo?: string }): Promise<SendLinkResult> =>
   callFunction<SendLinkResult>("shift-link", {

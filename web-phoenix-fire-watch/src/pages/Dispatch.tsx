@@ -23,6 +23,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
+import { DispatchMap } from "@/components/fw/DispatchMap";
 import { DispatchSettingsDialog } from "@/components/fw/DispatchSettingsDialog";
 import { ReportFailuresCard } from "@/components/fw/ReportFailuresCard";
 import { Card, PageHeader } from "@/components/fw/primitives";
@@ -44,7 +45,9 @@ import {
   type BoardAlert,
   type BoardIncident,
   type BoardShift,
+  type DispatchSettings,
 } from "@/lib/dispatch/api";
+import { linkState } from "@/lib/dispatch/linkState";
 import { BOARD_KEY, shiftState, useDispatchBoard, useNow, type ShiftPhase, type ShiftState } from "@/lib/dispatch/useBoard";
 import { friendlyError } from "@/lib/supabase";
 import type { Tone } from "@/lib/workforce/constants";
@@ -249,6 +252,8 @@ const Dispatch = () => {
             </Card>
           )}
 
+          <DispatchMap shifts={data.shifts} now={now} />
+
           <ReportFailuresCard />
 
           {data.incidents.length > 0 && (
@@ -302,7 +307,15 @@ const Dispatch = () => {
                     </h3>
                     <ul className="divide-y divide-line">
                       {grouped.get(p)?.map((s) => (
-                        <ShiftRow key={s.id} shift={s} state={states.get(s.id)!} tz={tz} now={now} onLink={() => openLink(s)} />
+                        <ShiftRow
+                          key={s.id}
+                          shift={s}
+                          state={states.get(s.id)!}
+                          tz={tz}
+                          now={now}
+                          settings={settings.data ?? null}
+                          onLink={() => openLink(s)}
+                        />
                       ))}
                     </ul>
                   </section>
@@ -491,18 +504,22 @@ const IncidentRow = ({ incident, tz, onResolve }: { incident: BoardIncident; tz:
   );
 };
 
-const linkSummary = (s: BoardShift, tz: string): { text: string; tone: Tone } => {
-  const l = s.link;
-  if (!l) return { text: "No link sent", tone: "slate" };
-  if (l.send_error) return { text: "Text failed", tone: "red" };
-  if (l.last_seen_at) return { text: `Link active · seen ${fmtZoned(l.last_seen_at, tz)}`, tone: "green" };
-  if (l.opened_at) return { text: "Link opened", tone: "green" };
-  if (l.sent_at) return { text: "Texted · not opened yet", tone: "blue" };
-  return { text: "Link copied · not opened yet", tone: "blue" };
-};
-
-const ShiftRow = ({ shift: s, state, tz, now, onLink }: { shift: BoardShift; state: ShiftState; tz: string; now: number; onLink: () => void }) => {
-  const link = linkSummary(s, tz);
+const ShiftRow = ({
+  shift: s,
+  state,
+  tz,
+  now,
+  settings,
+  onLink,
+}: {
+  shift: BoardShift;
+  state: ShiftState;
+  tz: string;
+  now: number;
+  settings: DispatchSettings | null;
+  onLink: () => void;
+}) => {
+  const link = linkState(s, now, tz, settings);
   const phase = PHASE[state.phase];
   const due = state.dueIn;
   return (
@@ -552,16 +569,26 @@ const ShiftRow = ({ shift: s, state, tz, now, onLink }: { shift: BoardShift; sta
           {s.check_in?.distance_m != null && state.phase === "on_duty" && (
             <span className="text-xs text-ink-3">Checked in {fmtMeters(s.check_in.distance_m)} from site</span>
           )}
+          {state.phase === "on_duty" && s.location && (
+            <span className="inline-flex items-center gap-1 text-xs text-ink-3">
+              <MapPin className="h-3 w-3" />
+              {now - new Date(s.location.at).getTime() < 3 * 60_000 ? "Sharing location" : `Location ${fmtAgo(Math.round((now - new Date(s.location.at).getTime()) / 60000))}`}
+              {s.location.distance_m != null && ` · ${fmtMeters(s.location.distance_m)} from site`}
+            </span>
+          )}
         </div>
         {s.handoff && state.phase === "done" && <p className="mt-1.5 line-clamp-2 text-xs text-ink-2">Handoff: {s.handoff}</p>}
       </div>
 
       <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-        <Pill tone={link.tone}>{link.text}</Pill>
+        <span title={link.detail} className="inline-flex items-center gap-1.5">
+          {link.phase === "live" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-clear" aria-hidden />}
+          <Pill tone={link.tone}>{link.label}</Pill>
+        </span>
         {state.phase !== "done" && state.phase !== "missed" && (
           <Button size="sm" variant={s.link ? "outline" : "default"} onClick={onLink}>
             {s.link ? <Link2 /> : <MessageSquareText />}
-            {s.link ? "Link" : "Send link"}
+            {s.link ? "Manage link" : "Send link"}
           </Button>
         )}
       </div>
