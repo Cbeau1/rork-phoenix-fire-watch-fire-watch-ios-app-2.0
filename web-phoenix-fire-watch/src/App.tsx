@@ -30,6 +30,7 @@ import Privacy from "./pages/Privacy";
 import Properties from "./pages/Properties";
 import Schedule from "./pages/Schedule";
 import PropertyDetail from "./pages/PropertyDetail";
+import FireInspectors from "./pages/FireInspectors";
 import PropertyForm from "./pages/PropertyForm";
 import SignContract from "./pages/SignContract";
 import ShiftLink from "./pages/ShiftLink";
@@ -150,6 +151,7 @@ const AppRoutes = () => {
         <Route path="/patrols" element={<AllPatrols />} />
         <Route path="/properties" element={<Properties />} />
         <Route path="/properties/new" element={<PropertyForm />} />
+        <Route path="/properties/inspectors" element={<FireInspectors />} />
         <Route path="/properties/:id" element={<PropertyDetail />} />
         <Route path="/properties/:id/edit" element={<PropertyForm />} />
         <Route path="/properties/:id/log" element={<LogPatrol />} />

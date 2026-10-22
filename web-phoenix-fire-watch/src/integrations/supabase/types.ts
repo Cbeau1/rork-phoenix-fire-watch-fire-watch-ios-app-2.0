@@ -1808,6 +1808,57 @@ export type Database = {
           },
         ]
       }
+      fire_inspectors: {
+        Row: {
+          address: string
+          created_at: string
+          created_by: string | null
+          department: string
+          email: string
+          id: string
+          jurisdiction: string
+          mobile: string
+          name: string
+          notes: string
+          org_id: string
+          phone: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          email?: string
+          id?: string
+          jurisdiction?: string
+          mobile?: string
+          name: string
+          notes?: string
+          org_id?: string
+          phone?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          email?: string
+          id?: string
+          jurisdiction?: string
+          mobile?: string
+          name?: string
+          notes?: string
+          org_id?: string
+          phone?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       incidents: {
         Row: {
           accuracy_m: number | null
@@ -1948,12 +1999,50 @@ export type Database = {
         }
         Relationships: []
       }
+      patrol_edits: {
+        Row: {
+          after: Json
+          before: Json
+          edited_at: string
+          edited_by: string | null
+          edited_by_name: string
+          id: string
+          org_id: string
+          patrol_id: string
+          reason: string
+        }
+        Insert: {
+          after: Json
+          before: Json
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string
+          id?: string
+          org_id: string
+          patrol_id: string
+          reason?: string
+        }
+        Update: {
+          after?: Json
+          before?: Json
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string
+          id?: string
+          org_id?: string
+          patrol_id?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       patrols: {
         Row: {
           areas: string[]
           client_op_id: string | null
           created_at: string
           date_time: string
+          edited_at: string | null
+          edited_by_name: string
           geofence_distance_m: number | null
           id: string
           latitude: number | null
@@ -1975,6 +2064,8 @@ export type Database = {
           client_op_id?: string | null
           created_at?: string
           date_time: string
+          edited_at?: string | null
+          edited_by_name?: string
           geofence_distance_m?: number | null
           id?: string
           latitude?: number | null
@@ -1996,6 +2087,8 @@ export type Database = {
           client_op_id?: string | null
           created_at?: string
           date_time?: string
+          edited_at?: string | null
+          edited_by_name?: string
           geofence_distance_m?: number | null
           id?: string
           latitude?: number | null
@@ -2180,6 +2273,7 @@ export type Database = {
           geofence_radius_m: number | null
           id: string
           image_path: string | null
+          inspector_id: string | null
           name: string
           notes: string
           org_id: string
@@ -2203,6 +2297,7 @@ export type Database = {
           geofence_radius_m?: number | null
           id?: string
           image_path?: string | null
+          inspector_id?: string | null
           name: string
           notes?: string
           org_id?: string
@@ -2226,6 +2321,7 @@ export type Database = {
           geofence_radius_m?: number | null
           id?: string
           image_path?: string | null
+          inspector_id?: string | null
           name?: string
           notes?: string
           org_id?: string
@@ -5002,6 +5098,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      patrol_edit: {
+        Args: { p_areas: string[]; p_date_time: string; p_id: string; p_notes: string; p_officer: string; p_reason: string; p_status: string }
+        Returns: Json
+      }
+      property_set_inspector: {
+        Args: { p_inspector: string | null; p_property: string }
+        Returns: undefined
       }
       profit_dashboard: {
         Args: { p_end?: string; p_period?: string; p_start?: string }

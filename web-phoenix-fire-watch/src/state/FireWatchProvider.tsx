@@ -20,6 +20,7 @@ import {
   NO_GEOFENCE,
   type Geofence,
   type Patrol,
+  type PatrolEditInput,
   type PatrolInput,
   type PatrolStatus,
   type Property,
@@ -52,6 +53,7 @@ const toProperty = (r: PropertyDbRow): Property => ({
     radiusM: r.geofence_radius_m,
   },
   imagePath: r.image_path,
+  inspectorId: r.inspector_id ?? null,
   createdAt: r.created_at,
 });
 
@@ -71,6 +73,8 @@ const toPatrol = (r: PatrolDbRow): Patrol => ({
       ? { lat: r.latitude, lng: r.longitude, accuracyM: r.location_accuracy_m ?? 0 }
       : null,
   geofenceDistanceM: r.geofence_distance_m,
+  editedAt: r.edited_at ?? null,
+  editedByName: r.edited_by_name ?? "",
 });
 
 const toNote = (r: NoteDbRow): WatchNote => ({
@@ -692,6 +696,52 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
     onSuccess: (id) => setPatrols((list) => list.filter((p) => p.id !== id)),
   });
 
+  /** Admin: link a directory inspector to a property (server also fills its fire marshal contact). */
+  const setPropertyInspector = useCallback(
+    async (propertyId: string, inspectorId: string | null) => {
+      if (!navigator.onLine) throw new Error(OFFLINE_ACTION);
+      const { error } = await supabase.rpc("property_set_inspector", { p_property: propertyId, p_inspector: inspectorId });
+      if (error) throw error;
+      setProperties((list) => list.map((p) => (p.id === propertyId ? { ...p, inspectorId } : p)));
+    },
+    [setProperties],
+  );
+
+  /** Admin correction of a submitted report. The server keeps the before/after copy. */
+  const editPatrolMutation = useMutation({
+    mutationFn: async (input: PatrolEditInput): Promise<Patrol | null> => {
+      if (!navigator.onLine) throw new Error(OFFLINE_ACTION);
+      const { data, error } = await supabase.rpc("patrol_edit", {
+        p_id: input.id,
+        p_date_time: input.dateTime,
+        p_officer: input.officerName,
+        p_areas: input.areas,
+        p_status: input.status,
+        p_notes: input.notes,
+        p_reason: input.reason,
+      });
+      if (error) throw error;
+      const res = (data ?? {}) as { changed?: boolean; edited_at?: string; edited_by_name?: string };
+      if (!res.changed) return null;
+      const current = (queryClient.getQueryData<Patrol[]>(patrolsKey) ?? []).find((p) => p.id === input.id);
+      if (!current) return null;
+      return {
+        ...current,
+        dateTime: input.dateTime,
+        officerName: input.officerName.trim(),
+        areas: input.areas.map((a) => a.trim()).filter(Boolean),
+        status: input.status,
+        notes: input.notes.trim(),
+        editedAt: res.edited_at ?? new Date().toISOString(),
+        editedByName: res.edited_by_name ?? "",
+      };
+    },
+    onSuccess: (next) => {
+      if (!next) return;
+      setPatrols((list) => list.map((p) => (p.id === next.id ? next : p)).sort((a, b) => Date.parse(b.dateTime) - Date.parse(a.dateTime)));
+    },
+  });
+
   const addNote = useCallback(
     async (content: string): Promise<WatchNote> => {
       const note = {
@@ -861,6 +911,8 @@ export const [FireWatchProvider, useFireWatch] = createContextHook(() => {
     deleteProperty: deletePropertyMutation.mutateAsync,
     addPatrol,
     deletePatrol: deletePatrolMutation.mutateAsync,
+    editPatrol: editPatrolMutation.mutateAsync,
+    setPropertyInspector,
     addNote,
     resolveNote,
     restoreNote,

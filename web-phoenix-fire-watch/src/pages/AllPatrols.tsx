@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { THEME } from "@/lib/theme";
 
+import { EditPatrolDialog } from "@/components/fw/EditPatrolDialog";
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { Card, EmptyState, PageHeader } from "@/components/fw/primitives";
-import { STATUS_META, type PatrolStatus } from "@/lib/types";
+import { STATUS_META, type Patrol, type PatrolStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { useAuth } from "@/state/AuthProvider";
 import { useFireWatch } from "@/state/FireWatchProvider";
 
 type Filter = "all" | PatrolStatus;
@@ -15,6 +17,10 @@ const AllPatrols = () => {
   useDocumentTitle("All Patrols");
   const { patrols, propertyById } = useFireWatch();
   const [filter, setFilter] = useState<Filter>("all");
+  const { isAdmin } = useAuth();
+  const [editing, setEditing] = useState<Patrol | null>(null);
+  const onEdit = useCallback((p: Patrol) => setEditing(p), []);
+  const closeEdit = useCallback(() => setEditing(null), []);
 
   const counts = useMemo<Record<Filter, number>>(() => {
     const c: Record<Filter, number> = { all: patrols.length, clear: 0, "follow-up": 0, incident: 0 };
@@ -76,11 +82,13 @@ const AllPatrols = () => {
                 showDate
                 propertyName={propertyById.get(p.propertyId)?.name ?? "Removed property"}
                 propertyId={propertyById.has(p.propertyId) ? p.propertyId : undefined}
+                onEdit={isAdmin ? onEdit : undefined}
               />
             ))}
           </ul>
         )}
       </Card>
+      {isAdmin && <EditPatrolDialog patrol={editing} onClose={closeEdit} />}
     </>
   );
 };

@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, Clock, MapPin, Phone, Plus, Search, User, X } from "lucide-react";
+import { BadgeCheck, Building2, ChevronRight, Clock, MapPin, Phone, Plus, Search, User, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -32,12 +32,20 @@ const Properties = () => {
         title="Properties"
         subtitle="Manage all monitored locations and fire watch properties"
         actions={
-          <Button asChild size="lg" variant="outline">
-            <Link to="/properties/new">
-              <Plus />
-              Add Property
-            </Link>
-          </Button>
+          <>
+            <Button asChild size="lg" variant="ghost">
+              <Link to="/properties/inspectors">
+                <BadgeCheck />
+                Fire Inspectors
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link to="/properties/new">
+                <Plus />
+                Add Property
+              </Link>
+            </Button>
+          </>
         }
       />
 

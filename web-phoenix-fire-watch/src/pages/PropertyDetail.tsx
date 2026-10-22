@@ -19,6 +19,8 @@ import { toast } from "sonner";
 
 import { ClientRateCard } from "@/components/fw/ClientRateCard";
 import { DailyReportCard } from "@/components/fw/DailyReportCard";
+import { EditPatrolDialog } from "@/components/fw/EditPatrolDialog";
+import { FireInspectorCard } from "@/components/fw/FireInspectorCard";
 import { GeofenceCard } from "@/components/fw/GeofenceCard";
 import { WatchEmailCard } from "@/components/fw/WatchEmailCard";
 import { PatrolRow } from "@/components/fw/PatrolRow";
@@ -111,6 +113,7 @@ const PropertyDetail = () => {
   const [busy, setBusy] = useState<"pdf" | "send" | "job" | null>(null);
   const [viewing, setViewing] = useState<{ patrols: Patrol[]; label: string } | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [editing, setEditing] = useState<Patrol | null>(null);
 
   const propertyPatrols = useMemo<Patrol[]>(() => patrols.filter((p) => p.propertyId === id), [patrols, id]);
   const stats = usePatrolStats(propertyPatrols);
@@ -119,6 +122,8 @@ const PropertyDetail = () => {
   const visibleSessions = activeSession ? [activeSession] : sessions;
 
   const onDeletePatrol = useCallback((p: Patrol) => setPendingPatrol(p), []);
+  const onEditPatrol = useCallback((p: Patrol) => setEditing(p), []);
+  const closeEdit = useCallback(() => setEditing(null), []);
   const closeViewer = useCallback(() => setViewing(null), []);
 
   if (!property) return <NotFound embedded />;
@@ -321,6 +326,8 @@ const PropertyDetail = () => {
         </dl>
       </Card>
 
+      <FireInspectorCard property={property} isAdmin={isAdmin} />
+
       <Card className="mt-5 flex min-h-[420px] flex-col">
         <div className="flex flex-col gap-4 border-b border-line px-6 py-6 sm:px-7 xl:flex-row xl:items-start xl:justify-between">
           <div>
@@ -430,6 +437,7 @@ const PropertyDetail = () => {
                         patrol={p}
                         showDate
                         onDelete={isAdmin || p.loggedBy === user?.id ? onDeletePatrol : undefined}
+                        onEdit={isAdmin ? onEditPatrol : undefined}
                       />
                     ))}
                   </ul>
@@ -452,6 +460,8 @@ const PropertyDetail = () => {
         }}
         onSend={(r) => shareReport(r, viewing?.patrols ?? [], viewing?.label ?? periodLabel)}
       />
+
+      {isAdmin && <EditPatrolDialog patrol={editing} onClose={closeEdit} />}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent className="border-line bg-surface text-ink sm:rounded-xl">

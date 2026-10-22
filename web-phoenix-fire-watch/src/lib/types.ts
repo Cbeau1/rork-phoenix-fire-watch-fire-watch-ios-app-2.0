@@ -19,6 +19,8 @@ export interface Property {
   geofence: Geofence;
   /** Storage path of the site photo in the patrol-photos bucket, if one was added. */
   imagePath: string | null;
+  /** Assigned fire inspector from the directory. */
+  inspectorId?: string | null;
   createdAt: string;
   syncState?: SyncState;
 }
@@ -62,7 +64,21 @@ export interface Patrol {
   location?: PatrolLocation | null;
   /** Distance from the geofence center in meters, computed by the server. */
   geofenceDistanceM?: number | null;
+  /** Set when an admin corrected the report after submission. */
+  editedAt?: string | null;
+  editedByName?: string;
   syncState?: SyncState;
+}
+
+/** Fields an admin may correct on a submitted patrol report. */
+export interface PatrolEditInput {
+  id: string;
+  dateTime: string;
+  officerName: string;
+  areas: string[];
+  status: PatrolStatus;
+  notes: string;
+  reason: string;
 }
 
 export interface WatchNote {
