@@ -45,7 +45,7 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
   const { urls } = usePhotoUrls(patrol.photos, photoCount > 0);
   const previewSrc = preview !== null ? urls[preview] : null;
   const step = (dir: 1 | -1) => setPreview((i) => (i === null ? i : (i + dir + photoCount) % photoCount));
-  const hasDetail = patrol.notes.length > 0 || patrol.photos.length > 0 || !!onDelete || !!onEdit || !!patrol.editedAt;
+  const hasDetail = patrol.notes.length > 0 || patrol.photos.length > 0 || !!onDelete || !!onEdit;
 
   return (
     <li className="relative rounded-lg border border-line bg-raised">
@@ -100,15 +100,6 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
               >
                 <MapPinCheck className="h-3.5 w-3.5" />
                 On site
-              </span>
-            )}
-            {patrol.editedAt && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full bg-ink/[0.06] px-2 py-0.5 text-[11px] font-medium text-ink-2 ring-1 ring-inset ring-line"
-                title={`Edited ${fullDateTime(patrol.editedAt)}${patrol.editedByName ? ` by ${patrol.editedByName}` : ""}`}
-              >
-                <PenLine className="h-3 w-3" />
-                Edited
               </span>
             )}
           </div>
@@ -196,12 +187,6 @@ export const PatrolRow = memo(({ patrol, propertyName, propertyId, showDate, onD
                 );
               })}
             </div>
-          )}
-          {patrol.editedAt && (
-            <p className="text-xs text-ink-3">
-              Corrected {fullDateTime(patrol.editedAt)}
-              {patrol.editedByName ? ` by ${patrol.editedByName}` : ""}
-            </p>
           )}
           <div className="flex flex-wrap items-center gap-4">
             {propertyId && (

@@ -2,6 +2,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { copyText } from "@/lib/clipboard";
 import { callFunction } from "@/lib/supabase";
 import { ROLE_LABEL, type Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -109,12 +110,8 @@ export const LoginReadyDialog = ({ credentials, onClose }: { credentials: LoginC
   const copy = async () => {
     if (!credentials) return;
     const text = `Phoenix Fire Watch login\n${window.location.origin}\nEmail: ${credentials.email}\nPassword: ${credentials.password}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Login details copied");
-    } catch {
-      toast.error("Couldn't copy — select the text manually");
-    }
+    if (await copyText(text)) toast.success("Login details copied");
+    else toast.error("Couldn't copy — select the text manually");
   };
   return (
     <Dialog open={!!credentials} onOpenChange={(o) => !o && onClose()}>

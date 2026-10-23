@@ -18,6 +18,7 @@ import {
   shiftLinkContact,
   type SendLinkResult,
 } from "@/lib/dispatch/api";
+import { copyText } from "@/lib/clipboard";
 import { linkState } from "@/lib/dispatch/linkState";
 import { useDispatchBoard, useNow } from "@/lib/dispatch/useBoard";
 import { friendlyError } from "@/lib/supabase";
@@ -91,13 +92,12 @@ export const ShiftLinkDialog = ({ target, onClose }: { target: ShiftLinkTarget |
   };
 
   const copy = async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
+    if (await copyText(url)) {
       setCopied(true);
       toast.success("Link copied");
       window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Couldn't copy — select the link and copy it manually.");
+    } else {
+      toast.error("Couldn't copy automatically — select the link and copy it manually.");
     }
   };
 

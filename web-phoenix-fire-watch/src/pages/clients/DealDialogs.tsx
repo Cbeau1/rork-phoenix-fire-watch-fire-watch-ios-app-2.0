@@ -1,12 +1,13 @@
 import { addDays, format } from "date-fns";
 import { Check, Copy, Loader2, Mail, RotateCcw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AreaField, ConfirmDialog, FormDialog, SelectField, TextField, isDate, toNum } from "@/components/workforce/kit";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { copyText } from "@/lib/clipboard";
 import { COVERAGE_OPTIONS, type Coverage, type CrmContact, type CrmQuote, type CrmSettings, money, weeklyHours } from "@/lib/crm/types";
 import { cn } from "@/lib/utils";
 
@@ -424,14 +425,17 @@ export const LinkResultDialog = ({
   tz: string;
 }) => {
   const [copied, setCopied] = useState(false);
+  const linkRef = useRef<HTMLInputElement>(null);
   useEffect(() => setCopied(false), [result]);
   const copy = async () => {
     if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.link);
+    if (await copyText(result.link)) {
       setCopied(true);
-    } catch {
-      toast.error("Couldn't copy — select the link and copy it manually.");
+      toast.success("Signing link copied");
+    } else {
+      linkRef.current?.focus();
+      linkRef.current?.select();
+      toast.error("Couldn't copy automatically — the link is selected, press Ctrl/⌘+C.");
     }
   };
   return (
@@ -451,7 +455,7 @@ export const LinkResultDialog = ({
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-2">
-          <Input readOnly value={result?.link ?? ""} onFocus={(e) => e.currentTarget.select()} className="font-mono text-xs" aria-label="Signing link" />
+          <Input ref={linkRef} readOnly value={result?.link ?? ""} onFocus={(e) => e.currentTarget.select()} className="font-mono text-xs" aria-label="Signing link" />
           <Button type="button" variant="outline" onClick={() => void copy()}>
             {copied ? <Check /> : <Copy />}
             {copied ? "Copied" : "Copy"}
