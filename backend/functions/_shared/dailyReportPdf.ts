@@ -1,6 +1,8 @@
 import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb, StandardFonts } from "npm:pdf-lib@1.17.1";
 import { winAnsi } from "./agreementPdf.ts";
+import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 import { BRAND_LOGO } from "./brandLogo.ts";
+import { SIGNATURE_FONT_BASE64 } from "./signatureFont.ts";
 
 /** Server-side daily patrol report (pdf-lib, Letter). Mirrors the web app's report palette. */
 
@@ -69,7 +71,10 @@ const C = {
   paper2: [247, 247, 248] as RGB,
   ember: [220, 38, 38] as RGB,
   white: [255, 255, 255] as RGB,
+  sigInk: [24, 38, 84] as RGB,
+  sigLine: [160, 163, 170] as RGB,
 };
+const MAX_SIGNATURES = 6;
 const STATUS: Record<PatrolStatus, { label: string; color: RGB }> = {
   clear: { label: "Clear", color: [22, 163, 74] },
   "follow-up": { label: "Follow-up", color: [217, 138, 12] },
@@ -165,6 +170,8 @@ class Doc {
   reg!: PDFFont;
   bold!: PDFFont;
   logo!: PDFImage;
+  script!: PDFFont;
+  hasScript = false;
   y = 0;
   constructor(private input: DailyReportInput) {}
 
@@ -177,6 +184,15 @@ class Doc {
     this.bold = await this.pdf.embedFont(StandardFonts.HelveticaBold);
     const bin = Uint8Array.from(atob(BRAND_LOGO.jpegBase64), (c) => c.charCodeAt(0));
     this.logo = await this.pdf.embedJpg(bin);
+    try {
+      this.pdf.registerFontkit(fontkit);
+      const fontBytes = Uint8Array.from(atob(SIGNATURE_FONT_BASE64), (c) => c.charCodeAt(0));
+      this.script = await this.pdf.embedFont(fontBytes, { subset: true });
+      this.hasScript = true;
+    } catch (e) {
+      console.error("daily-report signature font", e instanceof Error ? e.message : String(e));
+      this.script = await this.pdf.embedFont(StandardFonts.TimesRomanItalic);
+    }
   }
 
   text(s: string, x: number, y: number, size: number, opts: { bold?: boolean; color?: RGB; align?: "left" | "right" | "center"; spacing?: number } = {}) {
@@ -243,6 +259,86 @@ class Doc {
       this.text(`Page ${i + 1} of ${pages.length}`, W - M, 26, 7.5, { color: C.ink3, align: "right" });
     });
   }
+}
+
+/* ---------------------------------------------------------------- signatures */
+
+function certification(d: Doc, input: DailyReportInput) {
+  const byOfficer = new Map<string, number>();
+  for (const p of input.patrols) {
+    const n = (p.officer ?? "").trim();
+    if (n) byOfficer.set(n, (byOfficer.get(n) ?? 0) + 1);
+  }
+  // Officers who were on the clock but logged no patrols still sign for their time on site.
+  for (const t of input.time) {
+    const n = (t.worker ?? "").trim();
+    if (n && !byOfficer.has(n)) byOfficer.set(n, 0);
+  }
+  const signers = [...byOfficer.entries()].sort((a, b) => b[1] - a[1]);
+  if (!signers.length) return;
+  const shown = signers.slice(0, MAX_SIGNATURES);
+
+  const cols = 2, gap = 20, sw = (CW - gap) / cols, sh = 92;
+  const rows = Math.ceil(shown.length / cols);
+  const phrase = shown.length > 1 ? "the undersigned fire watch officers certify" : "the undersigned fire watch officer certifies";
+  const cert = wrap(
+    `By electronic signature below, ${phrase} that the fire watch patrols recorded in this report were conducted at ${input.property.name} as documented above, and that all observations are accurate and complete to the best of their knowledge.`,
+    d.reg,
+    8.5,
+    CW,
+  );
+  // Keep the whole block together on one page.
+  d.ensure(48 + cert.length * 11 + 10 + rows * (sh + 12) + 30);
+  d.section("Certification");
+  for (const l of cert) {
+    d.text(l, M, d.y, 8.5, { color: C.ink2 });
+    d.y -= 11;
+  }
+  d.y -= 8;
+
+  const signedAt = `${dayClock(new Date().toISOString(), input.tz)} ${tzAbbr(new Date().toISOString(), input.tz)}`;
+  const top0 = d.y;
+  shown.forEach(([name, count], idx) => {
+    const x = M + (idx % cols) * (sw + gap);
+    const top = top0 - Math.floor(idx / cols) * (sh + 12);
+    d.page.drawRectangle({ x, y: top - sh, width: sw, height: sh, color: col(C.paper2), borderColor: col(C.line), borderWidth: 0.8 });
+
+    // E-SIGNED badge
+    const bw = 70, bx = x + sw - bw - 10, byTop = top - 9;
+    d.page.drawRectangle({ x: bx, y: byTop - 15, width: bw, height: 15, borderColor: col(C.ember), borderWidth: 0.8 });
+    d.page.drawLine({ start: { x: bx + 8, y: byTop - 8 }, end: { x: bx + 10.4, y: byTop - 10.5 }, thickness: 1.1, color: col(C.ember) });
+    d.page.drawLine({ start: { x: bx + 10.4, y: byTop - 10.5 }, end: { x: bx + 14.5, y: byTop - 5 }, thickness: 1.1, color: col(C.ember) });
+    d.text("E-SIGNED", bx + 19, byTop - 10.5, 6.3, { bold: true, color: C.ember });
+
+    // Handwritten signature
+    const lineY = top - 52;
+    const sig = winAnsi(name);
+    let size = d.hasScript ? 26 : 18;
+    let drawn = false;
+    try {
+      while (d.script.widthOfTextAtSize(sig, size) > sw - 40 && size > 12) size -= 1;
+      d.page.drawText(sig, { x: x + 16, y: lineY + 7, size, font: d.script, color: col(C.sigInk) });
+      drawn = true;
+    } catch {
+      drawn = false;
+    }
+    if (!drawn) d.page.drawText(sig, { x: x + 16, y: lineY + 7, size: 16, font: d.bold, color: col(C.sigInk) });
+    d.page.drawLine({ start: { x: x + 14, y: lineY }, end: { x: x + sw - 14, y: lineY }, thickness: 0.7, color: col(C.sigLine) });
+
+    const printed = wrap(name, d.bold, 8.5, sw - 150)[0] ?? name;
+    d.text(printed, x + 14, lineY - 14, 8.5, { bold: true });
+    d.text("FIRE WATCH OFFICER", x + sw - 14, lineY - 14, 7, { color: C.ink3, align: "right" });
+    d.text(`Signed electronically ${signedAt}${count ? `  ·  ${count} patrol${count === 1 ? "" : "s"}` : ""}`, x + 14, lineY - 28, 7, { color: C.ink3 });
+  });
+  d.y = top0 - rows * (sh + 12) - 4;
+
+  const extra = signers.length - shown.length;
+  d.paragraph(
+    `${extra > 0 ? `${extra} additional officer${extra === 1 ? " is" : "s are"} identified in the patrol log. ` : ""}Electronic signatures applied by ${input.company} from the officer names recorded on each patrol and time entry.`,
+    7.5,
+    C.ink3,
+  );
+  d.y -= 8;
 }
 
 /* ---------------------------------------------------------------- report */
@@ -399,6 +495,9 @@ export async function buildDailyReportPdf(input: DailyReportInput): Promise<Uint
       d.y -= 8;
     }
   }
+
+  // Certification + officer electronic signatures (same treatment as the web Fire Watch Shift Report)
+  certification(d, input);
 
   // Photos
   if (input.includePhotos && (input.photos.length || input.photosOmitted)) {

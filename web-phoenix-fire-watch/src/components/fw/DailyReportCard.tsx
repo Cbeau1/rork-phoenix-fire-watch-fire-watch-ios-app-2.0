@@ -197,7 +197,7 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
               </div>
               <p className="mt-1 text-sm text-ink-2">
                 Every day at <span className="font-medium text-ink">{at}{zone}</span>, a PDF of the previous 24 hours (patrols, incidents,
-                photos, check-ins) is emailed to this client automatically.
+                photos, check-ins, officer signatures) is emailed to this client automatically.
               </p>
               {enabled && st?.next_send_at && (
                 <p className="mt-1 text-sm text-ink">
