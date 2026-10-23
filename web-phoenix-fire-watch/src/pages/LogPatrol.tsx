@@ -16,6 +16,7 @@ import { isGeofenceActive } from "@/lib/geo";
 import { friendlyError } from "@/lib/supabase";
 import { STATUS_META, type PatrolStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/state/AuthProvider";
 import { useFireWatch } from "@/state/FireWatchProvider";
 import { useMyClock } from "@/state/useTimeClock";
 
@@ -66,7 +67,9 @@ const LogPatrol = () => {
   const { propertyById, addPatrol, user, patrols } = useFireWatch();
   const { open: openEntry, loading: clockLoading, clockIn } = useMyClock();
   const property = propertyById.get(id);
-  const needsClockIn = !clockLoading && !openEntry;
+  const { isAdmin } = useAuth();
+  // Admins log patrols on behalf of officers (e.g. a missed round) — that must never start their own shift.
+  const needsClockIn = !isAdmin && !clockLoading && !openEntry;
 
   const lastOfficer = patrols.find((p) => p.propertyId === id)?.officerName;
   const [dateTime, setDateTime] = useState<string>(() => toLocalInputValue(new Date()));
@@ -111,7 +114,7 @@ const LogPatrol = () => {
       focusField(firstMissing.id);
       return;
     }
-    if (!openEntry) {
+    if (!isAdmin && !openEntry) {
       toast.error("Clock in first", { description: "Clock in before logging a patrol." });
       return;
     }

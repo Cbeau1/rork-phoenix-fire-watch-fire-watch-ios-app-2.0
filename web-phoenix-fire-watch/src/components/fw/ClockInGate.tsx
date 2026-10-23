@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/state/AuthProvider";
 import { useFireWatch } from "@/state/FireWatchProvider";
 import { useMyClock } from "@/state/useTimeClock";
 
@@ -18,16 +19,18 @@ const logPath = (propertyId: string): string => `/properties/${propertyId}/log`;
 export const [LogPatrolGateProvider, useLogPatrolGate] = createContextHook(() => {
   const navigate = useNavigate();
   const { open, loading } = useMyClock();
+  const { isAdmin } = useAuth();
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   /** Returns true when the prompt was shown instead of navigating (use to cancel a link click). */
   const intercept = useCallback(
     (propertyId: string): boolean => {
-      if (loading || open) return false;
+      // Admins can log patrols for officers without going on the clock themselves.
+      if (isAdmin || loading || open) return false;
       setPendingId(propertyId);
       return true;
     },
-    [loading, open],
+    [isAdmin, loading, open],
   );
 
   const openLogPatrol = useCallback(
