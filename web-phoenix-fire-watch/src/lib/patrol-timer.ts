@@ -78,3 +78,19 @@ export const computeSchedule = ({
     overdueSince: missed > 0 ? anchor + intervalMs : null,
   };
 };
+
+/**
+ * When a shift's countdown starts. If the property's last patrol (by anyone, e.g. the previous
+ * officer) was still inside its interval at clock-in, the countdown continues from that patrol;
+ * otherwise it starts at clock-in. Later patrols always restart it.
+ * Example: last patrol 6:48, every 30 min, clock-in 7:00 -> next due 7:18 (not 7:30).
+ */
+export const shiftAnchor = (clockIn: number, intervalMinutes: number, patrolTimes: (number | null | undefined)[]): number => {
+  const floor = clockIn - Math.max(1, intervalMinutes) * 60_000;
+  const now = Date.now();
+  let last = -Infinity;
+  for (const t of patrolTimes) {
+    if (typeof t === "number" && Number.isFinite(t) && t <= now && t > last) last = t;
+  }
+  return last > floor ? last : clockIn;
+};

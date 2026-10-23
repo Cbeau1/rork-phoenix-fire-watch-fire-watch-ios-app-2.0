@@ -66,6 +66,8 @@ export interface GuardView {
   entry: { id: string; clock_in: string; clock_out: string | null } | null;
   request: { id: string; status: "pending" | "approved"; distance_m: number | null; requested_at: string } | null;
   last_patrol_at: string | null;
+  /** Latest patrol at the property by anyone (incl. the previous officer). Older cached views may lack it. */
+  property_last_patrol_at?: string | null;
   patrols: { id: string; at: string; status: PatrolStatus; areas: string[]; notes: string; photos: number; outside: boolean; client_op_id: string | null }[];
   incidents: { id: string; at: string; category: IncidentCategory; severity: Severity; description: string; client_op_id: string | null }[];
   handoff: string | null;

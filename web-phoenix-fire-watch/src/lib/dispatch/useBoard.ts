@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { shiftAnchor } from "@/lib/patrol-timer";
 import { useAuth } from "@/state/AuthProvider";
 
 import { fetchBoard, type Board, type BoardShift } from "./api";
@@ -47,8 +48,13 @@ export const shiftState = (s: BoardShift, now: number, lateMinutes = 15): ShiftS
   const startDelta = Math.round((start - now) / 60000);
   if (s.entry && !s.entry.clock_out) {
     const inAt = new Date(s.entry.clock_in).getTime();
-    const base = Math.max(inAt, s.last_patrol_at ? new Date(s.last_patrol_at).getTime() : 0);
-    const due = base + Math.max(1, s.property.interval || 60) * 60000;
+    const interval = Math.max(1, s.property.interval || 60);
+    const base = shiftAnchor(
+      inAt,
+      interval,
+      [s.property_last_patrol_at, s.last_patrol_at].map((t) => (t ? new Date(t).getTime() : null)),
+    );
+    const due = base + interval * 60000;
     return { phase: "on_duty", dueIn: Math.round((due - now) / 60000), startDelta };
   }
   if (s.entry?.clock_out) return { phase: "done", dueIn: null, startDelta };

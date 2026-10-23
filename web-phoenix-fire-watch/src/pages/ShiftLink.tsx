@@ -54,6 +54,7 @@ import {
   type GuardView,
 } from "@/lib/dispatch/guard";
 import { uid } from "@/lib/format";
+import { shiftAnchor } from "@/lib/patrol-timer";
 import { cn } from "@/lib/utils";
 
 type LoadState = { kind: "loading" } | { kind: "ready" } | { kind: "dead"; message: string } | { kind: "error"; message: string };
@@ -603,11 +604,13 @@ const CheckInPanel = ({
 const PatrolDue = ({ view, queue }: { view: GuardView; queue: GuardOp[] }) => {
   const now = useNow();
   const lastQueued = queue.filter((o) => o.kind === "patrol" && !o.error).map((o) => Date.parse(o.at));
-  const base = Math.max(
-    view.entry ? Date.parse(view.entry.clock_in) : 0,
-    view.last_patrol_at ? Date.parse(view.last_patrol_at) : 0,
-    ...lastQueued,
-  );
+  const patrolTimes = [view.property_last_patrol_at, view.last_patrol_at]
+    .map((t) => (t ? Date.parse(t) : null))
+    .concat(lastQueued);
+  // Continues from the previous officer's last patrol when it was still in its interval at clock-in.
+  const base = view.entry
+    ? shiftAnchor(Date.parse(view.entry.clock_in), view.property.interval, patrolTimes)
+    : Math.max(0, ...patrolTimes.map((t) => t ?? 0));
   const due = base + view.property.interval * 60000;
   const left = due - now;
   const overdue = left <= 0;

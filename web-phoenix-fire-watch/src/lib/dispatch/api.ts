@@ -33,6 +33,8 @@ export interface BoardShift {
   check_in: { distance_m: number | null; overridden: boolean; at: string } | null;
   handoff: string | null;
   last_patrol_at: string | null;
+  /** Latest patrol at the property by anyone (incl. the previous officer). */
+  property_last_patrol_at?: string | null;
   patrols: number;
   outside_patrols: number;
   incidents: number;
