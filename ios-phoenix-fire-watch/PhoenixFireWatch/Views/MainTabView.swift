@@ -78,6 +78,12 @@ struct MainTabView: View {
                 router.logPatrolPropertyId = request.id
             }
         }
+        // Patrol timers only run while you're on the clock: clocking out (here or on the web) stops them.
+        .onChange(of: isClockedOut, initial: true) { _, out in
+            guard out, !timers.activePropertyIds.isEmpty else { return }
+            timers.stopAll()
+            router.show("Patrol timers stopped", detail: "You're clocked out, so patrol alerts are off.")
+        }
         .onChange(of: planKey, initial: true) { _, _ in
             timers.reschedule(properties: store.properties, patrols: store.patrols)
         }
@@ -93,6 +99,8 @@ struct MainTabView: View {
             timers.reschedule(properties: store.properties, patrols: store.patrols)
         }
     }
+
+    private var isClockedOut: Bool { clock.hasLoaded && clock.open == nil }
 
     /// Changes whenever timers, intervals, or latest patrols change.
     private var planKey: String {

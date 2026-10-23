@@ -8,6 +8,7 @@ struct PatrolTimerCard: View {
     @Environment(FireWatchStore.self) private var store
     @Environment(PatrolTimerStore.self) private var timers
     @Environment(AppRouter.self) private var router
+    @Environment(TimeClockStore.self) private var clock
     @State private var savingInterval: Bool = false
 
     private var isOn: Bool { timers.isOn(property.id) }
@@ -66,6 +67,10 @@ struct PatrolTimerCard: View {
             Toggle(isOn: Binding(
                 get: { isOn },
                 set: { on in
+                    if on && clock.hasLoaded && clock.open == nil {
+                        router.show("Clock in first", detail: "Patrol timers run only while you're on the clock.", style: .error)
+                        return
+                    }
                     Task {
                         await timers.setTimer(on, property: property, patrols: store.patrols)
                         timers.reschedule(properties: store.properties, patrols: store.patrols)
@@ -85,7 +90,7 @@ struct PatrolTimerCard: View {
                         Text(isOn ? "Timer on" : "Timer off")
                             .font(.system(.body, weight: .semibold))
                             .foregroundStyle(Color.fwInk)
-                        Text("Just for you, on this device")
+                        Text("Just for you, on this device · stops when you clock out")
                             .font(.caption)
                             .foregroundStyle(Color.fwInk3)
                     }

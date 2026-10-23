@@ -95,6 +95,18 @@ final class PatrolTimerStore {
         applyIdleTimer()
     }
 
+    /// Turns every timer off and cancels all pending patrol alerts (used on clock-out).
+    func stopAll() {
+        guard !timers.isEmpty else { return }
+        timers = [:]
+        persist()
+        applyIdleTimer()
+        lastSignature = ""
+        rescheduleTask?.cancel()
+        rescheduleTask = nil
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+    }
+
     // MARK: - Notifications
 
     func refreshNotificationStatus() async {
