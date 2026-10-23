@@ -110,6 +110,19 @@ function latestWindow(tz: string, at: [number, number] = [9, 0], now = new Date(
   };
 }
 
+/** The 24 hours ending right now — used by Preview and Send now so today's patrols always show up. */
+function rollingWindow(tz: string, now = new Date()): { report_date: string; start: string; end: string } {
+  return {
+    report_date: localYmd(now, tz),
+    start: new Date(now.getTime() - 24 * 3600 * 1000).toISOString(),
+    end: now.toISOString(),
+  };
+}
+
+/** A real, non-trivial PDF (header present and more than a bare page). */
+const validPdf = (b: Uint8Array) =>
+  b.length > 1500 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46; // "%PDF"
+
 /* ---------------------------------------------------------------- data + pdf */
 
 async function loadSettings(admin: Admin, propertyId: string): Promise<Settings | null> {
@@ -289,13 +302,16 @@ async function processRun(admin: Admin, run: Run): Promise<Record<string, unknow
     const { error: upErr } = await admin.storage.from(REPORT_BUCKET).upload(path, built.pdf, { contentType: "application/pdf", upsert: true });
     if (upErr) console.error("daily-report upload", upErr.message);
 
-    if (built.empty && run.trigger === "schedule" && !settings?.send_when_empty) {
+    // Never email a blank report — not on schedule, not manually, regardless of older settings.
+    if (built.empty) {
+      const note = "Nothing was recorded in this period, so no email was sent.";
       await admin
         .from("daily_report_runs")
-        .update({ status: "skipped", note: "Nothing was recorded in this period, so no email was sent.", pdf_path: upErr ? "" : path, intended_to: intended, ...counts, error: "" })
+        .update({ status: "skipped", note, pdf_path: upErr ? "" : path, intended_to: intended, ...counts, error: "", next_retry_at: null })
         .eq("id", run.id);
-      return { id: run.id, status: "skipped" };
+      return { id: run.id, status: "skipped", note };
     }
+    if (!validPdf(built.pdf)) return await fail("The report PDF came out empty, so it wasn't sent.");
 
     const dispatch = await loadDispatchSettings(admin, run.org_id);
     const route = routeEmail(dispatch, intended);
@@ -385,7 +401,7 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
     const propertyId = await ownProperty(body.property_id);
     const tz = await propertyTz(admin, propertyId);
     const s = await loadSettings(admin, propertyId);
-    const w = latestWindow(tz, parseSendTime(s?.send_time));
+    const w = rollingWindow(tz);
     const include = typeof body.include_photos === "boolean" ? body.include_photos : s?.include_photos ?? true;
     const built = await buildReport(admin, { orgId: me.org_id, propertyId, tz, start: w.start, end: w.end, includePhotos: include });
     return json({ filename: built.filename, pdf_base64: toBase64(built.pdf), empty: built.empty, window: w, tz });
@@ -394,7 +410,7 @@ async function adminAction(req: Request, admin: Admin, action: string, body: Rec
   if (action === "send_now") {
     const propertyId = await ownProperty(body.property_id);
     const tz = await propertyTz(admin, propertyId);
-    const w = latestWindow(tz, parseSendTime((await loadSettings(admin, propertyId))?.send_time));
+    const w = rollingWindow(tz);
     const { data: run, error } = await admin
       .from("daily_report_runs")
       .insert({

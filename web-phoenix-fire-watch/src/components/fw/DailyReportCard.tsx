@@ -91,7 +91,7 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
       setConfirmSend(false);
       if (r.status === "sent") toast.success(r.test_mode ? "Report sent to the test email" : "Report sent");
       else if (r.status === "failed") toast.error("The report didn't send", { description: r.error });
-      else toast.message("Report recorded", { description: "Nothing needed sending." });
+      else toast.message("Nothing to send yet", { description: "No patrols, incidents or time on site in the last 24 hours, so no email went out." });
       refresh();
     },
     onError: (e) => toast.error("Couldn't send the report", { description: friendlyError(e) }),
@@ -106,7 +106,8 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
     try {
       const r = await previewReport(propertyId, s?.include_photos ?? true);
       downloadBlob(base64ToBlob(r.pdf_base64), r.filename);
-      toast.success("Preview downloaded", { description: r.empty ? "Nothing was recorded in this period." : r.filename });
+      if (r.empty) toast.message("Preview downloaded — nothing recorded yet", { description: "No activity in the last 24 hours. A blank report is never emailed." });
+      else toast.success("Preview downloaded", { description: "Covers the last 24 hours, up to now." });
     } catch (e) {
       toast.error("Couldn't build the preview", { description: friendlyError(e) });
     } finally {
@@ -254,7 +255,7 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
               <p className="mt-1 text-[15px] text-ink">
                 {s?.include_photos ? "Patrol & incident photos" : "No photos"}
                 <span className="block text-xs text-ink-3">
-                  {s?.send_when_empty ? "Sent even on quiet days" : "Skipped when nothing was recorded"}
+                  Never sent blank — skipped when nothing was recorded
                 </span>
               </p>
             </div>
@@ -332,9 +333,9 @@ export const DailyReportCard = ({ propertyId }: { propertyId: string }) => {
         title="Send the report now?"
         description={
           st?.test_mode
-            ? `This emails the report for the 24 hours up to the last ${at} to the test email only (${st.test_email || "not set"}).`
+            ? `This emails the report for the last 24 hours, up to now, to the test email only (${st.test_email || "not set"}). Nothing is sent if nothing was recorded.`
             : recipients.length
-              ? `This emails the report for the 24 hours up to the last ${at} to ${recipients.join(", ")}.`
+              ? `This emails the report for the last 24 hours, up to now, to ${recipients.join(", ")}. Nothing is sent if nothing was recorded.`
               : "Add at least one recipient first."
         }
         confirmLabel="Send now"
@@ -518,12 +519,6 @@ const SettingsDialog = ({
         hint="Up to 18 photos are embedded; the rest stay in the app."
         checked={form.include_photos}
         onChange={(v) => setForm({ ...form, include_photos: v })}
-      />
-      <CheckField
-        label="Send even when nothing was recorded"
-        hint="Off: quiet days are logged as skipped and no email goes out."
-        checked={form.send_when_empty}
-        onChange={(v) => setForm({ ...form, send_when_empty: v })}
       />
 
       <div>
