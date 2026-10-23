@@ -23,6 +23,7 @@ import { EditPatrolDialog } from "@/components/fw/EditPatrolDialog";
 import { FireInspectorCard } from "@/components/fw/FireInspectorCard";
 import { GeofenceCard } from "@/components/fw/GeofenceCard";
 import { WatchEmailCard } from "@/components/fw/WatchEmailCard";
+import { PaperLogsCard } from "@/components/fw/PaperLogsCard";
 import { PatrolRow } from "@/components/fw/PatrolRow";
 import { PatrolTimerCard } from "@/components/fw/PatrolTimerCard";
 import { ReportViewer, type GeneratedReport } from "@/components/fw/ReportViewer";
@@ -327,6 +328,8 @@ const PropertyDetail = () => {
       </Card>
 
       <FireInspectorCard property={property} isAdmin={isAdmin} />
+
+      {isAdmin && <PaperLogsCard propertyId={property.id} />}
 
       <Card className="mt-5 flex min-h-[420px] flex-col">
         <div className="flex flex-col gap-4 border-b border-line px-6 py-6 sm:px-7 xl:flex-row xl:items-start xl:justify-between">

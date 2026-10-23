@@ -88,6 +88,99 @@ export type Database = {
           },
         ]
       }
+      client_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          description: string
+          due_on: string | null
+          file_name: string | null
+          file_path: string | null
+          hours: number | null
+          id: string
+          invoice_number: string
+          issued_on: string
+          lines: Json
+          message: string
+          org_id: string
+          paid_on: string | null
+          period_end: string | null
+          period_start: string | null
+          property_id: string | null
+          rate: number | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          description?: string
+          due_on?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          hours?: number | null
+          id?: string
+          invoice_number: string
+          issued_on: string
+          lines?: Json
+          message?: string
+          org_id: string
+          paid_on?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          property_id?: string | null
+          rate?: number | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          description?: string
+          due_on?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          hours?: number | null
+          id?: string
+          invoice_number?: string
+          issued_on?: string
+          lines?: Json
+          message?: string
+          org_id?: string
+          paid_on?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          property_id?: string | null
+          rate?: number | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_invoices_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activity: {
         Row: {
           actor_id: string | null
@@ -880,8 +973,11 @@ export type Database = {
       dispatch_settings: {
         Row: {
           alert_phones: string[]
+          auto_link_email: boolean
+          auto_link_text: boolean
           grace_minutes: number
           late_minutes: number
+          link_origin: string
           org_id: string
           sms_alerts: boolean
           test_email: string
@@ -891,8 +987,11 @@ export type Database = {
         }
         Insert: {
           alert_phones?: string[]
+          auto_link_email?: boolean
+          auto_link_text?: boolean
           grace_minutes?: number
           late_minutes?: number
+          link_origin?: string
           org_id: string
           sms_alerts?: boolean
           test_email?: string
@@ -902,8 +1001,11 @@ export type Database = {
         }
         Update: {
           alert_phones?: string[]
+          auto_link_email?: boolean
+          auto_link_text?: boolean
           grace_minutes?: number
           late_minutes?: number
+          link_origin?: string
           org_id?: string
           sms_alerts?: boolean
           test_email?: string
@@ -1799,6 +1901,72 @@ export type Database = {
           },
         ]
       }
+      fire_inspectors: {
+        Row: {
+          address: string
+          created_at: string
+          created_by: string | null
+          department: string
+          email: string
+          id: string
+          jurisdiction: string
+          mobile: string
+          name: string
+          notes: string
+          org_id: string
+          phone: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          email?: string
+          id?: string
+          jurisdiction?: string
+          mobile?: string
+          name: string
+          notes?: string
+          org_id?: string
+          phone?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          email?: string
+          id?: string
+          jurisdiction?: string
+          mobile?: string
+          name?: string
+          notes?: string
+          org_id?: string
+          phone?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fire_inspectors_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fire_inspectors_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           accuracy_m: number | null
@@ -1939,12 +2107,72 @@ export type Database = {
         }
         Relationships: []
       }
+      patrol_edits: {
+        Row: {
+          after: Json
+          before: Json
+          edited_at: string
+          edited_by: string | null
+          edited_by_name: string
+          id: string
+          org_id: string
+          patrol_id: string
+          reason: string
+        }
+        Insert: {
+          after: Json
+          before: Json
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string
+          id?: string
+          org_id: string
+          patrol_id: string
+          reason?: string
+        }
+        Update: {
+          after?: Json
+          before?: Json
+          edited_at?: string
+          edited_by?: string | null
+          edited_by_name?: string
+          id?: string
+          org_id?: string
+          patrol_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patrol_edits_edited_by_fkey"
+            columns: ["edited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patrol_edits_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patrol_edits_patrol_id_fkey"
+            columns: ["patrol_id"]
+            isOneToOne: false
+            referencedRelation: "patrols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patrols: {
         Row: {
           areas: string[]
           client_op_id: string | null
           created_at: string
           date_time: string
+          edited_at: string | null
+          edited_by_name: string
           geofence_distance_m: number | null
           id: string
           latitude: number | null
@@ -1966,6 +2194,8 @@ export type Database = {
           client_op_id?: string | null
           created_at?: string
           date_time: string
+          edited_at?: string | null
+          edited_by_name?: string
           geofence_distance_m?: number | null
           id?: string
           latitude?: number | null
@@ -1987,6 +2217,8 @@ export type Database = {
           client_op_id?: string | null
           created_at?: string
           date_time?: string
+          edited_at?: string | null
+          edited_by_name?: string
           geofence_distance_m?: number | null
           id?: string
           latitude?: number | null
@@ -2123,18 +2355,21 @@ export type Database = {
       profit_settings: {
         Row: {
           direct_burden_pct: number
+          federal_tax_pct: number
           org_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           direct_burden_pct?: number
+          federal_tax_pct?: number
           org_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           direct_burden_pct?: number
+          federal_tax_pct?: number
           org_id?: string
           updated_at?: string
           updated_by?: string | null
@@ -2168,6 +2403,7 @@ export type Database = {
           geofence_radius_m: number | null
           id: string
           image_path: string | null
+          inspector_id: string | null
           name: string
           notes: string
           org_id: string
@@ -2191,6 +2427,7 @@ export type Database = {
           geofence_radius_m?: number | null
           id?: string
           image_path?: string | null
+          inspector_id?: string | null
           name: string
           notes?: string
           org_id?: string
@@ -2214,6 +2451,7 @@ export type Database = {
           geofence_radius_m?: number | null
           id?: string
           image_path?: string | null
+          inspector_id?: string | null
           name?: string
           notes?: string
           org_id?: string
@@ -2232,6 +2470,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "fire_inspectors"
             referencedColumns: ["id"]
           },
           {
@@ -2297,6 +2542,195 @@ export type Database = {
           },
           {
             foreignKeyName: "property_bill_rates_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_paper_logs: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          log_date: string
+          mime_type: string
+          note: string
+          org_id: string
+          property_id: string
+          size_bytes: number
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          log_date: string
+          mime_type?: string
+          note?: string
+          org_id: string
+          property_id: string
+          size_bytes?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          log_date?: string
+          mime_type?: string
+          note?: string
+          org_id?: string
+          property_id?: string
+          size_bytes?: number
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_paper_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_paper_logs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_watch_email: {
+        Row: {
+          billing_email: string
+          client_first_name: string
+          coverage: string
+          deposit_amount: number | null
+          officers: number | null
+          onsite_contact: string
+          org_id: string
+          property_id: string
+          recipients: string[]
+          send_end: boolean
+          send_start: boolean
+          text_end: boolean
+          text_phones: string[]
+          text_start: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          billing_email?: string
+          client_first_name?: string
+          coverage?: string
+          deposit_amount?: number | null
+          officers?: number | null
+          onsite_contact?: string
+          org_id: string
+          property_id: string
+          recipients?: string[]
+          send_end?: boolean
+          send_start?: boolean
+          text_end?: boolean
+          text_phones?: string[]
+          text_start?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          billing_email?: string
+          client_first_name?: string
+          coverage?: string
+          deposit_amount?: number | null
+          officers?: number | null
+          onsite_contact?: string
+          org_id?: string
+          property_id?: string
+          recipients?: string[]
+          send_end?: boolean
+          send_start?: boolean
+          text_end?: boolean
+          text_phones?: string[]
+          text_start?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_watch_email_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_watch_email_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_watches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ended_at: string | null
+          ended_by: string | null
+          ended_on: string | null
+          id: string
+          org_id: string
+          property_id: string
+          shifts_cleared: number
+          started_on: string
+          summary: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_on?: string | null
+          id?: string
+          org_id: string
+          property_id: string
+          shifts_cleared?: number
+          started_on: string
+          summary?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ended_at?: string | null
+          ended_by?: string | null
+          ended_on?: string | null
+          id?: string
+          org_id?: string
+          property_id?: string
+          shifts_cleared?: number
+          started_on?: string
+          summary?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_watches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_watches_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
@@ -2380,8 +2814,48 @@ export type Database = {
           },
         ]
       }
+      shift_link_auto: {
+        Row: {
+          attempted_at: string
+          note: string
+          ok: boolean
+          org_id: string
+          shift_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          note?: string
+          ok?: boolean
+          org_id: string
+          shift_id: string
+        }
+        Update: {
+          attempted_at?: string
+          note?: string
+          ok?: boolean
+          org_id?: string
+          shift_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_link_auto_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_link_auto_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: true
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_links: {
         Row: {
+          auto: boolean
           created_at: string
           created_by: string | null
           expires_at: string
@@ -2397,6 +2871,7 @@ export type Database = {
           token_hash: string
         }
         Insert: {
+          auto?: boolean
           created_at?: string
           created_by?: string | null
           expires_at: string
@@ -2412,6 +2887,7 @@ export type Database = {
           token_hash: string
         }
         Update: {
+          auto?: boolean
           created_at?: string
           created_by?: string | null
           expires_at?: string
@@ -2443,6 +2919,60 @@ export type Database = {
           },
           {
             foreignKeyName: "shift_links_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_locations: {
+        Row: {
+          accuracy_m: number | null
+          at: string
+          distance_m: number | null
+          heading: number | null
+          id: number
+          lat: number
+          lng: number
+          org_id: string
+          shift_id: string
+          speed_mps: number | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          at?: string
+          distance_m?: number | null
+          heading?: number | null
+          id?: never
+          lat: number
+          lng: number
+          org_id: string
+          shift_id: string
+          speed_mps?: number | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          at?: string
+          distance_m?: number | null
+          heading?: number | null
+          id?: never
+          lat?: number
+          lng?: number
+          org_id?: string
+          shift_id?: string
+          speed_mps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_locations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_locations_shift_id_fkey"
             columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "shifts"
@@ -2747,6 +3277,150 @@ export type Database = {
           },
         ]
       }
+      watch_email_settings: {
+        Row: {
+          auto_enabled: boolean
+          company_legal: string
+          direct_line: string
+          invoice_days: number
+          live_since: string
+          office_line: string
+          org_id: string
+          review_url: string
+          signer_name: string
+          signer_title: string
+          updated_at: string
+          updated_by: string | null
+          website: string
+          your_phone: string
+        }
+        Insert: {
+          auto_enabled?: boolean
+          company_legal?: string
+          direct_line?: string
+          invoice_days?: number
+          live_since?: string
+          office_line?: string
+          org_id: string
+          review_url?: string
+          signer_name?: string
+          signer_title?: string
+          updated_at?: string
+          updated_by?: string | null
+          website?: string
+          your_phone?: string
+        }
+        Update: {
+          auto_enabled?: boolean
+          company_legal?: string
+          direct_line?: string
+          invoice_days?: number
+          live_since?: string
+          office_line?: string
+          org_id?: string
+          review_url?: string
+          signer_name?: string
+          signer_title?: string
+          updated_at?: string
+          updated_by?: string | null
+          website?: string
+          your_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_email_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_emails: {
+        Row: {
+          attempts: number
+          created_at: string
+          error: string
+          event_at: string | null
+          id: string
+          intended_to: string[]
+          kind: string
+          org_id: string
+          property_id: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_to: string[]
+          status: string
+          subject: string
+          test_mode: boolean
+          trigger: string
+          updated_at: string
+          watch_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error?: string
+          event_at?: string | null
+          id?: string
+          intended_to?: string[]
+          kind: string
+          org_id: string
+          property_id: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to?: string[]
+          status: string
+          subject?: string
+          test_mode?: boolean
+          trigger?: string
+          updated_at?: string
+          watch_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error?: string
+          event_at?: string | null
+          id?: string
+          intended_to?: string[]
+          kind?: string
+          org_id?: string
+          property_id?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to?: string[]
+          status?: string
+          subject?: string
+          test_mode?: boolean
+          trigger?: string
+          updated_at?: string
+          watch_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_emails_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_emails_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_emails_watch_id_fkey"
+            columns: ["watch_id"]
+            isOneToOne: false
+            referencedRelation: "property_watches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_notes: {
         Row: {
           author_id: string | null
@@ -2788,6 +3462,88 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watch_texts: {
+        Row: {
+          attempts: number
+          body: string
+          created_at: string
+          error: string
+          id: string
+          intended_to: string[]
+          kind: string
+          org_id: string
+          property_id: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_to: string[]
+          status: string
+          test_mode: boolean
+          trigger: string
+          updated_at: string
+          watch_id: string
+        }
+        Insert: {
+          attempts?: number
+          body?: string
+          created_at?: string
+          error?: string
+          id?: string
+          intended_to?: string[]
+          kind: string
+          org_id: string
+          property_id: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to?: string[]
+          status: string
+          test_mode?: boolean
+          trigger?: string
+          updated_at?: string
+          watch_id: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          created_at?: string
+          error?: string
+          id?: string
+          intended_to?: string[]
+          kind?: string
+          org_id?: string
+          property_id?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to?: string[]
+          status?: string
+          test_mode?: boolean
+          trigger?: string
+          updated_at?: string
+          watch_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_texts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_texts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_texts_watch_id_fkey"
+            columns: ["watch_id"]
+            isOneToOne: false
+            referencedRelation: "property_watches"
             referencedColumns: ["id"]
           },
         ]
@@ -4524,6 +5280,8 @@ export type Database = {
           agency_worker_ref: string
           archived_at: string | null
           archived_by: string | null
+          auto_link_email: boolean
+          auto_link_text: boolean
           availability: string
           created_at: string
           created_by: string | null
@@ -4554,6 +5312,8 @@ export type Database = {
           agency_worker_ref?: string
           archived_at?: string | null
           archived_by?: string | null
+          auto_link_email?: boolean
+          auto_link_text?: boolean
           availability?: string
           created_at?: string
           created_by?: string | null
@@ -4584,6 +5344,8 @@ export type Database = {
           agency_worker_ref?: string
           archived_at?: string | null
           archived_by?: string | null
+          auto_link_email?: boolean
+          auto_link_text?: boolean
           availability?: string
           created_at?: string
           created_by?: string | null
@@ -4660,6 +5422,21 @@ export type Database = {
     Functions: {
       admin_export_data: { Args: never; Returns: Json }
       admin_export_report: { Args: never; Returns: Json }
+      client_billing: { Args: never; Returns: Json }
+      client_invoice__guard: { Args: never; Returns: string }
+      client_invoice__worked: {
+        Args: { p_from: string; p_property: string; p_to: string }
+        Returns: Json
+      }
+      client_invoice_delete: { Args: { p_id: string }; Returns: string }
+      client_invoice_save: {
+        Args: { p: Json; p_void?: string[] }
+        Returns: string
+      }
+      client_invoice_status: {
+        Args: { p_id: string; p_paid_on?: string; p_status: string }
+        Returns: undefined
+      }
       crm_intake: { Args: { p: Json }; Returns: Json }
       crm_quote_accept: {
         Args: {
@@ -4902,6 +5679,36 @@ export type Database = {
         Args: { p_force?: boolean; p_tz: string }
         Returns: string
       }
+      paper_log_add: {
+        Args: {
+          p_date: string
+          p_mime: string
+          p_name: string
+          p_note: string
+          p_path: string
+          p_property: string
+          p_size: number
+        }
+        Returns: string
+      }
+      paper_log_delete: { Args: { p_id: string }; Returns: string }
+      paper_log_update: {
+        Args: { p_date: string; p_id: string; p_note: string }
+        Returns: undefined
+      }
+      paper_logs: { Args: { p_property: string }; Returns: Json }
+      patrol_edit: {
+        Args: {
+          p_areas: string[]
+          p_date_time: string
+          p_id: string
+          p_notes: string
+          p_officer: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: Json
+      }
       profit_add_bill_rate: {
         Args: {
           p_effective: string
@@ -4937,6 +5744,23 @@ export type Database = {
         Args: { p_burden: number }
         Returns: {
           direct_burden_pct: number
+          federal_tax_pct: number
+          org_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profit_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      profit_save_tax: {
+        Args: { p_pct: number }
+        Returns: {
+          direct_burden_pct: number
+          federal_tax_pct: number
           org_id: string
           updated_at: string
           updated_by: string | null
@@ -4952,6 +5776,41 @@ export type Database = {
         Args: { p_agency: string; p_overtime?: number; p_regular: number }
         Returns: undefined
       }
+      property_set_inspector: {
+        Args: { p_inspector: string; p_property: string }
+        Returns: undefined
+      }
+      property_watch__clearable: {
+        Args: { p_end: string; p_property: string }
+        Returns: {
+          id: string
+          shift_date: string
+          start_time: string
+        }[]
+      }
+      property_watch__guard: { Args: never; Returns: string }
+      property_watch__totals: {
+        Args: {
+          p_end: string
+          p_property: string
+          p_running?: boolean
+          p_start: string
+        }
+        Returns: Json
+      }
+      property_watch_end: {
+        Args: { p_end: string; p_start: string; p_watch: string }
+        Returns: Json
+      }
+      property_watch_preview: {
+        Args: { p_end: string; p_start: string; p_watch: string }
+        Returns: Json
+      }
+      property_watch_start: {
+        Args: { p_property: string; p_start: string }
+        Returns: string
+      }
+      property_watches: { Args: never; Returns: Json }
       shift__window: {
         Args: { p_tz: string; s: Database["public"]["Tables"]["shifts"]["Row"] }
         Returns: unknown
@@ -5066,6 +5925,13 @@ export type Database = {
         }
         Returns: Json
       }
+      sl_auto__due: {
+        Args: { p_limit?: number }
+        Returns: {
+          org_id: string
+          shift_id: string
+        }[]
+      }
       sl_check_in: {
         Args: {
           p_acc: number
@@ -5120,6 +5986,17 @@ export type Database = {
           p_photos: string[]
           p_queued: boolean
           p_status: string
+        }
+        Returns: Json
+      }
+      sl_ping: {
+        Args: {
+          p_acc: number
+          p_hash: string
+          p_heading: number
+          p_lat: number
+          p_lng: number
+          p_speed: number
         }
         Returns: Json
       }
@@ -5287,6 +6164,27 @@ export type Database = {
         Returns: number
       }
       verify_cron_secret: { Args: { p_secret: string }; Returns: boolean }
+      watch_email__bounds: {
+        Args: { p_watch: string }
+        Returns: {
+          first_start: string
+          last_end: string
+        }[]
+      }
+      watch_email__due: {
+        Args: { p_limit?: number }
+        Returns: {
+          kind: string
+          watch_id: string
+        }[]
+      }
+      watch_text__due: {
+        Args: { p_limit?: number }
+        Returns: {
+          kind: string
+          watch_id: string
+        }[]
+      }
       wf__log: {
         Args: {
           p_action: string
